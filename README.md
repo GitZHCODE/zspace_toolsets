@@ -17,7 +17,7 @@ If you use the library of ZSPACE in a project, please refer to the GitHub reposi
 @misc{zspace-framework, <br/>
       title  = {{zspace}: A simple C++ header-only collection of geometry data-structures, algorithms and city data visualization                       framework.},<br/>
       author = {Vishu Bhooshan and Shajay Bhooshan and others},<br/>
-      note   = {https://github.com/venumb/ZSPACE},<br/>
+      note   = {https://github.com/gitzhcode/zspace_toolsets},<br/>
       year   = {2018},<br/>
     }
 
