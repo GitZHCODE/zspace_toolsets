@@ -1,6 +1,6 @@
 # ZSPACE
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/gitzhcode/zspace_toolsets/LICENSE.MIT)
-[![Documentation](https://img.shields.io/badge/docs-doxygen-blue.svg)](https://github.com/gitzhcode/zspace_core/doxyoutput/)
+[![Documentation](https://img.shields.io/badge/docs-doxygen-blue.svg)](https://github.com/gitzhcode/zspace_toolsets/doxyoutput/)
 [![GitHub Releases](https://img.shields.io/github/release/gitzhcode/zspace_toolsets.svg)](https://github.com/gitzhcode/zspace_toolsets/releases)
 [![GitHub Issues](https://img.shields.io/github/issues/gitzhcode/zspace_toolsets.svg)](http://github.com/gitzhcode/zspace_toolsets/issues)
 
