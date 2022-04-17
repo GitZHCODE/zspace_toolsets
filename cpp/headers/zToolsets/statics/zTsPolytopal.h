@@ -485,7 +485,7 @@ namespace zSpace
 		*/
 		void getDual_ForceDensities_LPA(VectorXd &q);
 
-#ifndef USING_CLR
+#ifdef USING_ARMA
 		/*! \brief This method gets the force densities using the Moore–Penrose inverse method.
 		*
 		*	\param		[out]	q							- output vector of force densities.

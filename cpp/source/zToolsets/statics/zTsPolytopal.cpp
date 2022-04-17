@@ -2231,7 +2231,7 @@ namespace zSpace
 		cout << "\n AQ norm: " << endl << (A * q).norm() << endl;
 	}
 
-#ifndef USING_CLR
+#ifdef USING_ARMA
 	
 	ZSPACE_INLINE void zTsPolytopal::getDual_ForceDensities_MPI(VectorXd &q, double threshold)
 	{
@@ -3087,13 +3087,13 @@ namespace zSpace
 				for (int i = 0; i < numPoints; i++)
 				{
 					zPoint pos;
-					pos.x = (halfElen * cos(theta + HALF_PI));
-					pos.y = (halfElen * sin(theta + HALF_PI));
+					pos.x = (halfElen * cos(theta + Z_HALF_PI));
+					pos.y = (halfElen * sin(theta + Z_HALF_PI));
 					pos.z = 0;
 
 					sectionPoints.push_back(pos);
 
-					theta += (TWO_PI / numPoints);
+					theta += (Z_TWO_PI / numPoints);
 				}
 			}
 
@@ -3106,8 +3106,8 @@ namespace zSpace
 				for (int i = 0; i < numPoints; i++)
 				{
 					zPoint pos;
-					pos.x = (halfElen * cos(theta + HALF_PI));
-					pos.y = (halfElen * sin(theta + HALF_PI));
+					pos.x = (halfElen * cos(theta + Z_HALF_PI));
+					pos.y = (halfElen * sin(theta + Z_HALF_PI));
 					pos.z = 0;
 
 					if (i == 3)
@@ -3118,7 +3118,7 @@ namespace zSpace
 
 					sectionPoints.push_back(pos);
 
-					theta += (TWO_PI / numPoints);
+					theta += (Z_TWO_PI / numPoints);
 				}
 			}
 
