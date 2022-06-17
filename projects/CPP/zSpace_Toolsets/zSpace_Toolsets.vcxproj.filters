@@ -156,6 +156,9 @@
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.h">
       <Filter>Depends\SPA</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFSlicer.h">
+      <Filter>Header Files\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
@@ -247,6 +250,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.c">
       <Filter>Depends\SPA</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer.cpp">
+      <Filter>Source Files\Geometry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
