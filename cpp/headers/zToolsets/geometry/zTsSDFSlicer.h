@@ -110,6 +110,12 @@ namespace zSpace
 
 		/*!	\brief total length of print  */
 		float totalLength = 0;
+
+		zPointArray criticalMinLayer_pts;
+
+		zPointArray criticalMaxLayer_pts;
+
+		zDomainFloat printHeightDomain;
 				
 		//--------------------------
 		//---- SDF ATTRIBUTES
@@ -131,6 +137,10 @@ namespace zSpace
 		bool leftPlaneExists, rightPlaneExists;
 
 		int blockId = 1;
+
+		zTransform base_world, base_local;
+
+		bool deckBlock;
 
 	public:
 
@@ -183,6 +193,13 @@ namespace zSpace
 		*/
 		void setFromJSON(string path, int blockStride, int braceStride);
 
+		/*! \brief This method sets mesh from json.
+		*
+		*	\param		[in]	dir		    - input JSON file director.
+		**	\param		[in]	_blockID	- input block ID.
+		*	\since version 0.0.4
+		*/
+		void setFromJSON(string dir, int _blockID);
 
 		/*! \brief This method sets the slice mesh object.
 		*
@@ -207,6 +224,9 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left);
+
+
+		void setTransforms(bool toLocal);
 
 		//--------------------------
 		//---- GET METHODS
@@ -245,6 +265,15 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		zObjGraphPointerArray getBlockContourGraphs(int& numGraphs);
+
+		/*! \brief This method gets the critical points of the section graphs
+		*
+		*	\param		[in]	blockId					- input block index.
+		*	\param		[out]	numPoints				- output number of points.
+		*	\return				zPoint*					- pointer conatiner of points if they exist.
+		*	\since version 0.0.2
+		*/
+		zPoint* getRawCriticalPoints(bool minHeight, int& numPoints);
 
 		/*! \brief This method gets pointer to the internal field object.
 		*
@@ -435,6 +464,7 @@ namespace zSpace
 
 		bool readJSON(string path, json& j);
 
+		bool fileExists(string& path);
 
 	};
 }

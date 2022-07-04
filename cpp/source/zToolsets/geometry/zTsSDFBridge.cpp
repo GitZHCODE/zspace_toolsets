@@ -9582,98 +9582,99 @@ namespace zSpace
 
 		}
 
-
-		//halfEdge attributes
-		meshJSON.halfedgeAttributes.clear();
-		meshJSON.halfedgeAttributes = (j["HalfedgeAttributes"].get<vector<vector<double>>>());
-
-
-		for (zItMeshHalfEdge he(*o_guideMesh); !he.end(); he++)
-		{
-
-			//if (he.getId() != 8)continue;
-			vector<double> he_attrib = meshJSON.halfedgeAttributes[he.getId()];
-
-			zPoint p ;
-			zVector n;
-
-		
-			
-			
-			float d = 0;
-
-			he.getEdge().setColor(zColor(0, 0, 0, 1));
-
-			if (/*n.length() > 0 &&*/ guideHalfEdge_planeFace[he.getId()].size() >0)
-			{
-				zItMeshFace f(o_planeMesh, guideHalfEdge_planeFace[he.getId()][0]);
-
-				if (f.getColor() == grey)
-				{
-					//n = zVector();
-					//p = zVector();
-				}
-				else
-				{
-					 p = zPoint(he_attrib[0], he_attrib[1], he_attrib[2]);
-					 n = zVector(he_attrib[3], he_attrib[4], he_attrib[5]);
-
-					he.getEdge().setColor(green);
-
-					int fId = guideHalfEdge_planeFace[he.getId()][0];
-
-					zItMeshFace f(o_planeMesh, fId);
-					zVector nf = f.getNormal();
-					zPoint pf = f.getCenter();
-
-					if (n * nf < 0) n *= -1;
-
-					d = n * nf;
-
-					if (d < devDomain.min) devDomain.min = d;
-					if (d > devDomain.max) devDomain.max = d;
-
-					//p = pf;
-				}
-				
-			
-			}
-
-			normals.push_back(n);
-			deviations.push_back(d);
-
-			points.push_back(p);
-
-		}
-
-		targetNormals.clear();
-		targetNormals = normals;
-
-		targetCenters.clear();
-		targetCenters = points;
-
 		
 
-		zFnMesh fnPlaneMesh(o_planeMesh);
-		fnPlaneMesh.setFaceColor(zColor(0.95, 0.95, 0.95, 1));
+		////halfEdge attributes
+		//meshJSON.halfedgeAttributes.clear();
+		//meshJSON.halfedgeAttributes = (j["HalfedgeAttributes"].get<vector<vector<double>>>());
 
-		printf("\n nf %i nT %i ", fnPlaneMesh.numPolygons(), targetNormals.size());
 
-		zDomainColor colDomain(zColor(0, 1, 1), zColor(120, 1, 1));
-		zDomainFloat inDomain(-1, 1);
-		for (int i = 0; i < deviations.size(); i++)
-		{
-			if (deviations[i] != 0)
-			{
-				int fId = guideHalfEdge_planeFace[i][0];
-				zItMeshFace f(o_planeMesh, fId);
+		//for (zItMeshHalfEdge he(*o_guideMesh); !he.end(); he++)
+		//{
 
-				zColor fCol = coreUtils.blendColor(deviations[i], inDomain, colDomain, zHSV);
-				f.setColor(fCol);
-			}
-		}
+		//	//if (he.getId() != 8)continue;
+		//	vector<double> he_attrib = meshJSON.halfedgeAttributes[he.getId()];
 
-		printf("\n BRG dev | %1.6f  %1.6f ", devDomain.min, devDomain.max);
+		//	zPoint p ;
+		//	zVector n;
+
+		//
+		//	
+		//	
+		//	float d = 0;
+
+		//	he.getEdge().setColor(zColor(0, 0, 0, 1));
+
+		//	if (/*n.length() > 0 &&*/ guideHalfEdge_planeFace[he.getId()].size() >0)
+		//	{
+		//		zItMeshFace f(o_planeMesh, guideHalfEdge_planeFace[he.getId()][0]);
+
+		//		if (f.getColor() == grey)
+		//		{
+		//			//n = zVector();
+		//			//p = zVector();
+		//		}
+		//		else
+		//		{
+		//			 p = zPoint(he_attrib[0], he_attrib[1], he_attrib[2]);
+		//			 n = zVector(he_attrib[3], he_attrib[4], he_attrib[5]);
+
+		//			he.getEdge().setColor(green);
+
+		//			int fId = guideHalfEdge_planeFace[he.getId()][0];
+
+		//			zItMeshFace f(o_planeMesh, fId);
+		//			zVector nf = f.getNormal();
+		//			zPoint pf = f.getCenter();
+
+		//			if (n * nf < 0) n *= -1;
+
+		//			d = n * nf;
+
+		//			if (d < devDomain.min) devDomain.min = d;
+		//			if (d > devDomain.max) devDomain.max = d;
+
+		//			//p = pf;
+		//		}
+		//		
+		//	
+		//	}
+
+		//	normals.push_back(n);
+		//	deviations.push_back(d);
+
+		//	points.push_back(p);
+
+		//}
+
+		//targetNormals.clear();
+		//targetNormals = normals;
+
+		//targetCenters.clear();
+		//targetCenters = points;
+
+		//
+
+		//zFnMesh fnPlaneMesh(o_planeMesh);
+		//fnPlaneMesh.setFaceColor(zColor(0.95, 0.95, 0.95, 1));
+
+		//printf("\n nf %i nT %i ", fnPlaneMesh.numPolygons(), targetNormals.size());
+
+		//zDomainColor colDomain(zColor(0, 1, 1), zColor(120, 1, 1));
+		//zDomainFloat inDomain(-1, 1);
+		//for (int i = 0; i < deviations.size(); i++)
+		//{
+		//	if (deviations[i] != 0)
+		//	{
+		//		int fId = guideHalfEdge_planeFace[i][0];
+		//		zItMeshFace f(o_planeMesh, fId);
+
+		//		zColor fCol = coreUtils.blendColor(deviations[i], inDomain, colDomain, zHSV);
+		//		f.setColor(fCol);
+		//	}
+		//}
+
+		//printf("\n BRG dev | %1.6f  %1.6f ", devDomain.min, devDomain.max);
 
 	}
 
