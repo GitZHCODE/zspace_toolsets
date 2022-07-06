@@ -248,16 +248,39 @@ namespace zSpace
 		if (leftPlaneExists)
 		{
 			// left mesh
-			computeSliceMesh(o_GuideMesh, sID, eID, blockStride, true);
-			computeMedial_BraceEdges(o_SliceMesh_Left, 3, 0, blockStride, braceStride);
+			if (deckBlock)
+			{
+				computeSliceMesh(o_GuideMesh, sID, eID, blockStride, true);
+				computeMedial_BraceEdges(o_SliceMesh_Left, 3, 0, blockStride, braceStride);
+			}
+			else
+			{
+				zFnMesh fnMesh_Left(o_SliceMesh_Left);
+				fnMesh_Left.clear();
+				fnMesh_Left.from(path, zJSON);
+
+				computeMedial_BraceEdges(o_SliceMesh_Left, sID, eID, blockStride, braceStride);
+			}
+			
 		}
 
 		//right mesh
 		if (rightPlaneExists)
-		{
-			//right mesh
-			computeSliceMesh(o_GuideMesh, sID, eID, blockStride, false);
-			computeMedial_BraceEdges(o_SliceMesh_Right, 0, 1, blockStride, braceStride);
+		{			
+			// right mesh
+			if (deckBlock)
+			{
+				computeSliceMesh(o_GuideMesh, sID, eID, blockStride, false);
+				computeMedial_BraceEdges(o_SliceMesh_Right, 0, 1, blockStride, braceStride);
+			}
+			else
+			{
+				zFnMesh fnMesh_Right(o_SliceMesh_Right);
+				fnMesh_Right.clear();
+				fnMesh_Right.from(path, zJSON);
+
+				computeMedial_BraceEdges(o_SliceMesh_Right, sID, eID, blockStride, braceStride);
+			}
 		}
 
 
@@ -289,6 +312,14 @@ namespace zSpace
 			fnMesh.setTransform(base_world, true, false);			
 			fnMesh.setTransform(base_local, true, true);
 
+			zFnMesh fnMesh_left(o_SliceMesh_Left);
+			fnMesh_left.setTransform(base_world, true, false);
+			fnMesh_left.setTransform(base_local, true, true);
+
+			zFnMesh fnMesh_right(o_SliceMesh_Right);
+			fnMesh_right.setTransform(base_world, true, false);
+			fnMesh_right.setTransform(base_local, true, true);
+
 			// section graphs
 			for (auto& g : o_sectionGraphs)
 			{
@@ -305,15 +336,25 @@ namespace zSpace
 				fnGraph.setTransform(base_local, true, true);
 			}
 
-			zTransform t = coreUtils.PlanetoPlane(base_world, base_local);
-			for (auto& p : criticalMinLayer_pts) p = p * t;
-			for (auto& p : criticalMaxLayer_pts) p = p * t;
+			zFnPointCloud fnCritical_min(criticalMinLayer_pts);
+			fnCritical_min.setTransform(base_world, true, false);
+			fnCritical_min.setTransform(base_local, true, true);
+
+			zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
+			fnCritical_max.setTransform(base_world, true, false);
+			fnCritical_max.setTransform(base_local, true, true);			
 
 		}
 		else
 		{
 			zFnMesh fnMesh(o_GuideMesh);
-			fnMesh.setTransform(base_world, true, true);			
+			fnMesh.setTransform(base_world, true, true);	
+
+			zFnMesh fnMesh_left(o_SliceMesh_Left);
+			fnMesh_left.setTransform(base_world, true, true);
+
+			zFnMesh fnMesh_right(o_SliceMesh_Right);
+			fnMesh_right.setTransform(base_world, true, true);
 
 			// section graphs
 			for (auto& g : o_sectionGraphs)
@@ -329,9 +370,11 @@ namespace zSpace
 				fnGraph.setTransform(base_world, true, true);
 			}
 
-			zTransform t = coreUtils.PlanetoPlane(base_local, base_world);
-			for (auto& p : criticalMinLayer_pts) p = p * t;
-			for (auto& p : criticalMaxLayer_pts) p = p * t;
+			zFnPointCloud fnCritical_min(criticalMinLayer_pts);
+			fnCritical_min.setTransform(base_world, true, true);
+
+			zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
+			fnCritical_max.setTransform(base_world, true, true);
 
 		}
 	}
@@ -394,10 +437,9 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zPoint* zTsSDFSlicer::getRawCriticalPoints(bool minHeight, int& numPoints)
+	ZSPACE_INLINE zObjPointCloud* zTsSDFSlicer::getRawCriticalPoints(bool minHeight)
 	{
-		numPoints = (minHeight) ? criticalMinLayer_pts.size() : criticalMaxLayer_pts.size();
-		return (minHeight) ? &criticalMinLayer_pts[0] : &criticalMaxLayer_pts[0];
+		return (minHeight) ? &criticalMinLayer_pts : &criticalMaxLayer_pts;
 	}
 
 	ZSPACE_INLINE zObjMeshScalarField* zTsSDFSlicer::getRawFieldMesh()
@@ -427,7 +469,7 @@ namespace zSpace
 
 	//---- COMPUTE METHODS
 
-	ZSPACE_INLINE void zTsSDFSlicer::computePrintBlocks(float printPlaneSpacing, float printLayerWidth, float raftLayerWidth, zDomainFloat neopreneOffset, bool compFrames, bool compSDF)
+	ZSPACE_INLINE void zTsSDFSlicer::computePrintBlocks(float printPlaneSpacing, float printLayerWidth, float raftLayerWidth, int funcNum, zDomainFloat neopreneOffset, bool compFrames, bool compSDF)
 	{
 		if (compFrames)
 		{
@@ -440,14 +482,19 @@ namespace zSpace
 			if (leftPlaneExists) computePrintBlockSections(true);
 			if (rightPlaneExists) computePrintBlockSections(false);
 
-			checkPrintLayerHeights();
+			//checkPrintLayerHeights();
 		}
 
 		if (compSDF)
 		{
-			computeSDF(printLayerWidth, neopreneOffset.min, raftLayerWidth);
+			computeSDF(funcNum,printLayerWidth, neopreneOffset.min, raftLayerWidth);
 		}
 
+	}
+
+	ZSPACE_INLINE bool zTsSDFSlicer::onDeckBlock()
+	{
+		return deckBlock;
 	}
 
 	ZSPACE_INLINE void zTsSDFSlicer::computeMedialGraph(zObjMesh& o_Mesh, int startVID, int endVID)
@@ -510,26 +557,46 @@ namespace zSpace
 		//compute start half edge
 		zItMeshHalfEdge heStart = getStartHalfEdge(o_Mesh, startVID, endVID);
 
+		// check if associated face normal is pointing down
+		zVector down(0, 0, -1);
+		zVector norm = heStart.getFace().getNormal();
+		norm.normalize();
+
+		bool flipHE = false;
+		if (norm * down < 0.8)
+		{
+			flipHE = true;
+			heStart = heStart.getSym();
+		}
+
 		// compute spine & brace edges
 		bool exit = false;
 		zItMeshHalfEdge he = heStart;
 		
+		
+
 		do
-		{					
+		{	
 			//U direction
-			zItMeshHalfEdge he_U = he.getPrev();
+			zItMeshHalfEdge he_U = (flipHE) ? he.getNext() : he.getPrev();
 			for (int i = 0; i < blockStride; i++)
 			{
-				if (i % braceStride == 0) he_U.getNext().getEdge().setColor(magenta);
-				if (i == blockStride - 1) he_U.getPrev().getEdge().setColor(orange);
+				if (i % braceStride == 0)
+				{
+					(flipHE) ? he_U.getPrev().getEdge().setColor(magenta) : he_U.getNext().getEdge().setColor(magenta);
+				}
+				if (i == blockStride - 1)
+				{
+					(flipHE) ? he_U.getNext().getEdge().setColor(orange) : he_U.getPrev().getEdge().setColor(orange);
+				}
 
-				he_U = he_U.getPrev().getSym().getPrev();
+				he_U = (flipHE) ? he_U.getNext().getSym().getNext() : he_U.getPrev().getSym().getPrev();
 			}
 			
 
 			//spine
 			he.getEdge().setColor(blue);
-			he = he.getNext().getSym().getNext();
+			he = (flipHE) ? he.getPrev().getSym().getPrev(): he.getNext().getSym().getNext();
 
 			if (he == heStart) exit = true;
 
@@ -1131,7 +1198,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFSlicer::computeSDF(float printWidth, float neopreneOffset, float raftWidth)
+	ZSPACE_INLINE void zTsSDFSlicer::computeSDF(int funcNum, float printWidth, float neopreneOffset, float raftWidth)
 	{
 		o_contourGraphs.clear();
 		o_contourGraphs.assign(o_sectionGraphs.size(), zObjGraph());	
@@ -1154,6 +1221,7 @@ namespace zSpace
 		bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
 
 		int end = (!deckBlock) ? o_sectionGraphs.size() : floor(o_sectionGraphs.size() * 0.5);
+		//end = end - 1;
 
 		for (int j = 1; j < end; j++)
 		{
@@ -1169,7 +1237,15 @@ namespace zSpace
 
 				if (!deckBlock)
 				{
+					if (i == r0)
+					{
+						//raft 
+					}
+					else
+					{
+						computeBlockSDF_Balustrade(funcNum, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
 
+					}
 				}
 				else
 				{
@@ -1183,7 +1259,7 @@ namespace zSpace
 					}
 					else
 					{
-						computeBlockSDF_Internal(i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
+						computeBlockSDF_Deck(funcNum, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
 					}
 				}
 
@@ -1200,6 +1276,10 @@ namespace zSpace
 		float maxLayerHeight = 0;
 		int minHeightGraphID = -1;
 		bool checkOranges = true;
+		bool checkMagentas = true;
+
+		zFnPointCloud fnCritical_min(criticalMinLayer_pts);
+		zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
 
 		int r0 = 0;
 		int r1 = floor(o_sectionGraphs.size() * 0.5) - 1;
@@ -1240,12 +1320,14 @@ namespace zSpace
 				float layerWidth = 0.025;
 
 				int orangeCounter = 0;
+				int magentaCounter = 0;
 
 				for (zItGraphVertex v(o_sectionGraphs[i]); !v.end(); v++)
 				{
 					zPoint p = v.getPosition();
 
 					if (v.getColor() == orange) orangeCounter++;
+					if (v.getColor() == magenta) magentaCounter++;
 
 					zPoint p1 = p + norm * 1.0;
 
@@ -1257,14 +1339,23 @@ namespace zSpace
 					minHeightGraphID = (layerHeight < minLayerHeight) ? i : minHeightGraphID;
 					minLayerHeight = (layerHeight < minLayerHeight) ? layerHeight : minLayerHeight;
 
-					if (layerHeight < printHeightDomain.min)criticalMinLayer_pts.push_back(p);
-					if (layerHeight > printHeightDomain.max)criticalMaxLayer_pts.push_back(p);
+					if (layerHeight < printHeightDomain.min)fnCritical_min.addPosition(p);
+					if (layerHeight > printHeightDomain.max)fnCritical_max.addPosition(p);
 
 				}
 
 				if (orangeCounter != 2)
 				{
 					checkOranges = false;					
+				}
+
+				if (deckBlock)
+				{
+					if (magentaCounter != 6) checkMagentas = false;
+				}
+				else
+				{
+					if (magentaCounter != 8) checkMagentas = false;
 				}
 
 
@@ -1277,16 +1368,21 @@ namespace zSpace
 			}
 		}
 
-		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | < min ht pts %i  | > max ht pts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", criticalMinLayer_pts.size(), criticalMaxLayer_pts.size());
+		fnCritical_min.setVertexColor(magenta);		
+		fnCritical_max.setVertexColor(magenta);
 
+		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | chkMagenta %s | < min ht pts %i  | > max ht pts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", (checkMagentas) ? "T" : "F", fnCritical_min.numVertices(), fnCritical_max.numVertices());
 
-		return false;
+		bool out = true;
+		if (!checkOranges || !checkMagentas) out = false;
+
+		return out;
 	}
 
-	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Internal(int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
+	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Deck(int funcNum, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
 	{
 		if (graphId >= o_sectionGraphs.size())return;
-		int funcNum = 4;
+		
 
 		printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
 
@@ -1338,7 +1434,7 @@ namespace zSpace
 		fnTrimGraph.setTransform(t, true, true);
 
 		zScalarArray cableField;
-		if (funcNum >= 3) getScalars_3dp_cable(cableField, o_sectionGraphs[graphId], topHE, bottomHE, 0.35 * pWidth);
+		if (funcNum >= 3) getScalars_3dp_slot(cableField, o_sectionGraphs[graphId], topHE, bottomHE, 0.35 * pWidth);
 
 		zScalarArray booleanField_0;
 		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
@@ -1384,6 +1480,109 @@ namespace zSpace
 		fnGraph.setTransform(t, true, true);
 		fnIsoGraph.setTransform(t, true, true);
 	}
+
+	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Balustrade(int funcNum, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
+	{
+		if (graphId >= o_sectionGraphs.size())return;
+
+
+		printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
+
+		zFnGraph fnGraph(o_sectionGraphs[graphId]);
+		float pWidth = (addRaft) ? printWidth : printWidth;
+		float inc3dWidth = (addRaft) ? 0.025 : 0.025;
+
+
+		zPoint* positions = fnGraph.getRawVertexPositions();
+
+		zTransform t = sectionFrames[graphId];
+		fnGraph.setTransform(t, true, false);
+
+		zPoint o(t(3, 0), t(3, 1), t(3, 2));
+		zVector n(t(2, 0), t(2, 1), t(2, 2));
+
+		// TOP BOTTOM HALF EDGES
+		zItGraphHalfEdgeArray topHE, bottomHE;
+		float topLength, bottomLength;
+		polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
+
+
+		// Transform
+		zTransform tLocal;
+		tLocal.setIdentity();
+		fnGraph.setTransform(tLocal, true, true);
+
+		// field
+		zFnMeshScalarField fnField(o_field);
+
+		float offset_outer = 0.5 * pWidth;
+		float offset_inner = 1.5 * pWidth;
+
+		// Profile polygon field
+		zScalarArray polyField;
+		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], false);
+
+		zScalarArray polyField_offset_outer;
+		if (funcNum >= 1)
+		{
+			polyField_offset_outer = polyField;;
+			for (auto& s : polyField_offset_outer) s += offset_outer;
+		}
+
+		zScalarArray braceField;
+		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE, pWidth, 0.25 * pWidth, alternate);
+
+		zFnGraph fnTrimGraph(o_trimGraphs[graphId]);
+		fnTrimGraph.setTransform(t, true, true);
+
+		zScalarArray cableField;
+		if (funcNum >= 3) getScalars_3dp_slot(cableField, o_sectionGraphs[graphId], topHE, bottomHE, 0.35 * pWidth);
+
+		zScalarArray booleanField_0;
+		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
+
+		zScalarArray booleanField_1;
+		if (funcNum >= 5) fnField.boolean_subtract(booleanField_0, cableField, booleanField_1, false);
+
+		// RESULT FIELDS
+		switch (funcNum)
+		{
+		case 0:
+			fnField.setFieldValues(polyField);
+			break;
+
+		case 1:
+			fnField.setFieldValues(polyField_offset_outer);
+			break;
+
+		case 2:
+			fnField.setFieldValues(braceField);
+			break;
+
+		case 3:
+			fnField.setFieldValues(cableField);
+			break;
+
+		case 4:
+			fnField.setFieldValues(booleanField_0);
+			break;
+
+		case 5:
+			fnField.setFieldValues(booleanField_1);
+			break;
+		}
+
+
+		zFnGraph fnIsoGraph(o_contourGraphs[graphId]);
+		fnField.getIsocontour(o_contourGraphs[graphId], 0.0);
+
+		fnIsoGraph.setEdgeWeight(2);
+
+		// transform back 
+		fnGraph.setTransform(t, true, true);
+		fnIsoGraph.setTransform(t, true, true);
+	}
+
 
 	ZSPACE_INLINE bool zTsSDFSlicer::exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth)
 	{
@@ -1732,48 +1931,40 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFSlicer::getScalars_3dp_cable(zScalarArray& scalars, zObjGraph& inPolyObj, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float offset)
+	ZSPACE_INLINE void zTsSDFSlicer::getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& inPolyObj, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float offset)
 	{
 		zFnMeshScalarField fnField(o_field);
 
-		zFnGraph inFnGraph(inPolyObj);	
+		zFnGraph inFnGraph(inPolyObj);
 
 		zVector* inPositions = inFnGraph.getRawVertexPositions();
 		zColor* inColors = inFnGraph.getRawVertexColors();
 
+		zPointArray tmpPositions;
 		zPointArray gPositions;
-		zIntArray gEdgeCOnnects;
 
 		// make graph
 
-		for (int i = 0; i < bottomHE.size(); i++)
+		for (auto& he : bottomHE)
 		{
-			if (inColors[bottomHE[i].getVertex().getId()] == magenta)
-			{
-				zPoint p0 = inPositions[bottomHE[i].getVertex().getId()];
-				zPoint p1 = inPositions[topHE[i].getVertex().getId()];
-
-				zVector newE = p1 - p0;
-				float newELen = newE.length();
-				newE.normalize();
-
-				zPoint p3 = p0 + newE * newELen * 0.5;
-				zPoint p2 = p3 + newE * newELen * offset * 0.5;
-
-				gPositions.push_back(p2);
-				gPositions.push_back(p3);
-
-				gEdgeCOnnects.push_back(gPositions.size() - 2);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-							
-			}	
+			if (inColors[he.getVertex().getId()] == magenta) tmpPositions.push_back(inPositions[he.getVertex().getId()]);
 		}
-				
-		zObjGraph tempGraph;
-		zFnGraph fnTempGraph(tempGraph);
-		fnTempGraph.create(gPositions, gEdgeCOnnects);
 
-		fnField.getScalarsAsEdgeDistance(scalars, tempGraph, offset, false);
+		for (auto& he : topHE)
+		{
+			if (inColors[he.getVertex().getId()] == magenta) tmpPositions.push_back(inPositions[he.getVertex().getId()]);
+		}
+
+		int end = floor(tmpPositions.size() * 0.5);
+
+		for (int i = 0; i < end; i++)
+		{
+			zPoint p0 = (tmpPositions[i] + tmpPositions[i + end]) * 0.5;
+			gPositions.push_back(p0);	
+
+		}
+
+		fnField.getScalarsAsVertexDistance(scalars, gPositions, offset, false);
 	}
 
 	ZSPACE_INLINE void zTsSDFSlicer::getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& inPolyObj, zObjGraph& outGraph, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float outer_printWidth, float offset, bool alternate)

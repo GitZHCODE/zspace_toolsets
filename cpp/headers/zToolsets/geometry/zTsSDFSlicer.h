@@ -111,9 +111,9 @@ namespace zSpace
 		/*!	\brief total length of print  */
 		float totalLength = 0;
 
-		zPointArray criticalMinLayer_pts;
+		zObjPointCloud criticalMinLayer_pts;
 
-		zPointArray criticalMaxLayer_pts;
+		zObjPointCloud criticalMaxLayer_pts;
 
 		zDomainFloat printHeightDomain;
 				
@@ -269,11 +269,10 @@ namespace zSpace
 		/*! \brief This method gets the critical points of the section graphs
 		*
 		*	\param		[in]	blockId					- input block index.
-		*	\param		[out]	numPoints				- output number of points.
 		*	\return				zPoint*					- pointer conatiner of points if they exist.
 		*	\since version 0.0.2
 		*/
-		zPoint* getRawCriticalPoints(bool minHeight, int& numPoints);
+		zObjPointCloud* getRawCriticalPoints(bool minHeight);
 
 		/*! \brief This method gets pointer to the internal field object.
 		*
@@ -314,12 +313,14 @@ namespace zSpace
 		//---- COMPUTE METHODS
 		//--------------------------
 
+		bool onDeckBlock();
+
 		/*! \brief This method computes the.
 		*
 		* 	\param		[in]	printLayerDepth				- input print layer depth.
 		*	\since version 0.0.4
 		*/
-		void computePrintBlocks(float printPlaneSpacing, float printLayerWidth , float raftLayerWidth, zDomainFloat neopreneOffset = zDomainFloat(0,0), bool compFrames = true, bool compSDF = true);
+		void computePrintBlocks(float printPlaneSpacing, float printLayerWidth , float raftLayerWidth, int funcNum = 0, zDomainFloat neopreneOffset = zDomainFloat(0,0), bool compFrames = true, bool compSDF = true);
 
 		/*! \brief This method computes the medial graph from input mesh.
 		*
@@ -378,7 +379,7 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void computeSDF(float printWidth, float neopreneOffset, float raftWidth);
+		void computeSDF(int funcNum, float printWidth, float neopreneOffset, float raftWidth);
 
 
 
@@ -404,13 +405,22 @@ namespace zSpace
 		*/
 		void computePrintBlockLength( );
 
+		/*! \brief This method compute the block SDF for the deck.
+		*
+		*	\param		[in]	_block						- input block.
+		*	\param		[in]	graphId						- input index of section graph.
+		*	\since version 0.0.4
+		*/
+		void computeBlockSDF_Deck(int funcNum, int graphId, bool alternate, float printWidth = 0.020, float neopreneOffset = 0.005, bool addRaft = false, int raftId = 0, float raftWidth = 0.030);
+
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
 		*	\param		[in]	_block						- input block.
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void computeBlockSDF_Internal( int graphId, bool alternate, float printWidth = 0.020, float neopreneOffset = 0.005, bool addRaft = false, int raftId = 0, float raftWidth = 0.030);
+		void computeBlockSDF_Balustrade(int funcNum, int graphId, bool alternate, float printWidth = 0.020, float neopreneOffset = 0.005, bool addRaft = false, int raftId = 0, float raftWidth = 0.030);
+
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -453,7 +463,7 @@ namespace zSpace
 
 		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
 
-		void getScalars_3dp_cable(zScalarArray& scalars, zObjGraph& inPolyObj, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float offset );
+		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& inPolyObj, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float offset );
 
 		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& inPolyObj, zObjGraph& outGraph, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float outer_printWidth, float offset , bool alternate);
 
