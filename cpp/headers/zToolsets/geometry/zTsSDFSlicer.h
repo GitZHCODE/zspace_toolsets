@@ -266,6 +266,14 @@ namespace zSpace
 		*/
 		zObjGraphPointerArray getBlockContourGraphs(int& numGraphs);
 
+		/*! \brief This method gets the block trim graphs
+		*
+		*	\param		[out]	numGraphs				- output number of graphs.
+		*	\return				zObjGraphPointerArray	- pointer conatiner of graphs if they exist.
+		*	\since version 0.0.2
+		*/
+		zObjGraphPointerArray getBlockTrimGraphs(int& numGraphs);
+
 		/*! \brief This method gets the critical points of the section graphs
 		*
 		*	\param		[in]	blockId					- input block index.
@@ -320,7 +328,7 @@ namespace zSpace
 		* 	\param		[in]	printLayerDepth				- input print layer depth.
 		*	\since version 0.0.4
 		*/
-		void computePrintBlocks(float printPlaneSpacing, float printLayerWidth , float raftLayerWidth, int funcNum = 0, zDomainFloat neopreneOffset = zDomainFloat(0,0), bool compFrames = true, bool compSDF = true);
+		void computePrintBlocks(float printPlaneSpacing, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, zDomainFloat neopreneOffset = zDomainFloat(0,0), bool compFrames = true, bool compSDF = true);
 
 		/*! \brief This method computes the medial graph from input mesh.
 		*
@@ -379,9 +387,14 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void computeSDF(int funcNum, float printWidth, float neopreneOffset, float raftWidth);
+		void computeSDF(bool allSDFLayers, int& numSDFlayers, int funcNum, float printWidth, float neopreneOffset, float raftWidth);
 
-
+		/*! \brief This method compute the block frames.
+		*
+		*	\param		[out]	outGraph						- output trim graph.
+		*	\since version 0.0.4
+		*/
+		void computePrintBlockTrimGraphs(zObjGraph& inPolyObj, zObjGraph &o_outGraph, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE );
 
 		/*! \brief This method compute the block frames.
 		*
@@ -463,10 +476,11 @@ namespace zSpace
 
 		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
 
-		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& inPolyObj, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float offset );
+		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset );
 
-		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& inPolyObj, zObjGraph& outGraph, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float outer_printWidth, float offset , bool alternate);
+		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset , bool alternate);
 
+		void getScalars_3dp_trim(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
 
 		void addVertexToPositionMap(unordered_map<string, int> &positionVertex, zPoint& pos, int index, int precisionfactor = 3);
 
