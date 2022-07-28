@@ -138,6 +138,8 @@ namespace zSpace
 
 		int blockId = 1;
 
+		int numMagentaLoops = 1;
+
 		zTransform base_world, base_local;
 
 		bool deckBlock;
@@ -323,12 +325,14 @@ namespace zSpace
 
 		bool onDeckBlock();
 
+
+
 		/*! \brief This method computes the.
 		*
 		* 	\param		[in]	printLayerDepth				- input print layer depth.
 		*	\since version 0.0.4
 		*/
-		void computePrintBlocks(float printPlaneSpacing, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, zDomainFloat neopreneOffset = zDomainFloat(0,0), bool compFrames = true, bool compSDF = true);
+		void computePrintBlocks(zDomainFloat &_printHeightDomain, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat neopreneOffset = zDomainFloat(0,0),  bool compFrames = true, bool compSDF = true);
 
 		/*! \brief This method computes the medial graph from input mesh.
 		*
@@ -387,7 +391,7 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void computeSDF(bool allSDFLayers, int& numSDFlayers, int funcNum, float printWidth, float neopreneOffset, float raftWidth);
+		void computeSDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
 
 		/*! \brief This method compute the block frames.
 		*
@@ -424,7 +428,7 @@ namespace zSpace
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void computeBlockSDF_Deck(int funcNum, int graphId, bool alternate, float printWidth = 0.020, float neopreneOffset = 0.005, bool addRaft = false, int raftId = 0, float raftWidth = 0.030);
+		void computeBlockSDF_Deck(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -432,7 +436,7 @@ namespace zSpace
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void computeBlockSDF_Balustrade(int funcNum, int graphId, bool alternate, float printWidth = 0.020, float neopreneOffset = 0.005, bool addRaft = false, int raftId = 0, float raftWidth = 0.030);
+		void computeBlockSDF_Balustrade(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 
 
 		/*! \brief This method compute the block SDF for the balustrade.

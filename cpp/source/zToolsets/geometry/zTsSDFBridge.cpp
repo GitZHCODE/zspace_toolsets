@@ -9347,7 +9347,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::toBRGJSON(string path, zPointArray &points,  zVectorArray &normals, zPointArray& vThickness)
+	ZSPACE_INLINE void zTsSDFBridge::toBRGJSON(string path, zPointArray &points,  zVectorArray &normals, zPointArray& vThickness, zTransform& transform)
 	{
 		zFnMesh fnGuidemesh(*o_guideMesh);
 		zFnMesh fnGuideThickmesh(*o_guideThickMesh);
@@ -9432,7 +9432,7 @@ namespace zSpace
 
 		//Halfedge planes
 
-		for (zItMeshHalfEdge he(*o_guideMesh); !he.end(); he++)
+		/*for (zItMeshHalfEdge he(*o_guideMesh); !he.end(); he++)
 		{
 			vector<double> he_attrib;
 			if (guide_MedialEdgesBoolean[he.getEdge().getId()])
@@ -9504,16 +9504,27 @@ namespace zSpace
 
 
 			meshJSON.halfedgeAttributes.push_back(he_attrib);
-		}
+		}*/
 
 
 		//printf("\n %i %i ", meshJSON.halfedgeAttributes.size(), fnGuidemesh.numHalfEdges());
 
+		// transform
+		zFloatArray trans;
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				trans.push_back(transform(i,j));
+			}
+		}
+
 		// Json file 
-		j["HalfedgeAttributes"] = meshJSON.halfedgeAttributes;
+		//j["HalfedgeAttributes"] = meshJSON.halfedgeAttributes;
 		j["VertexAttributes"] = meshJSON.vertexAttributes;
 
 		j["BlockAttributes"] = blockAttributes;
+		j["BridgeTransform"] = trans;
 
 		// EXPORT	
 		ofstream myfile;

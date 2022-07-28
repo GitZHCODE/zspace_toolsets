@@ -920,7 +920,7 @@ namespace zSpace
 
 		void blockContoursToIncr3D(int blockId, string dir, string filename, float layerWidth = 0.025);
 
-		void toBRGJSON(string path, zPointArray& points, zVectorArray& normals, zPointArray& vThickness);
+		void toBRGJSON(string path, zPointArray& points, zVectorArray& normals, zPointArray& vThickness, zTransform &transform);
 
 		bool fromBRGJSON(string path, zPointArray& points, zVectorArray& normals, zPointArray& vThickness);
 	

@@ -183,6 +183,8 @@ namespace zSpace
 		int blockStride = j["BlockStride"];
 		int braceStride = j["BraceStride"];
 
+		numMagentaLoops = blockStride - 1;
+		
 		zPoint startPoint = tmpPositions[sID];
 		zPoint endPoint = tmpPositions[eID];
 
@@ -501,25 +503,39 @@ namespace zSpace
 
 	//---- COMPUTE METHODS
 
-	ZSPACE_INLINE void zTsSDFSlicer::computePrintBlocks(float printPlaneSpacing, float printLayerWidth, float raftLayerWidth, bool allSDFLayers,  int &numSDFlayers, int funcNum, zDomainFloat neopreneOffset, bool compFrames, bool compSDF)
+	ZSPACE_INLINE void zTsSDFSlicer::computePrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum , int numSmooth, zDomainFloat neopreneOffset ,  bool compFrames , bool compSDF)
 	{
+		printHeightDomain = _printHeightDomain;
+
+		bool frameCHECKS = false;
+
 		if (compFrames)
-		{
-			sectionFrames.clear();
-			if (leftPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
-			if (rightPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
+		{			
+			for (float printPlaneSpacing = printHeightDomain.min; printPlaneSpacing <= printHeightDomain.max; printPlaneSpacing += 0.0005)
+			{
+				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
 
-			o_sectionGraphs.clear();
-			o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
-			if (leftPlaneExists) computePrintBlockSections(true);
-			if (rightPlaneExists) computePrintBlockSections(false);
+				sectionFrames.clear();
+				if (leftPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
+				if (rightPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
 
-			//checkPrintLayerHeights();
+				o_sectionGraphs.clear();
+				o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
+				if (leftPlaneExists) computePrintBlockSections(true);
+				if (rightPlaneExists) computePrintBlockSections(false);				
+
+				frameCHECKS = checkPrintLayerHeights();
+				printf("\n");
+
+				if (frameCHECKS) break;				
+			}
+
+			printf("\n frameCHECKS %s ", (frameCHECKS) ? "T" : "F");
 		}
 
 		if (compSDF)
 		{
-			computeSDF(allSDFLayers, numSDFlayers, funcNum,printLayerWidth, neopreneOffset.min, raftLayerWidth);
+			computeSDF(allSDFLayers, numSDFlayers, funcNum, numSmooth, printLayerWidth, neopreneOffset.min, raftLayerWidth);
 		}
 
 	}
@@ -1230,7 +1246,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFSlicer::computeSDF(bool allSDFLayers, int& numSDFlayers,int funcNum, float printWidth, float neopreneOffset, float raftWidth)
+	ZSPACE_INLINE void zTsSDFSlicer::computeSDF(bool allSDFLayers, int& numSDFlayers,int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth)
 	{
 		o_contourGraphs.clear();
 		o_contourGraphs.assign(o_sectionGraphs.size(), zObjGraph());	
@@ -1276,7 +1292,7 @@ namespace zSpace
 					}
 					else
 					{
-						computeBlockSDF_Balustrade(funcNum, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
+						computeBlockSDF_Balustrade(funcNum, numSmooth, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
 
 					}
 				}
@@ -1292,7 +1308,7 @@ namespace zSpace
 					}
 					else
 					{
-						computeBlockSDF_Deck(funcNum, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
+						computeBlockSDF_Deck(funcNum, numSmooth, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
 					}
 				}
 
@@ -1434,15 +1450,7 @@ namespace zSpace
 					
 				}
 
-				if (deckBlock)
-				{
-					if (magentaCounter != 6) checkMagentas = false;
-				}
-				else
-				{
-					if (magentaCounter != 8) checkMagentas = false;
-				}
-
+				if (magentaCounter != numMagentaLoops * 2) checkMagentas = false;	
 
 				for (zItGraphEdge e(o_sectionGraphs[i]); !e.end(); e++)
 				{
@@ -1472,7 +1480,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Deck(int funcNum, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
+	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Deck(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset,  bool addRaft, int raftId, float raftWidth)
 	{
 		if (graphId >= o_sectionGraphs.size())return;
 		
@@ -1525,18 +1533,31 @@ namespace zSpace
 			for (auto& s : polyField_offset_outer) s += offset_outer;
 		}
 
-		zScalarArray braceField;
-		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], pWidth, 0.25 * pWidth, alternate);
+		//zScalarArray braceField;
+		//if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], pWidth, 0.25 * pWidth, alternate);
 
-		zScalarArray slotField;
-		float slotRadius = 0.02;
-		if (funcNum >= 3) getScalars_3dp_slot(slotField, o_trimGraphs[graphId], slotRadius + 0.25 * pWidth); 
+		//zScalarArray slotField;
+		//float slotRadius = 0.02;
+		//if (funcNum >= 3) getScalars_3dp_slot(slotField, o_trimGraphs[graphId], slotRadius + 0.25 * pWidth); 
+
+		//zScalarArray booleanField_0;
+		//if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
+
+		//zScalarArray booleanField_1;
+		//if (funcNum >= 5) fnField.boolean_subtract(booleanField_0, slotField, booleanField_1, false);
+
+		// No SLOT, same as Balustrade
+		zScalarArray braceField;
+		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.25 * pWidth, alternate);
+
+		zScalarArray trimField;
+		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.20 * pWidth, alternate);
 
 		zScalarArray booleanField_0;
 		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
 
 		zScalarArray booleanField_1;
-		if (funcNum >= 5) fnField.boolean_subtract(booleanField_0, slotField, booleanField_1, false);
+		if (funcNum >= 5) fnField.boolean_union(booleanField_0, trimField, booleanField_1, false);
 
 		// RESULT FIELDS
 		switch (funcNum)
@@ -1554,7 +1575,7 @@ namespace zSpace
 			break;
 
 		case 3:
-			fnField.setFieldValues(slotField);
+			fnField.setFieldValues(trimField);
 			break;
 
 		case 4:
@@ -1562,6 +1583,7 @@ namespace zSpace
 			break;
 
 		case 5:
+			if(numSmooth > 0) fnField.smoothField(booleanField_1, numSmooth); // smooth field
 			fnField.setFieldValues(booleanField_1);
 			break;
 		}
@@ -1579,7 +1601,7 @@ namespace zSpace
 		fnTrimGraph.setTransform(t, true, true);
 	}
 
-	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Balustrade(int funcNum, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
+	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Balustrade(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
 	{
 		if (graphId >= o_sectionGraphs.size())return;
 
@@ -1636,7 +1658,7 @@ namespace zSpace
 		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.25 * pWidth, alternate);
 
 		zScalarArray trimField;
-		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.25 * pWidth, alternate);
+		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.20 * pWidth, alternate);
 
 		zScalarArray booleanField_0;
 		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
@@ -1668,6 +1690,7 @@ namespace zSpace
 			break;
 
 		case 5:
+			if(numSmooth > 0) fnField.smoothField(booleanField_1, numSmooth);
 			fnField.setFieldValues(booleanField_1);
 			break;
 		}
@@ -1698,7 +1721,10 @@ namespace zSpace
 		for (const auto& entry : std::filesystem::directory_iterator(folderName)) std::filesystem::remove_all(entry.path());
 
 		// EXPORT	BlockMesh
-		string blockMeshName = folderName + "/block_" + to_string(blockId) + ".json";
+	
+		string blockID_padded = coreUtils.getPaddedIndexString(blockId,3);
+
+		string blockMeshName = folderName + "/block_" + blockID_padded + ".json";
 
 		ofstream myfile;
 		myfile.open(blockMeshName.c_str());
@@ -1712,8 +1738,8 @@ namespace zSpace
 		myfile.close();
 
 		// Export Left Right Mesh
-		string leftMeshName = folderName + "/block_left_" + to_string(blockId) + ".json";
-		string rightMeshName = folderName + "/block_right_" + to_string(blockId) + ".json";
+		string leftMeshName = folderName + "/block_left_" + blockID_padded + ".json";
+		string rightMeshName = folderName + "/block_right_" + blockID_padded + ".json";
 
 		zFnMesh fnMeshLeft(o_SliceMesh_Left);
 		fnMeshLeft.to(leftMeshName, zJSON);
@@ -1754,13 +1780,14 @@ namespace zSpace
 
 				if (deckBlock && i == r2) continue;
 
+				string graphID_padded = coreUtils.getPaddedIndexString(j, 3);
 
 				// trim graph export
 				string outName1 = folderName;
 				outName1 += "/";
 				outName1 += "trim";
 				outName1 += "_";
-				outName1 += to_string(blockId) + "_" + to_string(j) + "_" + to_string(k) + ".json";
+				outName1 += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";
 
 				zFnGraph fnTrimGraph(o_trimGraphs[i]);
 				fnTrimGraph.to(outName1, zJSON);
@@ -1771,11 +1798,10 @@ namespace zSpace
 				outName += "/";
 				outName += filename;
 				outName += "_";
-				outName += to_string(blockId) + "_" + to_string(j) + "_" + to_string(k) + ".json";
+				outName += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";
 
 				zFnGraph fnIsoGraph(o_contourGraphs[i]);
 				fnIsoGraph.to(outName, zJSON);
-
 
 				// read existing data in the json 
 				json jSON;
@@ -1808,11 +1834,7 @@ namespace zSpace
 				norm.normalize();
 
 				zVector prevNorm(sectionFrames[i - 1](2, 0), sectionFrames[i - 1](2, 1), sectionFrames[i - 1](2, 2));
-				zVector prevOrigin(sectionFrames[i - 1](3, 0), sectionFrames[i - 1](3, 1), sectionFrames[i - 1](3, 2));
-
-				float layerWidth = 0.025;
-
-				int redCounter = 0;
+				zVector prevOrigin(sectionFrames[i - 1](3, 0), sectionFrames[i - 1](3, 1), sectionFrames[i - 1](3, 2));									
 
 				for (zItGraphVertex v(o_contourGraphs[i]); !v.end(); v++)
 				{
@@ -1842,10 +1864,64 @@ namespace zSpace
 
 				}
 
+				// vertex sequence
+				zIntArray vSequence;
+				zItGraphVertexArray vArray;
+
+				for (zItGraphVertex v(o_contourGraphs[i]); !v.end(); v++)
+				{
+					if (!v.checkValency(2))
+					{
+						vArray.push_back(v);
+					}
+				}
+
+				if (vArray.size() == 2)
+				{					
+					zItGraphHalfEdge he = vArray[0].getHalfEdge();					
+					vSequence.push_back(vArray[0].getId());
+
+					do
+					{
+						
+						vSequence.push_back(he.getVertex().getId());						
+
+						he = he.getNext();
+					} while (he.getVertex() != vArray[1]);
+					
+					vSequence.push_back(vArray[1].getId());
+					vSequence.push_back(vArray[0].getId());		
+
+				}
+
+				if (vArray.size() == 0)
+				{
+					zItGraphHalfEdge he(o_contourGraphs[i], 0);
+					
+					zItGraphVertex startV = he.getStartVertex();
+					zItGraphHalfEdge startHe = he;
+					vSequence.push_back(he.getStartVertex().getId());
+					
+					do
+					{				
+						if (he.getVertex() == startV)
+						{
+							vSequence.push_back(he.getVertex().getId());
+						}
+						else
+						{
+							vSequence.push_back(he.getVertex().getId());							
+						}
+
+						he = he.getNext();
+					} while (he != startHe);
+
+				}
+
 				// Json file 
 
 				jSON["VertexAttributes"] = graphJSON.vertexAttributes;
-
+				jSON["VertexSequence"] = vSequence;
 
 				// EXPORT	
 				ofstream myfile;
@@ -2136,6 +2212,8 @@ namespace zSpace
 
 		//printf("\n end %i ", end);
 
+		int offsetMult = 2;
+
 		for (int i = 1; i < end - 1; i++)
 		{
 			zPoint tmp0 = trimPositions[i];
@@ -2147,7 +2225,7 @@ namespace zSpace
 
 			zPoint midPt = tmp0 + e * eLen * 0.5;
 
-			zPoint p0 = (alternate) ? midPt + e * offset : midPt - e * offset;
+			zPoint p0 = (alternate) ? midPt + e * (offset * offsetMult) : midPt - e * (offset * offsetMult);
 			zVector dir = upVec ^ e;
 			dir.normalize();
 
@@ -2226,5 +2304,7 @@ namespace zSpace
 		return f.good();
 
 	}
+
+	
 
 }
