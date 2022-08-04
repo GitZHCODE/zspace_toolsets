@@ -116,6 +116,10 @@ namespace zSpace
 		zObjPointCloud criticalMaxLayer_pts;
 
 		zDomainFloat printHeightDomain;
+
+		zDomainFloat actualPrintHeightDomain;
+
+		zDomainFloat neopreneOffset;
 				
 		//--------------------------
 		//---- SDF ATTRIBUTES
@@ -332,7 +336,7 @@ namespace zSpace
 		* 	\param		[in]	printLayerDepth				- input print layer depth.
 		*	\since version 0.0.4
 		*/
-		void computePrintBlocks(zDomainFloat &_printHeightDomain, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat neopreneOffset = zDomainFloat(0,0),  bool compFrames = true, bool compSDF = true);
+		void computePrintBlocks(zDomainFloat &_printHeightDomain, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat _neopreneOffset = zDomainFloat(0,0),  bool compFrames = true, bool compSDF = true);
 
 		/*! \brief This method computes the medial graph from input mesh.
 		*
@@ -400,12 +404,26 @@ namespace zSpace
 		*/
 		void computePrintBlockTrimGraphs(zObjGraph& inPolyObj, zObjGraph &o_outGraph, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE );
 
-		/*! \brief This method compute the block frames.
+		/*! \brief This method checks the layer heights of the block
 		*
 		*	\param		[in]	_block						- input block.
 		*	\since version 0.0.4
 		*/
-		bool checkPrintLayerHeights();
+		bool checkPrintLayerHeights(bool& checkGeometry);
+
+		/*! \brief This method check the block interfaces are planar.
+		*
+		*	\param		[in]	_block						- input block.
+		*	\since version 0.0.4
+		*/
+		bool checkInterfacePoints(bool left);
+
+		/*! \brief This method checks the layer heights for all the blocks in the input directory.
+		*
+		*	\param		[in]	_block						- input block.
+		*	\since version 0.0.4
+		*/
+		void checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset);
 
 		/*! \brief This method compute the block frames for thickned mesh.
 		*

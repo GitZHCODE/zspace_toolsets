@@ -503,15 +503,17 @@ namespace zSpace
 
 	//---- COMPUTE METHODS
 
-	ZSPACE_INLINE void zTsSDFSlicer::computePrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum , int numSmooth, zDomainFloat neopreneOffset ,  bool compFrames , bool compSDF)
+	ZSPACE_INLINE void zTsSDFSlicer::computePrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum , int numSmooth, zDomainFloat _neopreneOffset ,  bool compFrames , bool compSDF)
 	{
 		printHeightDomain = _printHeightDomain;
+		neopreneOffset = _neopreneOffset;
 
 		bool frameCHECKS = false;
+		bool geomCHECKS = true;
 
 		if (compFrames)
 		{			
-			for (float printPlaneSpacing = printHeightDomain.min; printPlaneSpacing <= printHeightDomain.max; printPlaneSpacing += 0.0005)
+			for (float printPlaneSpacing = printHeightDomain.min; printPlaneSpacing <= printHeightDomain.max; printPlaneSpacing += 0.00025)
 			{
 				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
 
@@ -524,7 +526,7 @@ namespace zSpace
 				if (leftPlaneExists) computePrintBlockSections(true);
 				if (rightPlaneExists) computePrintBlockSections(false);				
 
-				frameCHECKS = checkPrintLayerHeights();
+				frameCHECKS = checkPrintLayerHeights(geomCHECKS);
 				printf("\n");
 
 				if (frameCHECKS) break;				
@@ -1330,18 +1332,18 @@ namespace zSpace
 
 		for (auto& he : bottomHE)
 		{
-			if (inColors[he.getStartVertex().getId()] == orange) gPositions.push_back(inPositions[he.getStartVertex().getId()]);
+			if (inColors[he.getStartVertex().getId()] == blue) gPositions.push_back(inPositions[he.getStartVertex().getId()]);
 			if (inColors[he.getVertex().getId()] == magenta) gPositions.push_back(inPositions[he.getVertex().getId()]);
-			if (inColors[he.getVertex().getId()] == blue) gPositions.push_back(inPositions[he.getVertex().getId()]);
+			if (inColors[he.getVertex().getId()] == orange) gPositions.push_back(inPositions[he.getVertex().getId()]);
 
 		
 		}
 
 		for (auto& he : topHE)
 		{
-			if (inColors[he.getStartVertex().getId()] == orange) gPositions.push_back(inPositions[he.getStartVertex().getId()]);
+			if (inColors[he.getStartVertex().getId()] == blue) gPositions.push_back(inPositions[he.getStartVertex().getId()]);
 			if (inColors[he.getVertex().getId()] == magenta) gPositions.push_back(inPositions[he.getVertex().getId()]);
-			if (inColors[he.getVertex().getId()] == blue) gPositions.push_back(inPositions[he.getVertex().getId()]);
+			if (inColors[he.getVertex().getId()] == orange) gPositions.push_back(inPositions[he.getVertex().getId()]);
 		}
 
 		int end = floor(gPositions.size() * 0.5);
@@ -1366,7 +1368,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsSDFSlicer::checkPrintLayerHeights()
+	ZSPACE_INLINE bool zTsSDFSlicer::checkPrintLayerHeights(bool& checkGeometry)
 	{
 		float minLayerHeight = 10;
 		float maxLayerHeight = 0;
@@ -1445,12 +1447,17 @@ namespace zSpace
 
 				if (orangeCounter != 2)
 				{
+					printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
 					checkOranges = false;	
 
 					
 				}
 
-				if (magentaCounter != numMagentaLoops * 2) checkMagentas = false;	
+				if (magentaCounter != numMagentaLoops * 2)
+				{
+					printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
+					checkMagentas = false;
+				}
 
 				for (zItGraphEdge e(o_sectionGraphs[i]); !e.end(); e++)
 				{
@@ -1477,7 +1484,85 @@ namespace zSpace
 			if (maxLayerHeight > printHeightDomain.max) out = false;
 		}
 
+		actualPrintHeightDomain.min = minLayerHeight;
+		actualPrintHeightDomain.max = maxLayerHeight;
+
+		checkGeometry = (!checkOranges || !checkMagentas) ? false : true;
+		
+
 		return out;
+	}
+
+	ZSPACE_INLINE void zTsSDFSlicer::checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset)
+	{
+		printHeightDomain = _printHeightDomain;
+		neopreneOffset = _neopreneOffset;
+
+		zStringArray files;
+		coreUtils.getFilesFromDirectory(files, folderDir, zJSON);
+		
+		string outFileName = folderDir +  "printLayerHeights_allBlocks.csv";
+		
+		ofstream myfile;
+		myfile.open(outFileName.c_str());
+
+		if (myfile.fail())
+		{
+			cout << " error in opening file  " << outFileName.c_str() << endl;
+			return ;
+		}
+
+		printf("\n numFiles %i ", files.size());
+		zBoolArray Block_visitied;
+		Block_visitied.assign(files.size(), false);
+
+		for (auto& s : files)
+		{
+			zStringArray split_0 = coreUtils.splitString(s, ".");
+			zStringArray split_1 = coreUtils.splitString(split_0[0], "_");
+			
+
+			printf("\n File: %s ", s.c_str());
+			int _blockID = atoi(split_1[split_1.size() - 1].c_str());
+
+			setFromJSON(folderDir, _blockID);
+			Block_visitied[_blockID] = true;
+
+			bool frameCHECKS = false;
+			bool geomCHECKS = true;
+
+			for (float printPlaneSpacing = printHeightDomain.min; printPlaneSpacing <= printHeightDomain.max; printPlaneSpacing += 0.00025)
+			{
+				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
+
+				sectionFrames.clear();
+				if (leftPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
+				if (rightPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
+
+				o_sectionGraphs.clear();
+				o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
+				if (leftPlaneExists) computePrintBlockSections(true);
+				if (rightPlaneExists) computePrintBlockSections(false);
+
+				frameCHECKS = checkPrintLayerHeights(geomCHECKS);
+				printf("\n");
+
+				if (frameCHECKS) break;
+			}
+
+			//printf("\n ----------- \n BlockID %i | %s | %1.4f %1.4f \n", _blockID, (frameCHECKS) ? "True" : "False", actualPrintHeightDomain.min, actualPrintHeightDomain.max);
+
+			myfile << "\n" << _blockID << "," << ((frameCHECKS) ? "True" : "False") << "," << actualPrintHeightDomain.min << "," << actualPrintHeightDomain.max << "," << ((geomCHECKS) ? "True" : "False") << endl;
+		}
+
+		myfile.close();
+
+		cout << " \n file exported : " << outFileName.c_str() << endl;
+
+		for (int i =0; i< Block_visitied.size(); i++)
+		{
+			if (!Block_visitied[i]) printf("\n %i ", i);
+		}
 	}
 
 	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Deck(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset,  bool addRaft, int raftId, float raftWidth)
@@ -1876,6 +1961,8 @@ namespace zSpace
 					}
 				}
 
+				printf("\n %s - valence 2 verts  %i", graphID_padded.c_str(), vArray.size());
+
 				if (vArray.size() == 2)
 				{					
 					zItGraphHalfEdge he = vArray[0].getHalfEdge();					
@@ -2035,7 +2122,7 @@ namespace zSpace
 		zIntArray startVerts;
 		for (int i = 0; i < inFnGraph.numVertices(); i++)
 		{
-			if (inColors[i] == orange) startVerts.push_back(i);;
+			if (inColors[i] == blue) startVerts.push_back(i);;
 		}
 
 		// Flip if needed, to have lower point in 0 index
@@ -2087,7 +2174,7 @@ namespace zSpace
 
 			zItGraphVertex v = bHe.getVertex();
 
-			if (v.getColor() == blue) exit = true;		
+			if (v.getColor() == orange) exit = true;		
 
 			bHe = bHe.getNext();
 		}
@@ -2100,7 +2187,7 @@ namespace zSpace
 
 			tHe.getEdge().setColor(zColor(1, 0, 0, 1));
 			zItGraphVertex v = tHe.getVertex();
-			if (v.getColor() == blue) exit = true;		
+			if (v.getColor() == orange) exit = true;		
 
 			tHe = tHe.getNext();
 		}
