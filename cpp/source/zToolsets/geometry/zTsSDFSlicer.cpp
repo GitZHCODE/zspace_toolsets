@@ -57,7 +57,7 @@ namespace zSpace
 	ZSPACE_INLINE void zTsSDFSlicer::setFromJSON(string path, int blockStride, int braceStride)
 	{
 		json j;
-		bool fileChk = readJSON(path, j);
+		bool fileChk = coreUtils.readJSON(path, j);
 
 		if (!fileChk) return;
 
@@ -92,10 +92,10 @@ namespace zSpace
 			
 			zVector fNormStart(j["LeftPlanes"][0][0], j["LeftPlanes"][0][1], j["LeftPlanes"][0][2]);
 			fNormStart *= -1;
-			zTransform sPlane = setTransformFromOrigin_Normal(startPoint, fNormStart);				
+			zTransform sPlane = coreUtils.getTransformFromOrigin_Normal(startPoint, fNormStart);
 			
 			zVector fNormEnd(j["LeftPlanes"][1][0], j["LeftPlanes"][1][1], j["LeftPlanes"][1][2]);
-			zTransform ePlane = setTransformFromOrigin_Normal(endPoint, fNormEnd);			
+			zTransform ePlane = coreUtils.getTransformFromOrigin_Normal(endPoint, fNormEnd);
 
 			cout << "\n left sNorm " << fNormStart;
 			cout << "\n left eNorm " << fNormEnd;
@@ -117,10 +117,10 @@ namespace zSpace
 
 			zVector fNormStart(j["RightPlanes"][0][0], j["RightPlanes"][0][1], j["RightPlanes"][0][2]);
 			fNormStart *= -1;
-			zTransform sPlane = setTransformFromOrigin_Normal(startPoint, fNormStart);
+			zTransform sPlane = coreUtils.getTransformFromOrigin_Normal(startPoint, fNormStart);
 
 			zVector fNormEnd(j["RightPlanes"][1][0], j["RightPlanes"][1][1], j["RightPlanes"][1][2]);
-			zTransform ePlane = setTransformFromOrigin_Normal(endPoint, fNormEnd); ;
+			zTransform ePlane = coreUtils.getTransformFromOrigin_Normal(endPoint, fNormEnd); ;
 
 			cout << "\n right sNorm " << fNormStart;
 			cout << "\n right eNorm " << fNormEnd;
@@ -150,13 +150,13 @@ namespace zSpace
 	ZSPACE_INLINE void zTsSDFSlicer::setFromJSON(string dir, int _blockID)
 	{
 		string fileDeck = dir + "deck_" + to_string(_blockID) + ".json";
-		bool checkDeck = fileExists(fileDeck);
+		bool checkDeck = coreUtils.fileExists(fileDeck);
 		if (checkDeck) deckBlock = true;
 		if (checkDeck) printf("\n %s exists", fileDeck.c_str());
 		else printf("\n %s doesnt exists", fileDeck.c_str());
 
 		string fileBalustrade = dir + "balustrade_" + to_string(_blockID) + ".json";
-		bool checkBalustrade = fileExists(fileBalustrade);
+		bool checkBalustrade = coreUtils.fileExists(fileBalustrade);
 		if (checkBalustrade) deckBlock = false;
 		if (checkBalustrade) printf("\n %s exists", fileBalustrade.c_str());
 		else printf("\n %s doesnt exists", fileBalustrade.c_str());
@@ -164,7 +164,7 @@ namespace zSpace
 
 		json j;
 		string path = (checkDeck) ? fileDeck : fileBalustrade;
-		bool fileChk = readJSON(path, j);
+		bool fileChk = coreUtils.readJSON(path, j);
 
 		if (!fileChk) return;
 
@@ -201,10 +201,10 @@ namespace zSpace
 
 			zVector fNormStart(j["LeftPlanes"][0][0], j["LeftPlanes"][0][1], j["LeftPlanes"][0][2]);
 			fNormStart *= -1;
-			zTransform sPlane = setTransformFromOrigin_Normal(startPoint, fNormStart);
+			zTransform sPlane = coreUtils.getTransformFromOrigin_Normal(startPoint, fNormStart);
 
 			zVector fNormEnd(j["LeftPlanes"][1][0], j["LeftPlanes"][1][1], j["LeftPlanes"][1][2]);
-			zTransform ePlane = setTransformFromOrigin_Normal(endPoint, fNormEnd);
+			zTransform ePlane = coreUtils.getTransformFromOrigin_Normal(endPoint, fNormEnd);
 
 			cout << "\n left sNorm " << fNormStart;
 			cout << "\n left eNorm " << fNormEnd;
@@ -226,10 +226,10 @@ namespace zSpace
 
 			zVector fNormStart(j["RightPlanes"][0][0], j["RightPlanes"][0][1], j["RightPlanes"][0][2]);
 			fNormStart *= -1;
-			zTransform sPlane = setTransformFromOrigin_Normal(startPoint, fNormStart);
+			zTransform sPlane = coreUtils.getTransformFromOrigin_Normal(startPoint, fNormStart);
 
 			zVector fNormEnd(j["RightPlanes"][1][0], j["RightPlanes"][1][1], j["RightPlanes"][1][2]);
-			zTransform ePlane = setTransformFromOrigin_Normal(endPoint, fNormEnd); ;
+			zTransform ePlane = coreUtils.getTransformFromOrigin_Normal(endPoint, fNormEnd); ;
 
 			cout << "\n right sNorm " << fNormStart;
 			cout << "\n right eNorm " << fNormEnd;
@@ -310,6 +310,10 @@ namespace zSpace
 	{
 		if (toLocal)
 		{
+			zFnGraph fnGraphMedial(o_MedialGraph);
+			fnGraphMedial.setTransform(base_world, true, false);
+			fnGraphMedial.setTransform(base_local, true, true);
+
 			zFnMesh fnMesh(o_GuideMesh);
 			fnMesh.setTransform(base_world, true, false);			
 			fnMesh.setTransform(base_local, true, true);
@@ -352,11 +356,38 @@ namespace zSpace
 
 			zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
 			fnCritical_max.setTransform(base_world, true, false);
-			fnCritical_max.setTransform(base_local, true, true);			
+			fnCritical_max.setTransform(base_local, true, true);		
+
+			/*if (leftPlaneExists)
+			{
+				for (int i = 0; i < 2; i++)
+				{
+					zTransform transform = coreUtils.PlanetoPlane(leftPlanes[i], base_local);
+					leftPlanes[i] *= transform;
+				}
+			}
+			
+			if (rightPlaneExists)
+			{
+				
+					zTransformationMatrix tMat;
+					tMat.setTransform(rightPlanes[0]);
+
+					zTransformationMatrix tLocal;
+					tLocal.setTransform(base_local);
+					zTransform t = tMat.getToMatrix(tLocal).transpose();					
+					
+					rightPlanes[0] *= t;
+					rightPlanes[1] *= t;
+				
+			}*/
 
 		}
 		else
 		{
+			zFnGraph fnGraphMedial(o_MedialGraph);
+			fnGraphMedial.setTransform(base_world, true, true);			
+
 			zFnMesh fnMesh(o_GuideMesh);
 			fnMesh.setTransform(base_world, true, true);	
 
@@ -397,6 +428,13 @@ namespace zSpace
 	}
 
 	//---- GET METHODS
+
+	ZSPACE_INLINE zTransform* zTsSDFSlicer::getRawBlockStartEnd(bool left)
+	{
+		if (left & leftPlaneExists) return &leftPlanes[0];
+		else if (!left & rightPlaneExists) return &rightPlanes[0];
+		else return nullptr;
+	}
 
 	ZSPACE_INLINE vector<zTransform> zTsSDFSlicer::getBlockFrames()
 	{	
@@ -510,10 +548,11 @@ namespace zSpace
 
 		bool frameCHECKS = false;
 		bool geomCHECKS = true;
+		bool sdfCHECKS = true;
 
 		if (compFrames)
 		{			
-			for (float printPlaneSpacing = printHeightDomain.min; printPlaneSpacing <= printHeightDomain.max; printPlaneSpacing += 0.00025)
+			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
 			{
 				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
 
@@ -526,7 +565,7 @@ namespace zSpace
 				if (leftPlaneExists) computePrintBlockSections(true);
 				if (rightPlaneExists) computePrintBlockSections(false);				
 
-				frameCHECKS = checkPrintLayerHeights(geomCHECKS);
+				frameCHECKS = checkPrintLayerHeights(sdfCHECKS, geomCHECKS);
 				printf("\n");
 
 				if (frameCHECKS) break;				
@@ -685,12 +724,12 @@ namespace zSpace
 					{
 						zPoint p = heTmp.getVertex().getPosition();
 						int vID;
-						bool chkRepeat = vertexExistsinPositionMap(positionVertex, p, vID);
+						bool chkRepeat = coreUtils.vertexExists(positionVertex, p, PRECISION, vID);
 						
 						if (!chkRepeat)
 						{
 							vID = positions.size();
-							addVertexToPositionMap(positionVertex, p, vID);
+							coreUtils.addToPositionMap(positionVertex, p, vID, PRECISION);
 							positions.push_back(p);							
 						}
 
@@ -721,12 +760,12 @@ namespace zSpace
 					{
 						zPoint p = heTmp.getStartVertex().getPosition();
 						int vID;
-						bool chkRepeat = vertexExistsinPositionMap(positionVertex, p, vID);
+						bool chkRepeat = coreUtils.vertexExists(positionVertex, p, PRECISION, vID);
 
 						if (!chkRepeat)
 						{
 							vID = positions.size();
-							addVertexToPositionMap(positionVertex, p, vID);
+							coreUtils.addToPositionMap(positionVertex, p, vID, PRECISION);
 							positions.push_back(p);
 						}
 
@@ -779,19 +818,19 @@ namespace zSpace
 
 				zPoint p0 = heTop.getVertex().getPosition();
 				int v0;
-				vertexExistsinPositionMap(positionVertex, p0, v0);
+				coreUtils.vertexExists(positionVertex, p0, PRECISION, v0);
 
 				zPoint p1 = heTop.getStartVertex().getPosition();
 				int v1;
-				vertexExistsinPositionMap(positionVertex, p1, v1);
+				coreUtils.vertexExists(positionVertex, p1, PRECISION, v1);
 
 				zPoint p2 = heBottom.getVertex().getPosition();
 				int v2;
-				vertexExistsinPositionMap(positionVertex, p2, v2);
+				coreUtils.vertexExists(positionVertex, p2, PRECISION, v2);
 
 				zPoint p3 = heBottom.getStartVertex().getPosition();
 				int v3;
-				vertexExistsinPositionMap(positionVertex, p3, v3);
+				coreUtils.vertexExists(positionVertex, p3, PRECISION, v3);
 
 				pConnects.push_back(v0);
 				pConnects.push_back(v1);
@@ -803,19 +842,19 @@ namespace zSpace
 				// corner
 				zPoint p4 = heTop_corner.getStartVertex().getPosition();
 				int v4;
-				vertexExistsinPositionMap(positionVertex, p4, v4);
+				coreUtils.vertexExists(positionVertex, p4, PRECISION, v4);
 
 				zPoint p5 = heTop_corner.getVertex().getPosition();
 				int v5;
-				vertexExistsinPositionMap(positionVertex, p5, v5);
+				coreUtils.vertexExists(positionVertex, p5, PRECISION, v5);
 
 				zPoint p6 = heBottom_corner.getStartVertex().getPosition();
 				int v6;
-				vertexExistsinPositionMap(positionVertex, p6, v6);
+				coreUtils.vertexExists(positionVertex, p6, PRECISION, v6);
 
 				zPoint p7 = heBottom_corner.getVertex().getPosition();
 				int v7;
-				vertexExistsinPositionMap(positionVertex, p7, v7);
+				coreUtils.vertexExists(positionVertex, p7, PRECISION, v7);
 				
 				pConnects.push_back(v4);
 				pConnects.push_back(v5);
@@ -856,19 +895,19 @@ namespace zSpace
 
 				zPoint p0 = heTop.getVertex().getPosition();
 				int v0;
-				vertexExistsinPositionMap(positionVertex, p0, v0);
+				coreUtils.vertexExists(positionVertex, p0, PRECISION, v0);
 
 				zPoint p1 = heTop.getStartVertex().getPosition();
 				int v1;
-				vertexExistsinPositionMap(positionVertex, p1, v1);
+				coreUtils.vertexExists(positionVertex, p1, PRECISION, v1);
 
 				zPoint p2 = heBottom.getVertex().getPosition();
 				int v2;
-				vertexExistsinPositionMap(positionVertex, p2, v2);
+				coreUtils.vertexExists(positionVertex, p2, PRECISION, v2);
 
 				zPoint p3 = heBottom.getStartVertex().getPosition();
 				int v3;
-				vertexExistsinPositionMap(positionVertex, p3, v3);
+				coreUtils.vertexExists(positionVertex, p3, PRECISION, v3);
 
 				pConnects.push_back(v0);
 				pConnects.push_back(v1);
@@ -880,19 +919,19 @@ namespace zSpace
 				// corner
 				zPoint p4 = heTop_corner.getStartVertex().getPosition();
 				int v4;
-				vertexExistsinPositionMap(positionVertex, p4, v4);
+				coreUtils.vertexExists(positionVertex, p4, PRECISION, v4);
 
 				zPoint p5 = heTop_corner.getVertex().getPosition();
 				int v5;
-				vertexExistsinPositionMap(positionVertex, p5, v5);
+				coreUtils.vertexExists(positionVertex, p5, PRECISION, v5);
 
 				zPoint p6 = heBottom_corner.getStartVertex().getPosition();
 				int v6;
-				vertexExistsinPositionMap(positionVertex, p6, v6);
+				coreUtils.vertexExists(positionVertex, p6, PRECISION, v6);
 
 				zPoint p7 = heBottom_corner.getVertex().getPosition();
 				int v7;
-				vertexExistsinPositionMap(positionVertex, p7, v7);
+				coreUtils.vertexExists(positionVertex, p7, PRECISION, v7);
 
 				pConnects.push_back(v4);
 				pConnects.push_back(v5);
@@ -1120,7 +1159,7 @@ namespace zSpace
 		Y.normalize();
 
 		//zTransform pFrame = setTransformFromVectors(O, X, Y, tempZ);
-		zTransform pFrame = setTransformFromOrigin_Normal(O, tempZ, zVector(0, 0, 1));
+		zTransform pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 0, 1));
 		sectionFrames.push_back(pFrame);
 
 		pOnCurve = O;
@@ -1183,7 +1222,7 @@ namespace zSpace
 
 			// add frame
 			//pFrame = setTransformFromVectors(O, X, Y, tempZ);
-			pFrame = setTransformFromOrigin_Normal(O, tempZ, zVector(0, 0, 1));
+			pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 0, 1));
 			sectionFrames.push_back(pFrame);
 
 			pOnCurve = O;
@@ -1236,7 +1275,8 @@ namespace zSpace
 			zPointArray positions;
 			zIntArray edgeConnects;
 			zColorArray vColors;
-			fn_sliceMesh.getIsoContour(scalars, 0.0, positions, edgeConnects, vColors);
+			int pres = 3;
+			fn_sliceMesh.getIsoContour(scalars, 0.0, positions, edgeConnects, vColors, pres, pow(10, -1 *pres));
 
 			// create graphs
 			zFnGraph tempFn(o_sectionGraphs[i]);
@@ -1368,7 +1408,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsSDFSlicer::checkPrintLayerHeights(bool& checkGeometry)
+	ZSPACE_INLINE bool zTsSDFSlicer::checkPrintLayerHeights(bool& checkSDF, bool& checkGeometry)
 	{
 		float minLayerHeight = 10;
 		float maxLayerHeight = 0;
@@ -1447,7 +1487,10 @@ namespace zSpace
 
 				if (orangeCounter != 2)
 				{
-					printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
+					//printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
+
+					zFnGraph fnGraph(o_sectionGraphs[i]);
+					fnGraph.setEdgeColor(orange);
 					checkOranges = false;	
 
 					
@@ -1455,7 +1498,9 @@ namespace zSpace
 
 				if (magentaCounter != numMagentaLoops * 2)
 				{
-					printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
+					//printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
+					zFnGraph fnGraph(o_sectionGraphs[i]);
+					fnGraph.setEdgeColor(magenta);
 					checkMagentas = false;
 				}
 
@@ -1474,7 +1519,7 @@ namespace zSpace
 		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | chkMagenta %s | < min ht pts %i  | > max ht pts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", (checkMagentas) ? "T" : "F", fnCritical_min.numVertices(), fnCritical_max.numVertices());
 
 		bool out = true;
-		if (!checkOranges || !checkMagentas) out = false;
+
 		if (out)
 		{
 			if (minLayerHeight < printHeightDomain.min) out = false;
@@ -1486,10 +1531,18 @@ namespace zSpace
 
 		actualPrintHeightDomain.min = minLayerHeight;
 		actualPrintHeightDomain.max = maxLayerHeight;
+		checkSDF = (!checkOranges || !checkMagentas) ? false : true;
+		if (!checkSDF) out = false;
 
-		checkGeometry = (!checkOranges || !checkMagentas) ? false : true;
+		int precision = 4;
+		bool checkLeftPlanar = checkInterfacePoints(true, pow(10, -1 * precision));
+		bool checkRightPlanar = checkInterfacePoints(false, pow(10, -1 * precision));
+
+		checkGeometry = (!checkLeftPlanar || !checkRightPlanar) ? false : true;
+		if (!checkGeometry) out = false;
+
+		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | chkMagenta %s | checkPlanar %s | < min ht pts %i  | > max ht pts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", (checkMagentas) ? "T" : "F", (checkGeometry) ? "T" : "F", fnCritical_min.numVertices(), fnCritical_max.numVertices());
 		
-
 		return out;
 	}
 
@@ -1516,6 +1569,9 @@ namespace zSpace
 		zBoolArray Block_visitied;
 		Block_visitied.assign(files.size(), false);
 
+		myfile << "\n" << "blockID" << "," << "frameCHECKS" << "," << "minHeight" << "," << "maxHeight" << "," << "sdfCHECK" << "," << "geometryCHECK" << endl;
+
+
 		for (auto& s : files)
 		{
 			zStringArray split_0 = coreUtils.splitString(s, ".");
@@ -1530,8 +1586,9 @@ namespace zSpace
 
 			bool frameCHECKS = false;
 			bool geomCHECKS = true;
+			bool sdfCHECKS = true;
 
-			for (float printPlaneSpacing = printHeightDomain.min; printPlaneSpacing <= printHeightDomain.max; printPlaneSpacing += 0.00025)
+			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
 			{
 				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
 
@@ -1544,7 +1601,7 @@ namespace zSpace
 				if (leftPlaneExists) computePrintBlockSections(true);
 				if (rightPlaneExists) computePrintBlockSections(false);
 
-				frameCHECKS = checkPrintLayerHeights(geomCHECKS);
+				frameCHECKS = checkPrintLayerHeights(sdfCHECKS,geomCHECKS);
 				printf("\n");
 
 				if (frameCHECKS) break;
@@ -1552,7 +1609,7 @@ namespace zSpace
 
 			//printf("\n ----------- \n BlockID %i | %s | %1.4f %1.4f \n", _blockID, (frameCHECKS) ? "True" : "False", actualPrintHeightDomain.min, actualPrintHeightDomain.max);
 
-			myfile << "\n" << _blockID << "," << ((frameCHECKS) ? "True" : "False") << "," << actualPrintHeightDomain.min << "," << actualPrintHeightDomain.max << "," << ((geomCHECKS) ? "True" : "False") << endl;
+			myfile << "\n" << _blockID << "," << ((frameCHECKS) ? "True" : "False") << "," << actualPrintHeightDomain.min << "," << actualPrintHeightDomain.max << "," << ((sdfCHECKS) ? "True" : "False") << "," << ((geomCHECKS) ? "True" : "False") << endl;
 		}
 
 		myfile.close();
@@ -1563,6 +1620,76 @@ namespace zSpace
 		{
 			if (!Block_visitied[i]) printf("\n %i ", i);
 		}
+	}
+
+	ZSPACE_INLINE bool zTsSDFSlicer::checkInterfacePoints(bool left, float distTolerance)
+	{
+		zObjMesh* oMesh = (left) ? &o_SliceMesh_Left : &o_SliceMesh_Right;
+		zTransform* starEnd = (left) ? &leftPlanes[0] : &rightPlanes[0];
+
+		if (left && !leftPlaneExists) return true;
+		if (!left && !rightPlaneExists) return true;
+
+		zFnMesh fnMesh(*oMesh);
+		float tol = 0.02;
+		fnMesh.setFaceColor(grey);
+
+		// get face points
+		zIntArray interfaceVerts_start;
+		zIntArray interfaceVerts_end;
+
+		zPoint sPoint(starEnd[0](3, 0), starEnd[0](3, 1), starEnd[0](3, 2));
+		zVector sNorm(starEnd[0](2, 0), starEnd[0](2, 1), starEnd[0](2, 2));
+		sNorm.normalize();
+		sNorm *= -1;
+
+		zPoint ePoint(starEnd[1](3, 0), starEnd[1](3, 1), starEnd[1](3, 2));
+		zVector eNorm(starEnd[1](2, 0), starEnd[1](2, 1), starEnd[1](2, 2));
+		eNorm.normalize();
+
+		for (zItMeshFace f(*oMesh); !f.end(); f++)
+		{
+			zVector fNorm = f.getNormal();
+			fNorm.normalize();
+			if (fNorm * sNorm >= 1 - tol)
+			{
+				zIntArray fVerts;
+				f.getVertices(fVerts);
+				for (auto& fV : fVerts) interfaceVerts_start.push_back(fV);
+				f.setColor(green);
+			}
+			else if (fNorm * eNorm >= 1 - tol)
+			{
+				zIntArray fVerts;
+				f.getVertices(fVerts);
+				for (auto& fV : fVerts) interfaceVerts_end.push_back(fV);
+				f.setColor(blue);
+			}
+		}
+
+		// check for in Plane
+		zPoint* vPositions = fnMesh.getRawVertexPositions();
+		bool chkStart = true;
+		bool chkEnd = true;
+		
+
+		for (auto& vId : interfaceVerts_start)
+		{
+			float d = coreUtils.minDist_Point_Plane(vPositions[vId], sPoint, sNorm);
+			//printf("\n start %1.4f ", d);
+			if (d > distTolerance) chkStart = false;
+			if (!chkStart) break;
+		}
+		for (auto& vId : interfaceVerts_end)
+		{
+			float d = coreUtils.minDist_Point_Plane(vPositions[vId], ePoint, eNorm);
+			//printf("\n end %1.4f ", d);
+			if (d > distTolerance) chkEnd = false;
+			if (!chkEnd) break;
+		}
+
+		bool out = (!chkStart || !chkEnd) ? false : true;
+		return out;
 	}
 
 	ZSPACE_INLINE void zTsSDFSlicer::computeBlockSDF_Deck(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset,  bool addRaft, int raftId, float raftWidth)
@@ -1633,7 +1760,7 @@ namespace zSpace
 
 		// No SLOT, same as Balustrade
 		zScalarArray braceField;
-		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.25 * pWidth, alternate);
+		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.23 * pWidth, alternate);
 
 		zScalarArray trimField;
 		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.20 * pWidth, alternate);
@@ -1675,7 +1802,7 @@ namespace zSpace
 		
 
 		zFnGraph fnIsoGraph(o_contourGraphs[graphId]);
-		fnField.getIsocontour(o_contourGraphs[graphId], 0.0);
+		fnField.getIsocontour(o_contourGraphs[graphId], 0.0, PRECISION, distanceTolerance);
 
 		fnIsoGraph.setEdgeWeight(2);
 
@@ -1740,7 +1867,7 @@ namespace zSpace
 		}
 
 		zScalarArray braceField;
-		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.25 * pWidth, alternate);
+		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.23 * pWidth, alternate);
 
 		zScalarArray trimField;
 		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.20 * pWidth, alternate);
@@ -1792,12 +1919,11 @@ namespace zSpace
 		fnTrimGraph.setTransform(t, true, true);
 	}
 
-
 	ZSPACE_INLINE bool zTsSDFSlicer::exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth)
 	{
 
 		json j;
-		bool fileChk = readJSON(pathCurrent, j);
+		bool fileChk = coreUtils.readJSON(pathCurrent, j);
 
 		if (!fileChk) return false;
 
@@ -1868,13 +1994,18 @@ namespace zSpace
 				string graphID_padded = coreUtils.getPaddedIndexString(j, 3);
 
 				// trim graph export
+				zFnGraph fnTrimGraph(o_trimGraphs[i]);
+				if (fnTrimGraph.numVertices() == 0) continue;
+
+				zFnGraph fnIsoGraph(o_contourGraphs[i]);
+				if (fnIsoGraph.numVertices() == 0) continue;
+
 				string outName1 = folderName;
 				outName1 += "/";
 				outName1 += "trim";
 				outName1 += "_";
 				outName1 += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";
 
-				zFnGraph fnTrimGraph(o_trimGraphs[i]);
 				fnTrimGraph.to(outName1, zJSON);
 
 				// graph export
@@ -1883,9 +2014,7 @@ namespace zSpace
 				outName += "/";
 				outName += filename;
 				outName += "_";
-				outName += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";
-
-				zFnGraph fnIsoGraph(o_contourGraphs[i]);
+				outName += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";				
 				fnIsoGraph.to(outName, zJSON);
 
 				// read existing data in the json 
@@ -2043,34 +2172,8 @@ namespace zSpace
 	}
 
 	
-	//---- UTILITY METHODS
+	//---- PROTECTED UTILITY METHODS
 
-
-	ZSPACE_INLINE zTransform zTsSDFSlicer::setTransformFromVectors(zPoint& O, zVector& X, zVector& Y, zVector& Z)
-	{
-		zTransform out;
-
-		out(0, 0) = X.x; out(0, 1) = X.y; out(0, 2) = X.z; out(0, 3) = 1;
-		out(1, 0) = Y.x; out(1, 1) = Y.y; out(1, 2) = Y.z; out(1, 3) = 1;
-		out(2, 0) = Z.x; out(2, 1) = Z.y; out(2, 2) = Z.z; out(2, 3) = 1;
-		out(3, 0) = O.x; out(3, 1) = O.y; out(3, 2) = O.z; out(3, 3) = 1;
-
-
-		return out;
-	}
-
-	zTransform zTsSDFSlicer::setTransformFromOrigin_Normal(zPoint& O, zVector& Z, zVector Basis)
-	{
-		zVector X = Basis ^ Z;		
-
-		zVector Y = Z ^ X;
-		Y.normalize();
-
-		X = Y ^ Z;
-		X.normalize();
-
-		return setTransformFromVectors(O,X,Y,Z);
-	}
 
 	ZSPACE_INLINE zItMeshHalfEdge zTsSDFSlicer::getStartHalfEdge(zObjMesh& o_Mesh, int startVID, int endVID)
 	{
@@ -2299,7 +2402,7 @@ namespace zSpace
 
 		//printf("\n end %i ", end);
 
-		int offsetMult = 2;
+		int offsetMult = 2.15;
 
 		for (int i = 1; i < end - 1; i++)
 		{
@@ -2328,68 +2431,6 @@ namespace zSpace
 		fnTempGraph.create(tPositions, tEdgeConnects);
 
 		fnField.getScalarsAsEdgeDistance(scalars, tempGraph, offset, false);
-	}
-
-	ZSPACE_INLINE void zTsSDFSlicer::addVertexToPositionMap(unordered_map<string, int>& positionVertex, zPoint& pos, int index, int precisionfactor)
-	{
-		double factor = pow(10, precisionfactor);
-		double x = std::round(pos.x * factor) / factor;
-		double y = std::round(pos.y * factor) / factor;
-		double z = std::round(pos.z * factor) / factor;
-
-		string hashKey = (to_string(x) + "," + to_string(y) + "," + to_string(z));
-		positionVertex[hashKey] = index;
-	}
-
-	ZSPACE_INLINE bool zTsSDFSlicer::vertexExistsinPositionMap(unordered_map<string, int>& positionVertex, zPoint& pos, int& outVertexId, int precisionfactor)
-	{
-		bool out = false;;
-		outVertexId = -1;
-
-		double factor = pow(10, precisionfactor);
-		double x = std::round(pos.x * factor) / factor;
-		double y = std::round(pos.y * factor) / factor;
-		double z = std::round(pos.z * factor) / factor;
-
-		string hashKey = (to_string(x) + "," + to_string(y) + "," + to_string(z));
-		std::unordered_map<std::string, int>::const_iterator got = positionVertex.find(hashKey);
-
-
-		if (got != positionVertex.end())
-		{
-			out = true;
-			outVertexId = got->second;
-		}
-
-
-		return out;
-	}
-
-	ZSPACE_INLINE bool zTsSDFSlicer::readJSON(string path, json& j)
-	{		
-		j.clear();
-		ifstream in_myfile;
-		in_myfile.open(path.c_str());
-
-		int lineCnt = 0;
-
-		if (in_myfile.fail())
-		{
-			cout << " error in opening file  " << path.c_str() << endl;
-			return false;
-		}
-
-		in_myfile >> j;
-		in_myfile.close();
-
-		return true;
-	}
-
-	ZSPACE_INLINE bool zTsSDFSlicer::fileExists(string& path)
-	{
-		ifstream f(path.c_str());
-		return f.good();
-
 	}
 
 	

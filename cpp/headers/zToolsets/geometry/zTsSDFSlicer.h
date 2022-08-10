@@ -238,6 +238,14 @@ namespace zSpace
 		//---- GET METHODS
 		//--------------------------
 
+		/*! \brief This method gets the block frames.
+		*
+		*	\param		[in]	blockId					- input block index.
+		*	\return				vector<zTransform>	    - cantainer of transforms if they exist.
+		*	\since version 0.0.2
+		*/
+		zTransform* getRawBlockStartEnd(bool left);
+
 		
 		/*! \brief This method gets the block frames.
 		*
@@ -409,14 +417,7 @@ namespace zSpace
 		*	\param		[in]	_block						- input block.
 		*	\since version 0.0.4
 		*/
-		bool checkPrintLayerHeights(bool& checkGeometry);
-
-		/*! \brief This method check the block interfaces are planar.
-		*
-		*	\param		[in]	_block						- input block.
-		*	\since version 0.0.4
-		*/
-		bool checkInterfacePoints(bool left);
+		bool checkPrintLayerHeights(bool& checkSDF, bool& checkGeometry);
 
 		/*! \brief This method checks the layer heights for all the blocks in the input directory.
 		*
@@ -424,6 +425,13 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset);
+
+		/*! \brief This method check the block interfaces are planar.
+		*
+		*	\param		[in]	_block						- input block.
+		*	\since version 0.0.4
+		*/
+		bool checkInterfacePoints(bool left , float distTolerance);
 
 		/*! \brief This method compute the block frames for thickned mesh.
 		*
@@ -473,27 +481,6 @@ namespace zSpace
 		//--------------------------
 		protected:
 
-		/*! \brief This method compute the transform from input Vectors.
-		*
-		*	\param		[in]	O							- input origin point.
-		*	\param		[in]	X							- input X axis vector.
-		* 	\param		[in]	Y							- input Y axis vector.
-		*	\param		[in]	Z							- input Z axis vector.
-		*	\return				zTransform					- output transform.
-		*	\since version 0.0.4
-		*/
-		zTransform setTransformFromVectors(zPoint& O, zVector& X, zVector& Y, zVector& Z);
-
-		/*! \brief This method compute the transform from input Vectors.
-		*
-		* 	\param		[in]	O							- input origin point.
-		*	\param		[in]	Z							- input Z axis vector.
-		*	\param		[in]	Basis						- input Basis vector.
-		*	\return				zTransform					- output transform.
-		*	\since version 0.0.4
-		*/
-		zTransform setTransformFromOrigin_Normal(zPoint& O, zVector& Z, zVector Basis = zVector(0,1,0));
-		
 		zItMeshHalfEdge getStartHalfEdge(zObjMesh& o_mesh, int startVID, int endVID);
 
 		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
@@ -504,13 +491,6 @@ namespace zSpace
 
 		void getScalars_3dp_trim(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
 
-		void addVertexToPositionMap(unordered_map<string, int> &positionVertex, zPoint& pos, int index, int precisionfactor = 3);
-
-		bool vertexExistsinPositionMap(unordered_map<string, int>& positionVertex, zPoint &pos, int& outVertexId, int precisionfactor = 3);
-
-		bool readJSON(string path, json& j);
-
-		bool fileExists(string& path);
 
 	};
 }
