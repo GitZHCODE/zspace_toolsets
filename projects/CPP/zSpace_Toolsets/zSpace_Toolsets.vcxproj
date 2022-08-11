@@ -49,6 +49,7 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMesh2Pix.h" />
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsRemesh.h" />
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFSlicer.h" />
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSpatialGraph.h" />
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSpectral.h" />
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsVariableExtrude.h" />
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFBridge.h" />
@@ -83,6 +84,7 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsRemesh.cpp" />
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFBridge.cpp" />
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer.cpp" />
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSpatialGraph.cpp" />
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSpectral.cpp" />
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsVariableExtrude.cpp" />
     <ClCompile Include="..\..\..\cpp\source\zToolsets\pathNetworks\zTsShortestPath.cpp" />
