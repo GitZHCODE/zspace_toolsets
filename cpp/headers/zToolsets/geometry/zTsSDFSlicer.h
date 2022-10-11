@@ -138,7 +138,8 @@ namespace zSpace
 
 		zColorArray blockColors;
 
-		bool leftPlaneExists, rightPlaneExists;
+		bool leftPlaneExists = false;
+		bool rightPlaneExists = false;
 
 		int blockId = 1;
 
@@ -187,6 +188,8 @@ namespace zSpace
 		//--------------------------
 		//--- SET METHODS 
 		//--------------------------
+
+		void setFromOBJ(string path, int blockID, zInt2 medialVertices, zInt2 leftPlaneFaces, zInt2 rightPlaneFaces, int blockStride, int braceStride);
 
 		/*! \brief This method creates the filed mesh.
 		*
@@ -330,12 +333,35 @@ namespace zSpace
 		zObjMesh* getRawGuideMesh();
 
 		//--------------------------
-		//---- COMPUTE METHODS
+		//---- COMPUTE METHODS GENERIC
+		//--------------------------
+		
+		/*! \brief This method computes the.
+		*
+		* 	\param		[in]	printLayerDepth				- input print layer depth.
+		*	\since version 0.0.4
+		*/
+		void computePrintBlock_Generic(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, bool compFrames = true, bool compSDF = true);
+
+		/*! \brief This method computes the SDF for the blocks.
+		*
+		*	\since version 0.0.4
+		*/
+		void computeSDF_Generic(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth);
+
+		/*! \brief This method compute the block SDF for the balustrade.
+		*
+		*	\param		[in]	_block						- input block.
+		*	\param		[in]	graphId						- input index of section graph.
+		*	\since version 0.0.4
+		*/
+		void computeBlockSDF_Generic(int funcNum, int numSmooth, int graphId, float printWidth, zDomainFloat &p_heightDomain, zDomainFloat &p_offsetDomain);
+
+		//--------------------------
+		//---- COMPUTE METHODS STRIATUS
 		//--------------------------
 
 		bool onDeckBlock();
-
-
 
 		/*! \brief This method computes the.
 		*
@@ -484,6 +510,8 @@ namespace zSpace
 		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
 
 		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset );
+
+		void getScalars_3dp_pattern(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset);
 
 		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset , bool alternate);
 
