@@ -1487,7 +1487,7 @@ namespace zSpace
 
 				if (orangeCounter != 2)
 				{
-					//printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
+					printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
 
 					zFnGraph fnGraph(o_sectionGraphs[i]);
 					fnGraph.setEdgeColor(orange);
@@ -1498,7 +1498,7 @@ namespace zSpace
 
 				if (magentaCounter != numMagentaLoops * 2)
 				{
-					//printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
+					printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
 					zFnGraph fnGraph(o_sectionGraphs[i]);
 					fnGraph.setEdgeColor(magenta);
 					checkMagentas = false;
