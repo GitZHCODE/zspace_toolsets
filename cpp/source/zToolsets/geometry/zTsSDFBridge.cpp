@@ -17,7 +17,7 @@ namespace zSpace
 {
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsSDFBridge::zTsSDFBridge() 
+	ZSPACE_TOOLSETS_INLINE zTsSDFBridge::zTsSDFBridge() 
 	{
 		red = zColor(1, 0, 0, 1);
 		yellow = zColor(1, 1, 0, 1); 
@@ -35,11 +35,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsSDFBridge::~zTsSDFBridge() {}
+	ZSPACE_TOOLSETS_INLINE zTsSDFBridge::~zTsSDFBridge() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsSDFBridge::createEdgeBeamMesh(double width, const vector<int>& _constraintVertices)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createEdgeBeamMesh(double width, const vector<int>& _constraintVertices)
 	{
 		zFnMesh fnGuideMesh(*o_guideMesh);
 
@@ -170,7 +170,7 @@ namespace zSpace
 		fnCutPlanes.setFaceColors(planeFace_colors);
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::createSplitMesh(double width, bool useThickMeshPoints)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createSplitMesh(double width, bool useThickMeshPoints)
 	{
 
 		zFnMesh fnGuideMesh(*o_guideMesh);
@@ -851,7 +851,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::createSmoothGuideMesh(int subdiv)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createSmoothGuideMesh(int subdiv)
 	{
 		zFnMesh fnGuideMesh(*o_guideMesh);
 		fnGuideMesh.getDuplicate(o_guideSmoothMesh);
@@ -870,13 +870,13 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::createSmoothGuideMeshfromFile(string path, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createSmoothGuideMeshfromFile(string path, zFileTpye fileType)
 	{
 		zFnMesh fnGuideSmoothMesh(o_guideSmoothMesh);
 		fnGuideSmoothMesh.from(path, fileType);
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::createBlockSectionGraphsfromFiles(string fileDir, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createBlockSectionGraphsfromFiles(string fileDir, zFileTpye type)
 	{
 		zStringArray graphFiles;
 		coreUtils.getFilesFromDirectory(graphFiles, fileDir, zJSON);
@@ -887,7 +887,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::createFieldMesh(zDomain<zPoint>& bb, int resX, int resY)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createFieldMesh(zDomain<zPoint>& bb, int resX, int resY)
 	{
 		zFnMeshScalarField fnField(o_field);
 
@@ -900,22 +900,22 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_INLINE void zTsSDFBridge::setGuideMesh(zObjMesh& _o_guideMesh)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::setGuideMesh(zObjMesh& _o_guideMesh)
 	{
 		o_guideMesh = &_o_guideMesh;		
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::setThickGuideMesh(zObjMesh& _o_guideThickMesh)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::setThickGuideMesh(zObjMesh& _o_guideThickMesh)
 	{
 		o_guideThickMesh = &_o_guideThickMesh;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::setSmoothThickGuideMesh(zObjMesh& _o_guideSmoothThickMesh)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::setSmoothThickGuideMesh(zObjMesh& _o_guideSmoothThickMesh)
 	{
 		o_guideSmoothThickMesh = &_o_guideSmoothThickMesh;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::setConvexMedials(const vector<int>& _fixedVertices)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::setConvexMedials(const vector<int>& _fixedVertices)
 	{
 		if (_fixedVertices.size() == 0)
 		{
@@ -995,7 +995,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::setPrintMedials(const vector<int>& _fixedVertices)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::setPrintMedials(const vector<int>& _fixedVertices)
 	{
 
 		printMedialVertices.clear();
@@ -1019,7 +1019,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::setPrintRails(const vector<int>& _fixedVertices)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::setPrintRails(const vector<int>& _fixedVertices)
 	{
 
 		printRailVertices.clear();
@@ -1043,7 +1043,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::resetPlaneColors()
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::resetPlaneColors()
 	{
 		zFnMesh fnPlaneMesh(o_planeMesh);
 		fnPlaneMesh.setFaceColors(planeFace_colors);
@@ -1051,22 +1051,22 @@ namespace zSpace
 
 	//---- GET METHODS
 
-	ZSPACE_INLINE int zTsSDFBridge::numPrintBlocks()
+	ZSPACE_TOOLSETS_INLINE int zTsSDFBridge::numPrintBlocks()
 	{
 		return printBlocks.size();
 	}
 	
-	ZSPACE_INLINE zObjMesh* zTsSDFBridge::getRawCutPlaneMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMesh* zTsSDFBridge::getRawCutPlaneMesh()
 	{
 		return &o_planeMesh;
 	}
 
-	ZSPACE_INLINE zObjMesh* zTsSDFBridge::getRawSmoothGuideMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMesh* zTsSDFBridge::getRawSmoothGuideMesh()
 	{
 		return &o_guideSmoothMesh;
 	}
 
-	ZSPACE_INLINE int zTsSDFBridge::getCorrespondingPlaneFace(int guideEdgeId)
+	ZSPACE_TOOLSETS_INLINE int zTsSDFBridge::getCorrespondingPlaneFace(int guideEdgeId)
 	{
 		int fId_plane = -1;
 		//int id = guideEdgeId * 2;
@@ -1090,7 +1090,7 @@ namespace zSpace
 		return  fId_plane;
 	}
 
-	ZSPACE_INLINE zPoint zTsSDFBridge::getBlockInteriorPoint(int blockId)
+	ZSPACE_TOOLSETS_INLINE zPoint zTsSDFBridge::getBlockInteriorPoint(int blockId)
 	{
 		if (blockId >= printBlocks.size()) return zPoint();
 
@@ -1098,7 +1098,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zPointArray zTsSDFBridge::getBlockIntersectionPoints(int blockId)
+	ZSPACE_TOOLSETS_INLINE zPointArray zTsSDFBridge::getBlockIntersectionPoints(int blockId)
 	{
 		if (blockId >= printBlocks.size()) return zPointArray();
 
@@ -1106,7 +1106,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zPointArray zTsSDFBridge::getBlockPrintStartEndPoints(int blockId)
+	ZSPACE_TOOLSETS_INLINE zPointArray zTsSDFBridge::getBlockPrintStartEndPoints(int blockId)
 	{
 		if (blockId >= printBlocks.size()) return zPointArray();
 
@@ -1114,7 +1114,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE vector<zTransform> zTsSDFBridge::getBlockFrames(int blockId)
+	ZSPACE_TOOLSETS_INLINE vector<zTransform> zTsSDFBridge::getBlockFrames(int blockId)
 	{
 
 		if (blockId >= printBlocks.size()) return vector<zTransform>();
@@ -1122,7 +1122,7 @@ namespace zSpace
 		return printBlocks[blockId].sectionFrames;
 	}
 
-	ZSPACE_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockGraphs(int blockId, int& numGraphs, zPointArray& startPoints, zPointArray& endPoints)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockGraphs(int blockId, int& numGraphs, zPointArray& startPoints, zPointArray& endPoints)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -1144,7 +1144,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockRaftGraphs(int blockId, int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockRaftGraphs(int blockId, int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -1163,7 +1163,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockGuideGraphs(int blockId, int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockGuideGraphs(int blockId, int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -1183,7 +1183,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockContourGraphs(int blockId, int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsSDFBridge::getBlockContourGraphs(int blockId, int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -1202,13 +1202,13 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjMeshScalarField* zTsSDFBridge::getRawFieldMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMeshScalarField* zTsSDFBridge::getRawFieldMesh()
 	{
 
 		return &o_field;
 	}
 
-	ZSPACE_INLINE	zObjMesh* zTsSDFBridge::getRawIsocontour()
+	ZSPACE_TOOLSETS_INLINE	zObjMesh* zTsSDFBridge::getRawIsocontour()
 	{
 		//zFnMeshScalarField fn(o_field);
 		//fn.updateColors();
@@ -1221,14 +1221,14 @@ namespace zSpace
 	//---- COMPUTE METHODS
 
 
-	ZSPACE_INLINE bool zTsSDFBridge::onBoundaryBlock(int blockId)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::onBoundaryBlock(int blockId)
 	{
 		if (blockId >= printBlocks.size()) return false;			
 	
 		return (printBlocks[blockId].right_sideFaces.size() != printBlocks[blockId].left_sideFaces.size()) ;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computeMedialEdgesfromConstraints(const vector<int>& pattern)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computeMedialEdgesfromConstraints(const vector<int>& pattern)
 	{
 		blockColors.clear();
 
@@ -1484,7 +1484,7 @@ namespace zSpace
 		}*/
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintMedialEdgesfromMedialVertices()
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintMedialEdgesfromMedialVertices()
 	{
 
 		guide_PrintMedialEdges.clear();
@@ -1631,7 +1631,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintRailEdgesfromRailVertices()
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintRailEdgesfromRailVertices()
 	{
 
 		guide_PrintRailEdges.clear();
@@ -1800,7 +1800,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlocks(int blockId,float printLayerDepth, float printLayerWidth, zDomainFloat neopreneOffset, float raftLayerWidth, const zIntArray& flipBlockIds, bool compBLOCKS, bool compFRAMES,  bool compSDF)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlocks(int blockId,float printLayerDepth, float printLayerWidth, zDomainFloat neopreneOffset, float raftLayerWidth, const zIntArray& flipBlockIds, bool compBLOCKS, bool compFRAMES,  bool compSDF)
 	{
 		zFnMesh  fn_guideMesh(*o_guideMesh);
 		zFnMesh  fn_guideSmoothMesh(o_guideSmoothMesh);
@@ -2075,7 +2075,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computeBlockMesh(int blockId)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computeBlockMesh(int blockId)
 	{
 		if (blockId >= printBlocks.size()) return;
 
@@ -2138,7 +2138,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computeSDF(zPrintBlock& _block, float printWidth, float neopreneOffset, float raftWidth)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computeSDF(zPrintBlock& _block, float printWidth, float neopreneOffset, float raftWidth)
 	{
 		_block.o_contourGraphs.clear();
 		_block.o_contourGraphs.assign(_block.o_sectionGraphs.size(), zObjGraph());
@@ -2204,7 +2204,7 @@ namespace zSpace
 
 	//---- UTILITY METHODS
 
-	ZSPACE_INLINE bool zTsSDFBridge::planarisePlaneMesh(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo, bool minEdgeConstraint, float minEdgeLen)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::planarisePlaneMesh(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo, bool minEdgeConstraint, float minEdgeLen)
 	{
 		zFnMesh fnPlaneMesh(o_planeMesh);
 
@@ -2396,7 +2396,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsSDFBridge::alignFacePairs(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::alignFacePairs(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo)
 	{
 		zFnMesh fnPlaneMesh(o_planeMesh);
 
@@ -2571,7 +2571,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE bool zTsSDFBridge::alignToBRGTargets(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::alignToBRGTargets(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo)
 	{
 		zFnMesh fnPlaneMesh(o_planeMesh);
 
@@ -2820,7 +2820,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE bool zTsSDFBridge::updateSmoothMesh(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::updateSmoothMesh(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations, bool printInfo)
 	{
 		zFnMesh fnGuideSmoothMesh(o_guideSmoothMesh);
 
@@ -2924,7 +2924,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE bool zTsSDFBridge::updateGuideMesh(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::updateGuideMesh(zDomainFloat& deviation, float dT, zIntergrationType type, float tolerance, int numIterations)
 	{
 		//zFnMesh fnGuideMesh(*o_guideMesh);
 		//
@@ -3070,7 +3070,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::addPrintBlockBoundary(zPrintBlock& mB)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::addPrintBlockBoundary(zPrintBlock& mB)
 	{
 		
 		// right blocks
@@ -3119,7 +3119,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::addConvexBlocks(zPrintBlock& mBlock, zItMeshHalfEdge& guideMesh_halfedge, bool boundaryBlock)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::addConvexBlocks(zPrintBlock& mBlock, zItMeshHalfEdge& guideMesh_halfedge, bool boundaryBlock)
 	{
 		//left block
 		if (!guideMesh_halfedge.getNext().getNext().getEdge().onBoundary())
@@ -3209,7 +3209,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::addConvexBlockFaces_fromEdge(zConvexBlock& _block, zItMeshEdge& guideMesh_edge)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::addConvexBlockFaces_fromEdge(zConvexBlock& _block, zItMeshEdge& guideMesh_edge)
 	{
 		zItMeshHalfEdge cHe = guideMesh_edge.getHalfEdge(0);
 		if (guideHalfEdge_planeFace[cHe.getId()].size() != 0)
@@ -3225,7 +3225,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockIntersections(zPrintBlock& _block, const zIntArray& FlipBlockIds)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockIntersections(zPrintBlock& _block, const zIntArray& FlipBlockIds)
 	{
 		//if (fixedVerticesBoolean[guideMesh_V.getId()]) return;
 
@@ -3486,7 +3486,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockRailIntersections(zPrintBlock& _block, int& railInteriorVertex, zPoint& startPlaneOrigin, zVector& startPlaneNorm, zPoint& endPlaneOrigin, zVector& endPlaneNorm, const zIntArray& FlipBlockIds, zItMeshHalfEdgeArray& railIntersectionHE, zPointArray& railIntersectionPoints)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockRailIntersections(zPrintBlock& _block, int& railInteriorVertex, zPoint& startPlaneOrigin, zVector& startPlaneNorm, zPoint& endPlaneOrigin, zVector& endPlaneNorm, const zIntArray& FlipBlockIds, zItMeshHalfEdgeArray& railIntersectionHE, zPointArray& railIntersectionPoints)
 	{
 		//if (fixedVerticesBoolean[guideMesh_V.getId()]) return;
 
@@ -3619,7 +3619,7 @@ namespace zSpace
 	}
 
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockFrames(zPrintBlock& _block, float printLayerDepth, float neopreneOffset_start, float neopreneOffset_end, const zIntArray& FlipBlockIds, bool useRail)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockFrames(zPrintBlock& _block, float printLayerDepth, float neopreneOffset_start, float neopreneOffset_end, const zIntArray& FlipBlockIds, bool useRail)
 	{
 		//if (_block.id == -1) return;
 		
@@ -4440,7 +4440,7 @@ namespace zSpace
 		
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockSections_Internal(zPrintBlock& _block)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockSections_Internal(zPrintBlock& _block)
 	{
 		zFnMesh  fn_guideSmoothMesh(o_guideSmoothMesh);
 		zFnMesh  fn_guideMesh(*o_guideMesh);
@@ -5666,7 +5666,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockSections_Boundary(zPrintBlock& _block)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockSections_Boundary(zPrintBlock& _block)
 	{
 		zFnMesh  fn_guideSmoothMesh(o_guideSmoothMesh);
 
@@ -6736,7 +6736,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsSDFBridge::checkPrintLayerHeights(zPrintBlock& _block)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::checkPrintLayerHeights(zPrintBlock& _block)
 	{
 		float minLayerHeight = 10;
 		float maxLayerHeight = 0;
@@ -6831,7 +6831,7 @@ namespace zSpace
 		return checkReds;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlock_bounds(zPrintBlock& _block)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlock_bounds(zPrintBlock& _block)
 	{
 		if (_block.id == -1) return;
 
@@ -6890,7 +6890,7 @@ namespace zSpace
 		//printf(" %1.4f, %1.4f, %1.4f " , dims.x, dims.y, dims.z) ;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockRailInteriorVertex(zPrintBlock& _block, zItMeshHalfEdge& guideMesh_halfedge, bool boundaryBlock)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockRailInteriorVertex(zPrintBlock& _block, zItMeshHalfEdge& guideMesh_halfedge, bool boundaryBlock)
 	{
 
 		//left block
@@ -6991,7 +6991,7 @@ namespace zSpace
 		return (leftBlock) ? he.getVertex().getId() : he.getStartVertex().getId();*/
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computePrintBlockLength(zPrintBlock& _block, bool leftBlock)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computePrintBlockLength(zPrintBlock& _block, bool leftBlock)
 	{
 		zItMeshHalfEdge startHe(o_guideSmoothMesh, (leftBlock)? _block.left_sectionPlaneFace_GuideSmoothEdge[0].second : _block.right_sectionPlaneFace_GuideSmoothEdge[0].second);
 		zItMeshHalfEdge endHe(o_guideSmoothMesh, (leftBlock) ? _block.left_sectionPlaneFace_GuideSmoothEdge[1].second : _block.right_sectionPlaneFace_GuideSmoothEdge[1].second);
@@ -7018,7 +7018,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE float zTsSDFBridge::computePrintBlockRailLength(zPrintBlock& _block, zPoint& startPlaneOrigin, zVector& startPlaneNorm, zPoint& endPlaneOrigin, zVector& endPlaneNorm, zColor& blockColor, bool leftBlock, const zIntArray& FlipBlockIds, zItMeshHalfEdgeArray& railIntersectionHE, zPointArray& railIntersectionPoints)
+	ZSPACE_TOOLSETS_INLINE float zTsSDFBridge::computePrintBlockRailLength(zPrintBlock& _block, zPoint& startPlaneOrigin, zVector& startPlaneNorm, zPoint& endPlaneOrigin, zVector& endPlaneNorm, zColor& blockColor, bool leftBlock, const zIntArray& FlipBlockIds, zItMeshHalfEdgeArray& railIntersectionHE, zPointArray& railIntersectionPoints)
 	{
 		//int railInteriorVertex = computePrintBlockRailInteriorVertex(_block, blockColor, leftBlock);
 		
@@ -7062,7 +7062,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computeBlockSDF_Internal(zPrintBlock& _block, int graphId, int printLayerId, bool rightSide, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth, bool exportBMP)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computeBlockSDF_Internal(zPrintBlock& _block, int graphId, int printLayerId, bool rightSide, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth, bool exportBMP)
 	{
 		if (_block.id == -1) return;
 		if (graphId >= _block.o_sectionGraphs.size())return;
@@ -7525,7 +7525,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::computeBlockSDF_Boundary(zPrintBlock& _block, int graphId, float printWidth, float neopreneOffset, bool addRaft , int raftId, float raftWidth)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::computeBlockSDF_Boundary(zPrintBlock& _block, int graphId, float printWidth, float neopreneOffset, bool addRaft , int raftId, float raftWidth)
 	{
 		if (_block.id == -1) return;
 		if (graphId >= _block.o_sectionGraphs.size())return;
@@ -7930,7 +7930,7 @@ namespace zSpace
 		myfile.close();
 	}
 
-	ZSPACE_INLINE zTransform zTsSDFBridge::setTransformFromVectors(zPoint& O, zVector& X, zVector& Y, zVector& Z)
+	ZSPACE_TOOLSETS_INLINE zTransform zTsSDFBridge::setTransformFromVectors(zPoint& O, zVector& X, zVector& Y, zVector& Z)
 	{
 		zTransform out;
 
@@ -7943,7 +7943,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength, zPoint startPlaneOrigin, zVector startPlaneNorm, float hardVertexTolerance)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength, zPoint startPlaneOrigin, zVector startPlaneNorm, float hardVertexTolerance)
 	{
 		zFnGraph inFnGraph(inPoly);
 		inFnGraph.setEdgeColor(zColor());
@@ -8076,7 +8076,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockPlanesToTXT(string dir, string filename)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockPlanesToTXT(string dir, string filename)
 	{
 		//zBoolArray blockVisited;
 		//blockVisited.assign(blocks.size(), false);
@@ -8204,7 +8204,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockSidePlanesToTXT(string dir, string filename)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockSidePlanesToTXT(string dir, string filename)
 	{
 		//zBoolArray blockVisited;
 		//blockVisited.assign(blocks.size(), false);
@@ -8269,7 +8269,7 @@ namespace zSpace
 		//}
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockSectionPlanesToTXT(string dir, string filename)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockSectionPlanesToTXT(string dir, string filename)
 	{
 
 		//zBoolArray blockVisited;
@@ -8318,7 +8318,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockSectionsFromJSON(string dir, string filename)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockSectionsFromJSON(string dir, string filename)
 	{
 		//zBoolArray blockVisited;
 		//blockVisited.assign(blocks.size(), false);
@@ -8358,7 +8358,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockConvexToJSON(zPrintBlock &_block, string dir, string filename)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockConvexToJSON(zPrintBlock &_block, string dir, string filename)
 	{
 		
 		string folderName = dir;
@@ -8512,7 +8512,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockContoursToJSON(int blockId, string dir, string filename, float printLyerWidth, float raftLayerWidth)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockContoursToJSON(int blockId, string dir, string filename, float printLyerWidth, float raftLayerWidth)
 	{
 		if (blockId >= printBlocks.size()) return;
 		zPrintBlock _block = printBlocks[blockId];
@@ -8785,7 +8785,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSDFBridge::blockContoursToIncr3D(int blockId, string dir, string filename, float layerWidth)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::blockContoursToIncr3D(int blockId, string dir, string filename, float layerWidth)
 	{
 		
 		for (auto& b : printBlocks)
@@ -9542,7 +9542,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsSDFBridge::fromBRGJSON(string path, zPointArray& points, zVectorArray& normals, zPointArray& vThickness)
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFBridge::fromBRGJSON(string path, zPointArray& points, zVectorArray& normals, zPointArray& vThickness)
 	{
 		json j;
 		zUtilsJsonHE meshJSON;

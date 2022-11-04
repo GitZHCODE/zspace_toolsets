@@ -5,9 +5,10 @@
     <RhinoDir>C:\Program Files\Rhino 6 SDK</RhinoDir>
     <MayaDir>C:\Program Files\Autodesk\Maya2017</MayaDir>
     <CudaCommonDir>C:\ProgramData\NVIDIA Corporation\CUDA Samples\v10.2\common\inc</CudaCommonDir>
-    <zspacecoreDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_core</zspacecoreDir>
-    <zspaceDeployDir>C:\Users\vishu.b\source\repos\GitZHCODE\Alice2018_zSpace\ALICE_PLATFORM\src\zspace</zspaceDeployDir>
-    <aliceEXEDir>C:\Users\vishu.b\source\repos\GitZHCODE\Alice2018_zSpace\ALICE_PLATFORM\x64\Release\EXE</aliceEXEDir>
+    <zspacecoreDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_core</zspacecoreDir>
+    <zspaceDeployDir>C:\Users\heba.eiz\source\repos\GitZHCODE\Alice2018_zSpace\ALICE_PLATFORM\src\zspace</zspaceDeployDir>
+    <aliceEXEDir>C:\Users\heba.eiz\source\repos\GitZHCODE\Alice2018_zSpace\ALICE_PLATFORM\x64\Release\EXE</aliceEXEDir>
+    <zSpaceCoreLibDir>C:/Users/heba.eiz/source/repos/GitZHCODE/zspace_toolsets/cpp/depends/zSpaceCore</zSpaceCoreLibDir>
   </PropertyGroup>
   <PropertyGroup />
   <ItemDefinitionGroup>
@@ -43,6 +44,9 @@ REM CALL "$(SolutionDir)scripts\"zspace_includedeploy.bat "$(SolutionDir)\cpp\de
     <BuildMacro Include="aliceEXEDir">
       <Value>$(aliceEXEDir)</Value>
       <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="zSpaceCoreLibDir">
+      <Value>$(zSpaceCoreLibDir)</Value>
     </BuildMacro>
   </ItemGroup>
 </Project>

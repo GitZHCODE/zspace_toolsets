@@ -18,9 +18,9 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsRemesh::zTsRemesh() {}
+	ZSPACE_TOOLSETS_INLINE zTsRemesh::zTsRemesh() {}
 
-	ZSPACE_INLINE zTsRemesh::zTsRemesh(zObjMesh &_meshObj)
+	ZSPACE_TOOLSETS_INLINE zTsRemesh::zTsRemesh(zObjMesh &_meshObj)
 	{
 		meshObj = &_meshObj;
 		fnMesh = zFnMesh(_meshObj);
@@ -28,11 +28,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsRemesh::~zTsRemesh() {}
+	ZSPACE_TOOLSETS_INLINE zTsRemesh::~zTsRemesh() {}
 
 	//---- REMESH METHODS
 
-	ZSPACE_INLINE void zTsRemesh::splitLongEdges(double maxEdgeLength)
+	ZSPACE_TOOLSETS_INLINE void zTsRemesh::splitLongEdges(double maxEdgeLength)
 	{
 		/*for (int i = 0; i < meshObj->mesh.halfEdges.size(); i += 2)
 		{
@@ -50,7 +50,7 @@ namespace zSpace
 		}*/
 	}
 
-	ZSPACE_INLINE void collapseShortEdges(double minEdgeLength, double maxEdgeLength)
+	ZSPACE_TOOLSETS_INLINE void collapseShortEdges(double minEdgeLength, double maxEdgeLength)
 	{
 		//int finished = false;
 
@@ -104,7 +104,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void equalizeValences()
+	ZSPACE_TOOLSETS_INLINE void equalizeValences()
 	{
 		/*for (int i = 0; i < meshObj->mesh.edgeActive.size(); i += 2)
 		{
@@ -160,7 +160,7 @@ namespace zSpace
 		}*/
 	}
 
-	ZSPACE_INLINE void tangentialRelaxation()
+	ZSPACE_TOOLSETS_INLINE void tangentialRelaxation()
 	{
 		/*for (int i = 0; i < fnMesh.numVertices(); i++)
 		{

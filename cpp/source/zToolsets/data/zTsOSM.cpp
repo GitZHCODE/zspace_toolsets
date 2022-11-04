@@ -18,7 +18,7 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsOSM::zTsOSM()
+	ZSPACE_TOOLSETS_INLINE zTsOSM::zTsOSM()
 	{
 		zDB = nullptr;
 
@@ -31,7 +31,7 @@ namespace zSpace
 		buildingGraphObj = nullptr;
 	}
 
-	ZSPACE_INLINE zTsOSM::zTsOSM(char* DatabaseFileName, zObjMeshField<zScalar> &_fieldObj, zObjGraph &_streetObj, zObjMesh &_buildingObj, zObjGraph &_buildingGraphObj)
+	ZSPACE_TOOLSETS_INLINE zTsOSM::zTsOSM(char* DatabaseFileName, zObjMeshField<zScalar> &_fieldObj, zObjGraph &_streetObj, zObjMesh &_buildingObj, zObjGraph &_buildingGraphObj)
 	{
 		zDB = new zDatabase(DatabaseFileName);
 
@@ -51,16 +51,16 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsOSM::~zTsOSM() {}
+	ZSPACE_TOOLSETS_INLINE zTsOSM::~zTsOSM() {}
 
 	//---- COMPUTE METHODS
 
-	ZSPACE_INLINE void zTsOSM::setScale(double _scaleFactor)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::setScale(double _scaleFactor)
 	{
 		scaleFactor = _scaleFactor;
 	}
 
-	ZSPACE_INLINE void zTsOSM::computeBoundingBox()
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::computeBoundingBox()
 	{
 		double diagonalDist = computeDistance(this->lat_lon[0], this->lat_lon[1], this->lat_lon[2], this->lat_lon[3]) * scaleFactor;
 
@@ -74,7 +74,7 @@ namespace zSpace
 		printf("\n diagonal distance: %1.2f ", diagonalDist);
 	}
 
-	ZSPACE_INLINE double zTsOSM::computeDistance(double &lat1, double &lon1, double &lat2, double &lon2)
+	ZSPACE_TOOLSETS_INLINE double zTsOSM::computeDistance(double &lat1, double &lon1, double &lat2, double &lon2)
 	{
 		double R = 6378.137; // Radius of earth in KM
 
@@ -88,7 +88,7 @@ namespace zSpace
 		return d; // in kilometers
 	}
 
-	ZSPACE_INLINE zVector zTsOSM::computePositionFromCoordinates(double &lat, double &lon)
+	ZSPACE_TOOLSETS_INLINE zVector zTsOSM::computePositionFromCoordinates(double &lat, double &lon)
 	{
 		double mappedX = coreUtils.ofMap(lon, lat_lon[1], lat_lon[3], (double) minBB.x, (double)maxBB.x);
 		double mappedY = coreUtils.ofMap(lat, lat_lon[0], lat_lon[2], (double)minBB.y, (double)maxBB.y);
@@ -100,14 +100,14 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsOSM::createFieldFromBounds(int _n_X , int _n_Y )
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::createFieldFromBounds(int _n_X , int _n_Y )
 	{
 		zVector offset(0.5, 0.5, 0);
 
 		fnField.create(minBB - offset, maxBB + offset, _n_X, _n_Y);
 	}
 
-	ZSPACE_INLINE void zTsOSM::createStreets(zColor streetCol)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::createStreets(zColor streetCol)
 	{
 		vector<zVector>(positions);
 		vector<int>(edgeConnects);
@@ -203,7 +203,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::createGraphBuildings(zColor buildingCol)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::createGraphBuildings(zColor buildingCol)
 	{
 		vector<zVector>(positions);
 		vector<int>(edgeConnects);
@@ -328,7 +328,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::exportGraphBuildings(string outfile)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::exportGraphBuildings(string outfile)
 	{
 		ofstream myfile;
 
@@ -374,7 +374,7 @@ namespace zSpace
 		cout << endl << " TXT exported. File:   " << outfile.c_str() << endl;
 	}
 
-	ZSPACE_INLINE void zTsOSM::exportPartGraphBuildings(string outfile)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::exportPartGraphBuildings(string outfile)
 	{
 		ofstream myfile;
 
@@ -447,7 +447,7 @@ namespace zSpace
 		cout << endl << " TXT exported. File:   " << outfile.c_str() << endl;
 	}
 
-	ZSPACE_INLINE void zTsOSM::createBuildings(zColor buildingCol)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::createBuildings(zColor buildingCol)
 	{
 		vector<zVector>(positions);
 		vector<int>(polyConnects);
@@ -561,7 +561,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::getPostcodesPrices()
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::getPostcodesPrices()
 	{
 		// get postcodes
 
@@ -620,7 +620,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::getTubeStations()
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::getTubeStations()
 	{
 		vector<string> outStm_tubenodes;
 
@@ -650,7 +650,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::exportTubeStations(string outfile)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::exportTubeStations(string outfile)
 	{
 
 		ofstream myfile;
@@ -673,7 +673,7 @@ namespace zSpace
 		cout << endl << " TXT exported. File:   " << outfile.c_str() << endl;
 	}
 
-	ZSPACE_INLINE void zTsOSM::getParks()
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::getParks()
 	{
 		vector<string> outStm_parknodes;
 
@@ -702,7 +702,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::exportParks(string outfile)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::exportParks(string outfile)
 	{
 
 		ofstream myfile;
@@ -727,7 +727,7 @@ namespace zSpace
 
 	//---- GET METHODS
 
-	ZSPACE_INLINE zDataStreet zTsOSM::getStreetType(string wayId)
+	ZSPACE_TOOLSETS_INLINE zDataStreet zTsOSM::getStreetType(string wayId)
 	{
 		vector<string> outStm;
 		vector<string> sqlStm = { "SELECT v FROM ways_tags WHERE ways_tags.id = " + wayId + ";" };
@@ -762,7 +762,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::getStreetEdgesFromWays(string k, string v, vector<int> &graphEdges)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::getStreetEdgesFromWays(string k, string v, vector<int> &graphEdges)
 	{
 		graphEdges.clear();
 
@@ -790,7 +790,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsOSM::getStreetEdgesFromRelations(string k, string v, vector<int> &graphEdges)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::getStreetEdgesFromRelations(string k, string v, vector<int> &graphEdges)
 	{
 		graphEdges.clear();
 
@@ -818,7 +818,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zDataBuilding zTsOSM::getBuildingType(string wayId)
+	ZSPACE_TOOLSETS_INLINE zDataBuilding zTsOSM::getBuildingType(string wayId)
 	{
 		vector<string> outStm;
 		vector<string> sqlStm = { "SELECT v FROM ways_tags WHERE ways_tags.id = " + wayId + ";" };
@@ -850,7 +850,7 @@ namespace zSpace
 
 	//---- DATA FACTORY METHODS
 
-	ZSPACE_INLINE zObjGraph zTsOSM::fromShapeCSV(string infile_Nodes, string infile_Attribute, vector<vector<string>> &attributeData)
+	ZSPACE_TOOLSETS_INLINE zObjGraph zTsOSM::fromShapeCSV(string infile_Nodes, string infile_Attribute, vector<vector<string>> &attributeData)
 	{
 
 		zObjGraph out;
@@ -1021,7 +1021,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjMesh zTsOSM::fromCoordinates_ShapeCSV(string infile_Nodes, string infile_Attribute, vector<vector<string>> &attributeData)
+	ZSPACE_TOOLSETS_INLINE zObjMesh zTsOSM::fromCoordinates_ShapeCSV(string infile_Nodes, string infile_Attribute, vector<vector<string>> &attributeData)
 	{
 
 		zObjMesh out;
@@ -1197,7 +1197,7 @@ namespace zSpace
 
 	//---- FIELD DATA METHODS
 
-	ZSPACE_INLINE void zTsOSM::updateScalars_GraphConnectivity(zObjGraph& inGraph)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::updateScalars_GraphConnectivity(zObjGraph& inGraph)
 	{
 		int i = 0;
 
@@ -1222,7 +1222,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsOSM::exportOSMRelationsToCSV(string infilename, string outfilename_Relations, string outfilename_Relations_members, string outfilename_RelationTags)
+	ZSPACE_TOOLSETS_INLINE void zTsOSM::exportOSMRelationsToCSV(string infilename, string outfilename_Relations, string outfilename_Relations_members, string outfilename_RelationTags)
 	{
 		vector<string> relations;
 		vector<vector<string>> relations_members;

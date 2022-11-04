@@ -14,7 +14,7 @@
 #define ZSPACE_TS_GEOMETRY_VARIABLE_EXTRUDE_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 
 
@@ -40,7 +40,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsVariableExtrude
+	class ZSPACE_TOOLSETS zTsVariableExtrude
 	{
 	protected:
 		//--------------------------
@@ -125,7 +125,7 @@ namespace zSpace
 	
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsVariableExtrude.cpp>

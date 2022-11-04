@@ -14,7 +14,7 @@
 #define ZSPACE_TS_GEOMETRY_SPECTRAL_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 
 #include <depends/spectra/include/Spectra/SymEigsShiftSolver.h>
@@ -45,7 +45,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsSpectral
+	class ZSPACE_TOOLSETS zTsSpectral
 	{
 	protected:
 
@@ -227,7 +227,7 @@ namespace zSpace
 
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsSpectral.cpp>

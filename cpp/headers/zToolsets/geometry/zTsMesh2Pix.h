@@ -14,7 +14,7 @@
 #define ZSPACE_TS_GEOMETRY_MESH_IMAGE_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 
 #include<headers/zCore/utilities/zUtilsBMP.h>
@@ -42,7 +42,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsMesh2Pix
+	class ZSPACE_TOOLSETS zTsMesh2Pix
 	{
 	protected:
 		//--------------------------
@@ -193,7 +193,7 @@ namespace zSpace
 	};
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsMesh2Pix.cpp>

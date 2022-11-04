@@ -14,7 +14,7 @@
 #define ZSPACE_TS_GEOMETRY_GRAPH_POLYHEDRA_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
 #include <headers/zInterface/functionsets/zFnParticle.h>
@@ -42,7 +42,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsGraphPolyhedra
+	class ZSPACE_TOOLSETS zTsGraphPolyhedra
 	{
 	protected:
 		//--------------------------
@@ -245,7 +245,7 @@ namespace zSpace
 	};
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsGraphPolyhedra.cpp>

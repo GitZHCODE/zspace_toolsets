@@ -14,7 +14,7 @@
 #define ZSPACE_TS_DATA_OSM_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zCore/data/zDatabase.h>
 
 #include <headers/zInterface/functionsets/zFnMeshField.h>
@@ -176,7 +176,7 @@ namespace zSpace
 
 	/** @}*/
 	
-	class ZSPACE_TOOLS zTsOSM
+	class ZSPACE_TOOLSETS zTsOSM
 	{
 	protected:
 		//--------------------------
@@ -1033,7 +1033,7 @@ namespace zSpace
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/data/zTsOSM.cpp>

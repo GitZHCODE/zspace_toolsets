@@ -20,13 +20,13 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zStreamLine::zStreamLine()
+	ZSPACE_TOOLSETS_INLINE zStreamLine::zStreamLine()
 	{
 		parent = -1; // no parent
 
 	}
 
-	ZSPACE_INLINE void zStreamLine::setParent( int _parentId)
+	ZSPACE_TOOLSETS_INLINE void zStreamLine::setParent( int _parentId)
 	{		
 		parent = _parentId;
 	}
@@ -39,7 +39,7 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsStreams2D::zTsStreams2D()
+	ZSPACE_TOOLSETS_INLINE zTsStreams2D::zTsStreams2D()
 	{
 		fieldObj = nullptr;
 
@@ -57,7 +57,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zTsStreams2D::zTsStreams2D(zObjMeshField<zVector> &_fieldObj)
+	ZSPACE_TOOLSETS_INLINE zTsStreams2D::zTsStreams2D(zObjMeshField<zVector> &_fieldObj)
 	{
 		fieldObj = &_fieldObj;
 		fnField = zFnMeshField<zVector>(_fieldObj);
@@ -97,58 +97,58 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsStreams2D::~zTsStreams2D() {}
+	ZSPACE_TOOLSETS_INLINE zTsStreams2D::~zTsStreams2D() {}
 
 	//----  SET METHODS
 
-	ZSPACE_INLINE void zTsStreams2D::setSeperationDistance(double &_dSep)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setSeperationDistance(double &_dSep)
 	{
 		dSep = &_dSep;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setTestSeperationDistance(double &_dTest)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setTestSeperationDistance(double &_dTest)
 	{
 		dTest = &_dTest;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setMinLength(double &_minLength)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setMinLength(double &_minLength)
 	{
 		minLength = &_minLength;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setMaxLength(double &_maxLength)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setMaxLength(double &_maxLength)
 	{
 		maxLength = &_maxLength;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setIntegrationType(zFieldStreamType _streamType)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setIntegrationType(zFieldStreamType _streamType)
 	{
 		streamType = _streamType;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setTimeStep(double &_dT)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setTimeStep(double &_dT)
 	{
 		dT = &_dT;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setIntegrationType(zIntergrationType _integrationType)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setIntegrationType(zIntergrationType _integrationType)
 	{
 		integrationType = _integrationType;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setAngle(double &_angle)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setAngle(double &_angle)
 	{
 		angle = &_angle;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::setFlipBackwards(bool &_flipBackward)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::setFlipBackwards(bool &_flipBackward)
 	{
 		flipBackward = &_flipBackward;
 	}
 
 	//----  2D STREAM LINES METHODS
 
-	ZSPACE_INLINE void zTsStreams2D::createStreams(vector<zStreamLine>& streams, vector<zVector> &start_seedPoints, bool seedStreamsOnly)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::createStreams(vector<zStreamLine>& streams, vector<zVector> &start_seedPoints, bool seedStreamsOnly)
 	{
 		streams.clear();
 		streams.assign(5000, zStreamLine());
@@ -254,7 +254,7 @@ namespace zSpace
 
 	//----  2D STREAM LINES METHODS WITH INFLUENCE SCALAR FIELD
 
-	ZSPACE_INLINE void zTsStreams2D::createStreams_Influence(vector<zStreamLine>& streams, vector<zVector> &start_seedPoints, zFnMeshField<zScalar>& fnInfluenceField, double min_Power, double max_Power, bool seedStreamsOnly)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::createStreams_Influence(vector<zStreamLine>& streams, vector<zVector> &start_seedPoints, zFnMeshField<zScalar>& fnInfluenceField, double min_Power, double max_Power, bool seedStreamsOnly)
 	{
 		streams.clear();
 		streams.assign(100, zStreamLine());
@@ -401,7 +401,7 @@ namespace zSpace
 
 	//---- PROTECTED METHODS
 
-	ZSPACE_INLINE bool zTsStreams2D::createStreamGraph(zObjGraph &streamGraphObj, zVector &seedPoint)
+	ZSPACE_TOOLSETS_INLINE bool zTsStreams2D::createStreamGraph(zObjGraph &streamGraphObj, zVector &seedPoint)
 	{
 
 		vector<zVector> positions;
@@ -693,7 +693,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::getSeedPoints(zStreamLine& currentStream, int vertexId, vector<zVector> &seedPoints)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::getSeedPoints(zStreamLine& currentStream, int vertexId, vector<zVector> &seedPoints)
 	{
 		zFnGraph tempFn(currentStream.graphObj);
 		if (tempFn.numEdges() == 0) return;
@@ -749,7 +749,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsStreams2D::createStreamGraph_Influence(zObjGraph &streamGraphObj, zVector &seedPoint, zFnMeshField<zScalar>& fnInfluenceField, double min_Power, double max_Power)
+	ZSPACE_TOOLSETS_INLINE bool zTsStreams2D::createStreamGraph_Influence(zObjGraph &streamGraphObj, zVector &seedPoint, zFnMeshField<zScalar>& fnInfluenceField, double min_Power, double max_Power)
 	{
 
 		vector<zVector> positions;
@@ -1058,7 +1058,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::getSeedPoints_Influence(zFnMeshField<zScalar>& fnInfluenceField, zStreamLine& currentStream, int vertexId, double min_Power, double max_Power, vector<zVector> &seedPoints)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::getSeedPoints_Influence(zFnMeshField<zScalar>& fnInfluenceField, zStreamLine& currentStream, int vertexId, double min_Power, double max_Power, vector<zVector> &seedPoints)
 	{
 		zFnGraph tempFn(currentStream.graphObj);
 		if (tempFn.numEdges() == 0) return;
@@ -1119,7 +1119,7 @@ namespace zSpace
 
 	//----  2D FIELD UTILITIES
 
-	ZSPACE_INLINE bool zTsStreams2D::checkFieldBounds(zVector &inPoint)
+	ZSPACE_TOOLSETS_INLINE bool zTsStreams2D::checkFieldBounds(zVector &inPoint)
 	{
 		zVector minBB, maxBB;
 		fnField.getBoundingBox(minBB, maxBB);	
@@ -1127,7 +1127,7 @@ namespace zSpace
 		return coreUtils.pointInBounds(inPoint, minBB, maxBB);
 	}
 
-	ZSPACE_INLINE bool zTsStreams2D::checkValidStreamPosition(zVector &inPoint, double &dTest)
+	ZSPACE_TOOLSETS_INLINE bool zTsStreams2D::checkValidStreamPosition(zVector &inPoint, double &dTest)
 	{
 
 		int newFieldIndex;
@@ -1183,7 +1183,7 @@ namespace zSpace
 		return validStreamPoint;
 	}
 
-	ZSPACE_INLINE bool zTsStreams2D::checkValidSeedPosition(zVector &inPoint, double &dSep)
+	ZSPACE_TOOLSETS_INLINE bool zTsStreams2D::checkValidSeedPosition(zVector &inPoint, double &dSep)
 	{
 
 
@@ -1238,7 +1238,7 @@ namespace zSpace
 		return validSeedPoint;
 	}
 
-	ZSPACE_INLINE void zTsStreams2D::addToFieldStreamPositions(zVector &inPoint)
+	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::addToFieldStreamPositions(zVector &inPoint)
 	{
 
 		int curFieldIndex;

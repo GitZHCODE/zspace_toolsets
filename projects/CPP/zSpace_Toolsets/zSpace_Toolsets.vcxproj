@@ -42,24 +42,77 @@
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\statistics.h" />
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\stdafx.h" />
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsOSM.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobot.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsGraphPolyhedra.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMesh2Pix.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsRemesh.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFSlicer.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSpatialGraph.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSpectral.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsVariableExtrude.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFBridge.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\pathNetworks\zTsShortestPath.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\pathNetworks\zTsSlimeMould.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsPolytopal.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsSpatialStructure.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsTopOpt.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsVault.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreams2D.h" />
+    <ClInclude Include="..\..\..\cpp\headers\base\zSpace_Toolsets.h" />
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\0_externalMethods\zExtKMeans.h" />
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\0_externalMethods\zExtSDFSlicer.h" />
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsOSM.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobot.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsGraphPolyhedra.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMesh2Pix.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsRemesh.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFSlicer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSpectral.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsVariableExtrude.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFBridge.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\pathNetworks\zTsShortestPath.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\pathNetworks\zTsSlimeMould.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsPolytopal.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsSpatialStructure.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsTopOpt.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\statics\zTsVault.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreams2D.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\alglibinternal.cpp" />
@@ -76,24 +129,76 @@
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\specialfunctions.cpp" />
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\statistics.cpp" />
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.c" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsOSM.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\digiFab\zTsRobot.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsGraphPolyhedra.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMesh2Pix.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsRemesh.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFBridge.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSpatialGraph.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSpectral.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsVariableExtrude.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\pathNetworks\zTsShortestPath.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\pathNetworks\zTsSlimeMould.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsPolytopal.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsSpatialStructure.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsTopOpt.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsVault.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\streamlines\zTsStreams2D.cpp" />
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtKMeans.cpp" />
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtSDFSlicer.cpp" />
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsOSM.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\digiFab\zTsRobot.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsGraphPolyhedra.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMesh2Pix.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsRemesh.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFBridge.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSpectral.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsVariableExtrude.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\pathNetworks\zTsShortestPath.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\pathNetworks\zTsSlimeMould.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsPolytopal.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsSpatialStructure.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsTopOpt.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\statics\zTsVault.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\streamlines\zTsStreams2D.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
@@ -225,7 +330,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(zspacecoreDir)/cpp/Depends/Armadillo;$(zspacecoreDir)/cpp/Depends;$(zspacecoreDir);$(zspacecoreDir)/cpp; $(SolutionDir)/cpp;$(zspacecoreDir)/cpp/Depends/alglib/cpp/src/</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ZSPACE_STATIC_LIBRARY;USING_ARMA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ZSPACE_STATIC_LIBRARY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -257,15 +362,15 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(zspacecoreDir)/cpp/Depends/Armadillo;$(zspacecoreDir)/cpp/Depends;$(zspacecoreDir);$(zspacecoreDir)/cpp;$(SolutionDir)/cpp;$(zspacecoreDir)/cpp/Depends/alglib/cpp/src/</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ZSPACE_DYNAMIC_LIBRARY;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(zspacecoreDir)/cpp/Depends/Armadillo;$(zspacecoreDir)/cpp/Depends;$(zspacecoreDir);$(zspacecoreDir)/cpp;$(SolutionDir)/cpp;$(zspacecoreDir)/cpp/Depends/alglib/cpp/src/;$(iglIncludeDir);$(iglBuildDir)\_deps\eigen-src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;IGL_STATIC_LIBRARY;_WINDLL;ZSPACE_TOOLSETS_DYNAMIC_LIBRARY;ZSPACE_STATIC_LIBRARY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(zspacecoreDir)/cpp/depends/OPENGL/lib;$(zspacecoreDir)/cpp/depends/SQLITE/lib;$(zspacecoreDir)/cpp/compiled/dll;$(zspacecoreDir)/cpp/Depends/freeglut</AdditionalLibraryDirectories>
-      <AdditionalDependencies>zSpace_Core.lib; zSpace_Interface.lib;sqlite3.lib;opengl32.lib; glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(zspacecoreDir)/cpp/depends/OPENGL/lib;$(zspacecoreDir)/cpp/depends/SQLITE/lib;$(zspacecoreDir)/cpp/compiled/dll;$(zspacecoreDir)/cpp/depends/freeglut</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(zSpaceCoreLibDir)\zSpace_Core.lib;$(zSpaceCoreLibDir)\zSpace_Interface.lib;sqlite3.lib;opengl32.lib;glew32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Make|x64'">

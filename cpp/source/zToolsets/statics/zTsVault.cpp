@@ -18,11 +18,11 @@ namespace zSpace
 	//---- CONSTRUCTOR
 
 	template<typename T, typename U>
-	ZSPACE_INLINE zTsVault<T,U>::zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<T,U>::zTsVault() {}
 
 	//---- graph specilization for zTsVault overloaded constructor 
 	template<>
-	ZSPACE_INLINE  zTsVault<zObjGraph, zFnGraph>::zTsVault(zObjGraph & _resultObj)
+	ZSPACE_TOOLSETS_INLINE  zTsVault<zObjGraph, zFnGraph>::zTsVault(zObjGraph & _resultObj)
 	{
 		resultObj = &_resultObj;
 		fnResult = zFnGraph(_resultObj);
@@ -30,7 +30,7 @@ namespace zSpace
 
 	//---- mesh specilization for zTsVault overloaded constructor 
 	template<>
-	ZSPACE_INLINE  zTsVault<zObjMesh, zFnMesh>::zTsVault(zObjMesh & _resultObj)
+	ZSPACE_TOOLSETS_INLINE  zTsVault<zObjMesh, zFnMesh>::zTsVault(zObjMesh & _resultObj)
 	{
 		resultObj = &_resultObj;
 		fnResult = zFnMesh(_resultObj);
@@ -38,7 +38,7 @@ namespace zSpace
 
 	//---- graph specilization for zTsVault overloaded constructor 
 	template<>
-	ZSPACE_INLINE  zTsVault<zObjGraph, zFnGraph>::zTsVault(zObjGraph & _resultObj, zObjGraph &_formObj, zObjMesh &_forceObj)
+	ZSPACE_TOOLSETS_INLINE  zTsVault<zObjGraph, zFnGraph>::zTsVault(zObjGraph & _resultObj, zObjGraph &_formObj, zObjMesh &_forceObj)
 	{
 		resultObj = &_resultObj;
 		fnResult = zFnGraph(_resultObj);
@@ -53,7 +53,7 @@ namespace zSpace
 
 	//---- mesh specilization for zTsVault overloaded constructor 
 	template<>
-	ZSPACE_INLINE  zTsVault<zObjMesh, zFnMesh>::zTsVault(zObjMesh & _resultObj, zObjMesh &_formObj, zObjMesh &_forceObj)
+	ZSPACE_TOOLSETS_INLINE  zTsVault<zObjMesh, zFnMesh>::zTsVault(zObjMesh & _resultObj, zObjMesh &_formObj, zObjMesh &_forceObj)
 	{
 		resultObj = &_resultObj;
 		fnResult = zFnMesh(_resultObj);
@@ -69,13 +69,13 @@ namespace zSpace
 	//---- DESTRUCTOR
 
 	template<typename T, typename U>
-	ZSPACE_INLINE zTsVault<T, U>::~zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<T, U>::~zTsVault() {}
 
 	//---- CREATE METHODS
 
 	//---- graph specilization for createResultfromFile
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::createResultfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createResultfromFile(string path, zFileTpye type)
 	{
 		fnResult.from(path, type);
 
@@ -88,7 +88,7 @@ namespace zSpace
 
 	//---- mesh specilization for createResultfromFile
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::createResultfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createResultfromFile(string path, zFileTpye type)
 	{
 		fnResult.from(path, type);
 
@@ -107,7 +107,7 @@ namespace zSpace
 
 	//---- graph specilization for createForcefromFile
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::createForcefromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createForcefromFile(string path, zFileTpye type)
 	{
 		fnForce.from(path, type);
 
@@ -119,7 +119,7 @@ namespace zSpace
 
 	//---- mesh specilization for createForcefromFile
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::createForcefromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createForcefromFile(string path, zFileTpye type)
 	{
 		fnForce.from(path, type);
 
@@ -131,7 +131,7 @@ namespace zSpace
 
 	//---- mesh specilization for createForcefromFile
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::createFormfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createFormfromFile(string path, zFileTpye type)
 	{
 		fnForm.from(path, type);
 
@@ -144,7 +144,7 @@ namespace zSpace
 
 	//---- graph specilization for createFormFromResult
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::createFormFromResult()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createFormFromResult()
 	{
 		*formObj = fnResult.getDuplicate();
 
@@ -178,7 +178,7 @@ namespace zSpace
 
 	//---- mesh specilization for createFormFromResult
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::createFormFromResult()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createFormFromResult()
 	{
 		std::clock_t start;
 		start = std::clock();
@@ -217,7 +217,7 @@ namespace zSpace
 
 	//---- graph specilization for createFormFromForce
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::createFormFromForce(bool excludeBoundary, bool PlanarForceMesh, bool rotate90)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createFormFromForce(bool excludeBoundary, bool PlanarForceMesh, bool rotate90)
 	{
 		fnForce.getDualGraph(*formObj, forceEdge_formEdge, formEdge_forceEdge, excludeBoundary, PlanarForceMesh, rotate90);
 
@@ -232,7 +232,7 @@ namespace zSpace
 
 	//---- mesh specilization for createForceFromForm
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::createForceFromForm(bool rotate90)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createForceFromForm(bool rotate90)
 	{
 
 		vector<zVector>positions;
@@ -515,7 +515,7 @@ namespace zSpace
 
 	//---- graph specilization for createResultFromForm
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::createResultFromForm()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createResultFromForm()
 	{
 		*resultObj = fnForm.getDuplicate();
 
@@ -527,7 +527,7 @@ namespace zSpace
 
 	//---- mesh specilization for createResultFromForm
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::createResultFromForm()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createResultFromForm()
 	{
 		fnForm.getDuplicate(*resultObj);
 
@@ -541,7 +541,7 @@ namespace zSpace
 
 	//---- graph specilization for ForceDensityMethod
 	template<>
-	ZSPACE_INLINE  bool zTsVault<zObjGraph, zFnGraph>::forceDensityMethod()
+	ZSPACE_TOOLSETS_INLINE  bool zTsVault<zObjGraph, zFnGraph>::forceDensityMethod()
 	{
 		zHEData type = zVertexData;
 		bool positiveDensities = true;
@@ -710,7 +710,7 @@ namespace zSpace
 
 	//---- mesh specilization for ForceDensityMethod
 	template<>
-	ZSPACE_INLINE  bool zTsVault<zObjMesh, zFnMesh>::forceDensityMethod()
+	ZSPACE_TOOLSETS_INLINE  bool zTsVault<zObjMesh, zFnMesh>::forceDensityMethod()
 	{
 		zHEData type = zVertexData;
 		bool positiveDensities = true;
@@ -878,7 +878,7 @@ namespace zSpace
 
 	//---- mesh specilization for fdm_constraintsolve
 	template<>
-	ZSPACE_INLINE double zTsVault<zObjMesh, zFnMesh>::fdm_constraintsolve(bool & computeQInitial, float alpha, float tolerance, float qLB, float qUB)
+	ZSPACE_TOOLSETS_INLINE double zTsVault<zObjMesh, zFnMesh>::fdm_constraintsolve(bool & computeQInitial, float alpha, float tolerance, float qLB, float qUB)
 	{
 		// 0 - compute q intial
 		if (computeQInitial)
@@ -1031,7 +1031,7 @@ namespace zSpace
 
 	//---- mesh specilization for getSymmetryPairs
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getSymmetryPairs(zIntPairArray &vPairs, zIntPairArray & ePairs, zPoint &p_center, zVector &p_norm)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getSymmetryPairs(zIntPairArray &vPairs, zIntPairArray & ePairs, zPoint &p_center, zVector &p_norm)
 	{
 	
 		vPairs.clear();
@@ -1122,7 +1122,7 @@ namespace zSpace
 	//---- mesh specilization for fdm_constraintsolve
 
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::boundForceDensities(zIntArray &fdMap, VectorXd &fDensities, float qLB, float qUB)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::boundForceDensities(zIntArray &fdMap, VectorXd &fDensities, float qLB, float qUB)
 	{
 		int id = 0;
 		for (zItMeshEdge e(*resultObj); !e.end(); e++)
@@ -1187,7 +1187,7 @@ namespace zSpace
 	}
 
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::boundGradientForceDensities(VectorXd & grad_fDensities, VectorXd & current_fDensities, float qLB, float qUB)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::boundGradientForceDensities(VectorXd & grad_fDensities, VectorXd & current_fDensities, float qLB, float qUB)
 	{
 
 		/*for (int i = 0; i < current_fDensities.rows(); i++)
@@ -1222,7 +1222,7 @@ namespace zSpace
 
 	//---- mesh specilization for checkObjectiveAchieved
 	template<>
-	ZSPACE_INLINE bool zTsVault<zObjMesh, zFnMesh>::checkObjectiveAchieved(MatrixXd & currentX, MatrixXd & prevX, float tolerance)
+	ZSPACE_TOOLSETS_INLINE bool zTsVault<zObjMesh, zFnMesh>::checkObjectiveAchieved(MatrixXd & currentX, MatrixXd & prevX, float tolerance)
 	{
 		bool out = true;
 		
@@ -1244,7 +1244,7 @@ namespace zSpace
 
 	//---- mesh specilization for updatePositions
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::updateEquilibriumPositions(VectorXd & q)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::updateEquilibriumPositions(VectorXd & q)
 	{
 		zHEData type = zVertexData;
 		bool positiveDensities = true;
@@ -1319,7 +1319,7 @@ namespace zSpace
 	}
 
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::perturbPleatPositions( MatrixXd &origX)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::perturbPleatPositions( MatrixXd &origX)
 	{
 		for (int i = 0; i < freeVertices.size(); i++)
 		{
@@ -1384,7 +1384,7 @@ namespace zSpace
 
 	//---- mesh specilization for computeBestFitForceDensities
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getBestFitForceDensities(VectorXd &bestfit_fDensities)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getBestFitForceDensities(VectorXd &bestfit_fDensities)
 	{
 		int n_v = fnResult.numVertices();
 
@@ -1439,7 +1439,7 @@ namespace zSpace
 
 	//---- mesh specilization for computeBestFitForceDensities
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getBestFitForceDensities(zFloatArray &bestfit_fDensities)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getBestFitForceDensities(zFloatArray &bestfit_fDensities)
 	{
 		numFreeEdges = getNumFreeEdges(forcedensityEdgeMap);
 		getfreeVertices(freeVertices);
@@ -1556,7 +1556,7 @@ namespace zSpace
 
 	//---- mesh specilization for getResidual_Gradient
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getResidual_Gradient(VectorXd & current_fDensities, zVectorArray &targets, VectorXd & residual, VectorXd & gradient_fDensities)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getResidual_Gradient(VectorXd & current_fDensities, zVectorArray &targets, VectorXd & residual, VectorXd & gradient_fDensities)
 	{
 
 		bool positiveDensities = true;
@@ -1623,7 +1623,7 @@ namespace zSpace
 
 	//---- mesh specilization for getResidual_Gradient
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getResiduals(float alpha,VectorXd & current_fDensities, VectorXd &residual, VectorXd & residualU, VectorXd & residualC)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getResiduals(float alpha,VectorXd & current_fDensities, VectorXd &residual, VectorXd & residualU, VectorXd & residualC)
 	{
 
 		bool positiveDensities = true;
@@ -1704,7 +1704,7 @@ namespace zSpace
 	}
 
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getGradients(VectorXd & current_fDensities, VectorXd & residualU, VectorXd & residualC, VectorXd & gradPos, VectorXd & gradFDensities)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getGradients(VectorXd & current_fDensities, VectorXd & residualU, VectorXd & residualC, VectorXd & gradPos, VectorXd & gradFDensities)
 	{
 		int n_v = fnResult.numVertices();
 		int numEdges = numFreeEdges;;
@@ -1788,7 +1788,7 @@ namespace zSpace
 
 	//---- getfreeVertices
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getfreeVertices(zIntArray & freeVerts)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getfreeVertices(zIntArray & freeVerts)
 	{
 		freeVerts.clear();
 		for (int j = 0; j < fixedVerticesBoolean.size(); j++)
@@ -1803,7 +1803,7 @@ namespace zSpace
 
 	//---- getNumFreeEdges
 	template<>
-	ZSPACE_INLINE int zTsVault<zObjMesh, zFnMesh>::getNumFreeEdges(zIntArray &fdMap)
+	ZSPACE_TOOLSETS_INLINE int zTsVault<zObjMesh, zFnMesh>::getNumFreeEdges(zIntArray &fdMap)
 	{
 		int numEdges = fnResult.numEdges();;
 		fdMap.clear();
@@ -1832,7 +1832,7 @@ namespace zSpace
 
 	//---- mesh specilization for getPositionMatrix
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjGraph, zFnGraph>::getPositionMatrix(MatrixXd & X)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjGraph, zFnGraph>::getPositionMatrix(MatrixXd & X)
 	{
 		X = MatrixXd(fnResult.numVertices(), 3);
 
@@ -1848,7 +1848,7 @@ namespace zSpace
 	}
 
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getPositionMatrix(MatrixXd & X)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getPositionMatrix(MatrixXd & X)
 	{
 		 X = MatrixXd(fnResult.numVertices(), 3);
 
@@ -1865,7 +1865,7 @@ namespace zSpace
 
 	//---- getLoadVector
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getLoadVector(VectorXd & Pn)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getLoadVector(VectorXd & Pn)
 	{
 		//setVertexMassfromVertexArea();
 
@@ -1887,7 +1887,7 @@ namespace zSpace
 
 	//---- mesh specilization for setConstraint_Planarity
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getConstraint_Planarity(zVectorArray &targets, float planarityTolerance)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getConstraint_Planarity(zVectorArray &targets, float planarityTolerance)
 	{
 
 		if (targets.size() == 0)
@@ -1931,7 +1931,7 @@ namespace zSpace
 
 	//---- mesh specilization for setConstraint_plan
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::setConstraint_plan(const zIntArray & vertex_PlanWeights)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::setConstraint_plan(const zIntArray & vertex_PlanWeights)
 	{		
 		
 		if (vertex_PlanWeights.size() == 0)
@@ -1955,7 +1955,7 @@ namespace zSpace
 
 	//---- mesh specilization for setConstraint_pleats
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::setConstraint_pleats(zFloatArray & vertex_ValleyRidge, zFloatArray & vertex_PleatDepth)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::setConstraint_pleats(zFloatArray & vertex_ValleyRidge, zFloatArray & vertex_PleatDepth)
 	{
 		result_vertex_ValleyRidge = vertex_ValleyRidge;
 		result_vertex_PleatDepth = vertex_PleatDepth;
@@ -1964,7 +1964,7 @@ namespace zSpace
 	//---- TNA METHODS
 
 	template<typename T, typename U>
-	ZSPACE_INLINE bool zTsVault<T, U>::equilibriumHorizontal(bool &computeTargets, float formWeight, float dT, zIntergrationType type, int numIterations , float angleTolerance, float minMax_formEdge , float minMax_forceEdge , bool colorEdges, bool printInfo )
+	ZSPACE_TOOLSETS_INLINE bool zTsVault<T, U>::equilibriumHorizontal(bool &computeTargets, float formWeight, float dT, zIntergrationType type, int numIterations , float angleTolerance, float minMax_formEdge , float minMax_forceEdge , bool colorEdges, bool printInfo )
 	{
 		// compute horizontal equilibrium targets
 		if (computeTargets)
@@ -2005,7 +2005,7 @@ namespace zSpace
 
 	//---- graph specilization for verticalEquilibrium using Linear Algebra
 	template<>
-	ZSPACE_INLINE  bool zTsVault<zObjGraph, zFnGraph>::equilibriumVertical(bool &computeForceDensitities, float forceDiagramScale)
+	ZSPACE_TOOLSETS_INLINE  bool zTsVault<zObjGraph, zFnGraph>::equilibriumVertical(bool &computeForceDensitities, float forceDiagramScale)
 	{
 		if (computeForceDensitities)
 		{
@@ -2168,7 +2168,7 @@ namespace zSpace
 
 	//---- mesh specilization for verticalEquilibrium using Linear Algebra
 	template<>
-	ZSPACE_INLINE  bool zTsVault<zObjMesh, zFnMesh>::equilibriumVertical(bool &computeForceDensitities, float forceDiagramScale)
+	ZSPACE_TOOLSETS_INLINE  bool zTsVault<zObjMesh, zFnMesh>::equilibriumVertical(bool &computeForceDensitities, float forceDiagramScale)
 	{
 		if (computeForceDensitities)
 		{
@@ -2332,14 +2332,14 @@ namespace zSpace
 	//--- SET METHODS 
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void zTsVault<T, U>::setElementColorDomain(zDomainColor &colDomain)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<T, U>::setElementColorDomain(zDomainColor &colDomain)
 	{
 		elementColorDomain = colDomain;
 	}
 
 	//---- graph specilization for setFixedVertices
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setConstraints(zDiagramType type, const vector<int>& _fixedVertices)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setConstraints(zDiagramType type, const vector<int>& _fixedVertices)
 	{
 		if (type == zResultDiagram)
 		{
@@ -2420,7 +2420,7 @@ namespace zSpace
 
 	//---- mesh specilization for setFixedVertices
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setConstraints(zDiagramType type, const vector<int>& _fixedVertices)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setConstraints(zDiagramType type, const vector<int>& _fixedVertices)
 	{
 
 
@@ -2510,7 +2510,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void zTsVault<T, U>::appendConstraints(vector<int> &_constraintVertices)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<T, U>::appendConstraints(vector<int> &_constraintVertices)
 	{
 		for (int i = 0; i < _constraintVertices.size(); i++)
 		{
@@ -2527,7 +2527,7 @@ namespace zSpace
 
 	//---- graph specilization for setForceDensity
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceDensity(float fDensity)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceDensity(float fDensity)
 	{
 		forceDensities.clear();
 
@@ -2541,7 +2541,7 @@ namespace zSpace
 
 	//---- mesh specilization for setForceDensity
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceDensity(float fDensity)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceDensity(float fDensity)
 	{
 		forceDensities.clear();
 
@@ -2555,7 +2555,7 @@ namespace zSpace
 
 	//---- graph specilization for setForceDensities
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceDensities(vector<float> &fDensities)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceDensities(vector<float> &fDensities)
 	{
 		if (fDensities.size() != fnResult.numEdges()) throw std::invalid_argument("size of fDensities contatiner is not equal to number of graph half edges.");
 
@@ -2566,7 +2566,7 @@ namespace zSpace
 
 	//---- mesh specilization for setForceDensities
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceDensities(vector<float> &fDensities)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceDensities(vector<float> &fDensities)
 	{
 		if (fDensities.size() != fnResult.numEdges()) throw std::invalid_argument("size of fDensities contatiner is not equal to number of mesh edges.");
 
@@ -2577,7 +2577,7 @@ namespace zSpace
 
 	//---- graph specilization for setForceDensitiesFromDiagrams
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceDensitiesFromDiagrams(float forceDiagramScale, bool negate)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceDensitiesFromDiagrams(float forceDiagramScale, bool negate)
 	{
 		forceDensities.clear();
 
@@ -2631,7 +2631,7 @@ namespace zSpace
 
 	//---- mesh specilization for setForceDensitiesFromDiagrams
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceDensitiesFromDiagrams(float forceDiagramScale, bool negate)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceDensitiesFromDiagrams(float forceDiagramScale, bool negate)
 	{
 		forceDensities.clear();
 
@@ -2683,7 +2683,7 @@ namespace zSpace
 
 	//---- graph specilization for setForceDensities
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setTensionEdges(zDiagramType type, const vector<int>& _tensionEdges)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setTensionEdges(zDiagramType type, const vector<int>& _tensionEdges)
 	{
 
 		if (type == zResultDiagram)
@@ -2742,7 +2742,7 @@ namespace zSpace
 
 	//---- mesh specilization for setForceDensities
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setTensionEdges(zDiagramType type, const vector<int>& _tensionEdges)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setTensionEdges(zDiagramType type, const vector<int>& _tensionEdges)
 	{
 
 		if (type == zResultDiagram)
@@ -2802,7 +2802,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void zTsVault<T, U>::appendTensionEdges(zDiagramType type, vector<int> &_tensionEdges)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<T, U>::appendTensionEdges(zDiagramType type, vector<int> &_tensionEdges)
 	{
 		if (type == zFormDiagram)
 		{
@@ -2835,7 +2835,7 @@ namespace zSpace
 
 	//---- graph specilization for setForceTensionEdgesfromForm
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceTensionEdgesfromForm()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setForceTensionEdgesfromForm()
 	{
 		force_tensionEdges.clear();
 
@@ -2864,7 +2864,7 @@ namespace zSpace
 
 	//---- mesh specilization for setForceTensionEdgesfromForm
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceTensionEdgesfromForm()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setForceTensionEdgesfromForm()
 	{
 		force_tensionEdges.clear();
 
@@ -2917,7 +2917,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void zTsVault<T, U>::setResultTensionEdgesfromForm()
+	ZSPACE_TOOLSETS_INLINE void zTsVault<T, U>::setResultTensionEdgesfromForm()
 	{
 		result_tensionEdges.clear();
 		result_tensionEdges = form_tensionEdges;
@@ -2927,7 +2927,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void  zTsVault<T, U>::setFormTensionEdgesfromResult()
+	ZSPACE_TOOLSETS_INLINE void  zTsVault<T, U>::setFormTensionEdgesfromResult()
 	{
 		form_tensionEdges.clear();
 		form_tensionEdges = result_tensionEdges;
@@ -2938,7 +2938,7 @@ namespace zSpace
 
 	//---- graph specilization for setFormTensionEdgesfromForce
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setFormTensionEdgesfromForce()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setFormTensionEdgesfromForce()
 	{
 		form_tensionEdges.clear();
 
@@ -2968,7 +2968,7 @@ namespace zSpace
 
 	//---- mesh specilization for setFormTensionEdgesfromForce
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setFormTensionEdgesfromForce()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setFormTensionEdgesfromForce()
 	{
 		form_tensionEdges.clear();
 
@@ -2998,7 +2998,7 @@ namespace zSpace
 
 	//---- graph specilization for setElementColorDomain
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setElementColorDomain(zDiagramType type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setElementColorDomain(zDiagramType type)
 	{
 		if (type == zFormDiagram)
 		{
@@ -3034,7 +3034,7 @@ namespace zSpace
 
 	//---- mesh specilization for setElementColorDomain	
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setElementColorDomain(zDiagramType type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setElementColorDomain(zDiagramType type)
 	{
 		if (type == zFormDiagram)
 		{
@@ -3084,7 +3084,7 @@ namespace zSpace
 
 	//---- graph specilization for setVertexWeights
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexWeights(zDiagramType type, const vector<float>& vWeights)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexWeights(zDiagramType type, const vector<float>& vWeights)
 	{
 		if (type == zFormDiagram)
 		{
@@ -3136,7 +3136,7 @@ namespace zSpace
 
 	//---- mesh specilization for setVertexWeights
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexWeights(zDiagramType type, const vector<float>& vWeights)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexWeights(zDiagramType type, const vector<float>& vWeights)
 	{
 		if (type == zFormDiagram)
 		{
@@ -3227,7 +3227,7 @@ namespace zSpace
 
 	//---- graph specilization for setVertexThickness
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexThickness(float thickness)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexThickness(float thickness)
 	{
 		resultVThickness.clear();
 
@@ -3238,7 +3238,7 @@ namespace zSpace
 
 	//---- mesh specilization for setVertexThickness
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexThickness(float thickness)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexThickness(float thickness)
 	{
 		resultVThickness.clear();
 		resultVThickness.assign(fnResult.numVertices(), thickness);
@@ -3248,7 +3248,7 @@ namespace zSpace
 
 	//---- graph specilization for setVertexThickness
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexThickness(vector<float> &thickness)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexThickness(vector<float> &thickness)
 	{
 		if (thickness.size() != fnResult.numVertices()) throw std::invalid_argument("size of thickness contatiner is not equal to number of mesh vertices.");
 
@@ -3258,7 +3258,7 @@ namespace zSpace
 
 	//---- mesh specilization for setVertexThickness
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexThickness(vector<float> &thickness)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexThickness(vector<float> &thickness)
 	{
 		if (thickness.size() != fnResult.numVertices()) throw std::invalid_argument("size of thickness contatiner is not equal to number of mesh vertices.");
 
@@ -3268,7 +3268,7 @@ namespace zSpace
 
 	//---- graph specilization for setVertexMass
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexMass(float mass)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::setVertexMass(float mass)
 	{
 		resultVMass.clear();
 
@@ -3279,7 +3279,7 @@ namespace zSpace
 
 	//---- mesh specilization for setVertexMass
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexMass(float mass)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexMass(float mass)
 	{
 		resultVMass.clear();
 		resultVMass.assign(fnResult.numVertices(), mass);
@@ -3287,7 +3287,7 @@ namespace zSpace
 
 	//---- graph specilization for setVertexMass
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjGraph, zFnGraph>::setVertexMass(vector<float> &mass)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjGraph, zFnGraph>::setVertexMass(vector<float> &mass)
 	{
 		if (mass.size() != fnResult.numVertices()) throw std::invalid_argument("size of mass contatiner is not equal to number of mesh vertices.");
 
@@ -3296,7 +3296,7 @@ namespace zSpace
 
 	//---- mesh specilization for setVertexMass
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexMass(vector<float> &mass)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexMass(vector<float> &mass)
 	{
 		if (mass.size() != fnResult.numVertices()) throw std::invalid_argument("size of mass contatiner is not equal to number of mesh vertices.");
 
@@ -3305,7 +3305,7 @@ namespace zSpace
 
 	//---- mesh specilization for setVertexMass
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexMassfromVertexArea()
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::setVertexMassfromVertexArea()
 	{
 		resultVMass.clear();
 
@@ -3324,7 +3324,7 @@ namespace zSpace
 	//--- GET METHODS 
 
 	template<typename T, typename U>
-	ZSPACE_INLINE bool zTsVault<T, U>::getCorrespondingForceEdge(int formEdgeindex, zItMeshHalfEdge &outForceEdge)
+	ZSPACE_TOOLSETS_INLINE bool zTsVault<T, U>::getCorrespondingForceEdge(int formEdgeindex, zItMeshHalfEdge &outForceEdge)
 	{
 		if (formEdgeindex > formEdge_forceEdge.size()) throw std::invalid_argument(" error: index out of bounds.");
 		if (formEdge_forceEdge[formEdgeindex] != -1) outForceEdge = zItMeshHalfEdge(*forceObj, formEdge_forceEdge[formEdgeindex]);
@@ -3333,7 +3333,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE bool zTsVault<T, U>::getCorrespondingFormEdge(int forceEdgeindex, zItMeshHalfEdge &outFormEdge)
+	ZSPACE_TOOLSETS_INLINE bool zTsVault<T, U>::getCorrespondingFormEdge(int forceEdgeindex, zItMeshHalfEdge &outFormEdge)
 	{
 		if (forceEdgeindex > forceEdge_formEdge.size()) throw std::invalid_argument(" error: index out of bounds.");
 
@@ -3343,7 +3343,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void zTsVault<T, U>::getHorizontalTargetEdges(zDiagramType type, vector<zVector> &targets)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<T, U>::getHorizontalTargetEdges(zDiagramType type, vector<zVector> &targets)
 	{
 		if (type == zFormDiagram) targets = targetEdges_form;
 
@@ -3354,7 +3354,7 @@ namespace zSpace
 
 	//---- graph specilization for getForces_GradientDescent
 	template<>
-	ZSPACE_INLINE  void zTsVault < zObjGraph, zFnGraph>::getForces_GradientDescent(vector<zVector>& forces)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault < zObjGraph, zFnGraph>::getForces_GradientDescent(vector<zVector>& forces)
 	{
 		zVector* pos = fnResult.getRawVertexPositions();
 
@@ -3404,7 +3404,7 @@ namespace zSpace
 
 	//---- mesh specilization for getForces_GradientDescent
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::getForces_GradientDescent(vector<zVector>& forces)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::getForces_GradientDescent(vector<zVector>& forces)
 	{
 		zVector* pos = fnResult.getRawVertexPositions();
 
@@ -3458,7 +3458,7 @@ namespace zSpace
 	//---- UTILITY METHODS 
 
 	template<typename T, typename U>
-	ZSPACE_INLINE void zTsVault<T, U>::translateForceDiagram(float value)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<T, U>::translateForceDiagram(float value)
 	{
 		// bounding box
 		zVector minBB, maxBB;
@@ -3484,7 +3484,7 @@ namespace zSpace
 
 	//---- graph specilization for getEdgeNodeMatrix 
 	template<>
-	ZSPACE_INLINE  zSparseMatrix zTsVault<zObjGraph, zFnGraph>::getEdgeNodeMatrix(int numRows)
+	ZSPACE_TOOLSETS_INLINE  zSparseMatrix zTsVault<zObjGraph, zFnGraph>::getEdgeNodeMatrix(int numRows)
 	{
 		int n_v = fnResult.numVertices();
 		zSparseMatrix out(numRows, n_v);
@@ -3521,7 +3521,7 @@ namespace zSpace
 
 	//---- mesh specilization for getEdgeNodeMatrix 
 	template<>
-	ZSPACE_INLINE zSparseMatrix zTsVault<zObjMesh, zFnMesh>::getEdgeNodeMatrix(int numRows)
+	ZSPACE_TOOLSETS_INLINE zSparseMatrix zTsVault<zObjMesh, zFnMesh>::getEdgeNodeMatrix(int numRows)
 	{
 		int n_v = fnResult.numVertices();
 
@@ -3560,7 +3560,7 @@ namespace zSpace
 	}
 	
 	template<typename T, typename U>
-	ZSPACE_INLINE zSparseMatrix  zTsVault<T, U>::subMatrix(zSparseMatrix &C, vector<int> &nodes)
+	ZSPACE_TOOLSETS_INLINE zSparseMatrix  zTsVault<T, U>::subMatrix(zSparseMatrix &C, vector<int> &nodes)
 	{
 		zSparseMatrix C_sub(C.rows(), nodes.size());
 		for (int i = 0; i < nodes.size(); i++)C_sub.col(i) = C.col(nodes[i]);
@@ -3568,7 +3568,7 @@ namespace zSpace
 	}
 
 	template<typename T, typename U>
-	ZSPACE_INLINE MatrixXd zTsVault<T, U>::subMatrix(MatrixXd &X, vector<int> &nodes)
+	ZSPACE_TOOLSETS_INLINE MatrixXd zTsVault<T, U>::subMatrix(MatrixXd &X, vector<int> &nodes)
 	{
 		MatrixXd X_sub(nodes.size(), X.cols());
 		for (int i = 0; i < nodes.size(); i++)X_sub.row(i) = X.row(nodes[i]);
@@ -3577,7 +3577,7 @@ namespace zSpace
 
 	//---- graph specilization for getHorizontalTargets
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::getHorizontalTargets(float formWeight)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::getHorizontalTargets(float formWeight)
 	{
 		targetEdges_form.clear();
 		targetEdges_force.clear();
@@ -3630,7 +3630,7 @@ namespace zSpace
 
 	//---- mesh specilization for getHorizontalTargets
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::getHorizontalTargets(float formWeight)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::getHorizontalTargets(float formWeight)
 	{
 		targetEdges_form.clear();
 		targetEdges_force.clear();
@@ -3684,7 +3684,7 @@ namespace zSpace
 
 	//---- graph specilization for checkHorizontalParallelity
 	template<>
-	ZSPACE_INLINE  bool zTsVault<zObjGraph, zFnGraph>::checkHorizontalParallelity(zDomainFloat &deviation, float angleTolerance, bool colorEdges, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE  bool zTsVault<zObjGraph, zFnGraph>::checkHorizontalParallelity(zDomainFloat &deviation, float angleTolerance, bool colorEdges, bool printInfo)
 	{
 		bool out = true;
 		vector<double> deviations;
@@ -3775,7 +3775,7 @@ namespace zSpace
 
 	//---- mesh specilization for checkHorizontalParallelity
 	template<>
-	ZSPACE_INLINE  bool zTsVault<zObjMesh, zFnMesh>::checkHorizontalParallelity(zDomainFloat &deviation, float angleTolerance, bool colorEdges, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE  bool zTsVault<zObjMesh, zFnMesh>::checkHorizontalParallelity(zDomainFloat &deviation, float angleTolerance, bool colorEdges, bool printInfo)
 	{
 		bool out = true;
 		vector<double> deviations;
@@ -3865,7 +3865,7 @@ namespace zSpace
 
 	//---- graph specilization for updateFormDiagram
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::updateFormDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::updateFormDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
 	{
 
 
@@ -3957,7 +3957,7 @@ namespace zSpace
 	
 	//---- mesh specilization for updateFormDiagram
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::updateFormDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::updateFormDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
 	{
 
 		if (fnFormParticles.size() != fnForm.numVertices())
@@ -4049,7 +4049,7 @@ namespace zSpace
 
 	//---- graph specilization for updateForceDiagram
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjGraph, zFnGraph>::updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
 	{
 		if (fnForceParticles.size() != fnForce.numVertices())
 		{
@@ -4140,7 +4140,7 @@ namespace zSpace
 	   
 	//---- mesh specilization for updateForceDiagram
 	template<>
-	ZSPACE_INLINE  void zTsVault<zObjMesh, zFnMesh>::updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
 	{
 		if (fnForceParticles.size() != fnForce.numVertices())
 		{
@@ -4232,7 +4232,7 @@ namespace zSpace
 
 	//---- mesh specilization for getPleatDataJSON
 	template<>
-	ZSPACE_INLINE void zTsVault<zObjMesh, zFnMesh>::getPleatDataJSON(string infilename)
+	ZSPACE_TOOLSETS_INLINE void zTsVault<zObjMesh, zFnMesh>::getPleatDataJSON(string infilename)
 	{
 		json j;
 		zUtilsJsonHE meshJSON;
@@ -4298,7 +4298,7 @@ namespace zSpace
 
 	}
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 	// explicit instantiation
 	template class zTsVault<zObjMesh, zFnMesh>;
 

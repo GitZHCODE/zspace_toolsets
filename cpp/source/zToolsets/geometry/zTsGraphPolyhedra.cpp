@@ -17,9 +17,9 @@ namespace zSpace
 {
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra() {}
+	ZSPACE_TOOLSETS_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra() {}
 
-	ZSPACE_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra(zObjGraph &_graphObj)
+	ZSPACE_TOOLSETS_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra(zObjGraph &_graphObj)
 	{
 		graphObj = &_graphObj;
 		fnGraph = zFnGraph(_graphObj);		
@@ -27,11 +27,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsGraphPolyhedra::~zTsGraphPolyhedra() {}
+	ZSPACE_TOOLSETS_INLINE zTsGraphPolyhedra::~zTsGraphPolyhedra() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::createGraphFromFile(string &_path, zFileTpye _type, bool _staticGeom)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::createGraphFromFile(string &_path, zFileTpye _type, bool _staticGeom)
 	{
 		// create graph
 		fnGraph.from(_path, _type, _staticGeom);
@@ -61,7 +61,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::createGraphFromMesh(zObjMesh &_inMeshObj, zVector &_verticalForce)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::createGraphFromMesh(zObjMesh &_inMeshObj, zVector &_verticalForce)
 	{
 		zFnMesh fnMesh(_inMeshObj);
 
@@ -105,7 +105,7 @@ namespace zSpace
 
 	}
 	
-	ZSPACE_INLINE void zTsGraphPolyhedra::create()
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::create()
 	{
 		for (zItGraphVertex g_v(*graphObj); !g_v.end(); g_v++)
 		{		
@@ -197,12 +197,12 @@ namespace zSpace
 
 	//---- DISPLAY SET METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayModel(zModel&_model)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDisplayModel(zModel&_model)
 	{
 		model = &_model;	
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayGraphElements(bool _drawGraph, bool _drawVertIds, bool _drawEdgeIds)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDisplayGraphElements(bool _drawGraph, bool _drawVertIds, bool _drawEdgeIds)
 	{
 		graphObj->setDisplayObject(_drawGraph);
 		graphObj->setDisplayElementIds(_drawVertIds, _drawEdgeIds);
@@ -210,7 +210,7 @@ namespace zSpace
 	
 	//---- DRAW METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayHullElements(bool _drawConvexHulls, bool _drawFaces, bool _drawVertexIds, bool _drawEdgeIds, bool _drawFaceIds)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDisplayHullElements(bool _drawConvexHulls, bool _drawFaces, bool _drawVertexIds, bool _drawEdgeIds, bool _drawFaceIds)
 	{
 		for (auto &m : convexHullMeshes)
 		{
@@ -220,7 +220,7 @@ namespace zSpace
 		}		
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayPolyhedraElements(bool _drawDualMesh, bool _drawFaces, bool _drawVertexIds, bool _drawEdgeIds, bool _drawFaceIds)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDisplayPolyhedraElements(bool _drawDualMesh, bool _drawFaces, bool _drawVertexIds, bool _drawEdgeIds, bool _drawFaceIds)
 	{	
 		for (auto &m : dualMeshes)
 		{
@@ -232,7 +232,7 @@ namespace zSpace
 
 	//---- PRIVATE CREATE METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::createDualMesh(zItGraphVertex &_graphVertex)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::createDualMesh(zItGraphVertex &_graphVertex)
 	{
 		zFnMesh fnMesh(convexHullMeshes[_graphVertex.getId()]);
 		zIntArray inEdge_dualEdge;
@@ -501,7 +501,7 @@ namespace zSpace
 	
 	//---- PRIVATE UTILITY METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::sortGraphVertices(zItGraphVertexArray &_graphVertices)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::sortGraphVertices(zItGraphVertexArray &_graphVertices)
 	{
 		// get eccentricity center
 		zItGraphVertexArray outV;
@@ -514,7 +514,7 @@ namespace zSpace
 		bsf.getBSF(_graphVertices);
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::cleanConvexHull(zItGraphVertex &_vIt)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::cleanConvexHull(zItGraphVertex &_vIt)
 	{
 		zPointArray _hullPts;
 
@@ -555,7 +555,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::colorDualFaceConnectivity()
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::colorDualFaceConnectivity()
 	{
 		for (int i = 0; i < c_graphHalfEdge_dualCellFace.size(); i++)
 		{
@@ -574,7 +574,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::snapDualCells(zItGraphVertexArray &_bsf, zItGraphVertexArray &_gCenters)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::snapDualCells(zItGraphVertexArray &_bsf, zItGraphVertexArray &_gCenters)
 	{
 		
 		map<zIntPair, int> volVert_globalId;

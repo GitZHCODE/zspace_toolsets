@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <headers/base/zSpace_Toolsets.h>
+
 #include <headers/zCore/base/zExtern.h>
 
 #include <headers/zInterface/functionsets/zFnMesh.h>
@@ -28,6 +30,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
+
+#include<execution>
+
+//#include<atlsafe.h>
+//#include <comdef.h>
+//#include<oaidl.h>
+
 using namespace std;
 
 
@@ -55,9 +65,10 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsSDFSlicer
+	class ZSPACE_TOOLSETS zTsSDFSlicer
 	{
-	protected:
+	//protected:
+	public:
 		//--------------------------
 		//---- PROTECTED ATTRIBUTES
 		//--------------------------
@@ -97,6 +108,11 @@ namespace zSpace
 
 		/*!	\brief container of trim graph objects  */
 		zObjGraphArray o_trimGraphs;
+
+
+		bool checkOranges = true;
+		bool checkMagentas = true;
+
 
 		//--------------------------
 		//---- PRINT ATTRIBUTES
@@ -278,6 +294,10 @@ namespace zSpace
 		*/
 		zObjGraphPointerArray getBlockContourGraphs(int& numGraphs);
 
+		void getBlockContourGraphsSequence(int& numGraphs, int* vSequence);
+
+		static zIntArray getGraphSequence(zObjGraph graph);
+
 		/*! \brief This method gets the block trim graphs
 		*
 		*	\param		[out]	numGraphs				- output number of graphs.
@@ -344,6 +364,8 @@ namespace zSpace
 		*/
 		void computePrintBlocks(zDomainFloat &_printHeightDomain, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat _neopreneOffset = zDomainFloat(0,0),  bool compFrames = true, bool compSDF = true);
 
+		void computePrintBlocksPar(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat _neopreneOffset = zDomainFloat(0, 0), bool compFrames = true, bool compSDF = true);
+
 		/*! \brief This method computes the medial graph from input mesh.
 		*
 		* 	\param		[in]	o_Mesh				- input guide mesh object.
@@ -402,6 +424,13 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void computeSDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
+
+		void computeSDFPar(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
+
+
+		void computeSDFSingleLayer(int SDFlayersNum, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
+
+
 
 		/*! \brief This method compute the block frames.
 		*
@@ -471,7 +500,15 @@ namespace zSpace
 		*/
 		void computeBlockSDF_Boundary( int graphId, float printWidth = 0.020, float neopreneOffset = 0.005, bool addRaft = false, int raftId = 0, float raftWidth = 0.030);
 			
+		string format_number(int num, size_t size = 3, char fillChar = '0');
+
+		zIntArray shiftArray(int startID, int length);
+
+		int closestIndex(zPointArray pos, zPoint p);
+
 		bool exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth);
+
+		zTsSDFSlicer* copy();
 
 
 		//--------------------------
@@ -490,10 +527,29 @@ namespace zSpace
 		void getScalars_3dp_trim(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
 
 
+		//Post Processing Methods
+
+		void GCodeGenerator();
+
+		void seamPrint();
+
+		zIntArray getGraphStartSequence();
+
+		void generateOpening();
+		
+		public:
+		void CheckFolder(char* folderDirectoryChar, string outputFolder, float printLayerWidth, float raftLayerWidth, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax);
+
+
 	};
+
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+
+
+
+
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsSDFSlicer.cpp>

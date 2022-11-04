@@ -19,13 +19,13 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsTopOpt::zTsTopOpt()
+	ZSPACE_TOOLSETS_INLINE zTsTopOpt::zTsTopOpt()
 	{
 
 		meshObj = nullptr;
 	}
 
-	ZSPACE_INLINE zTsTopOpt::zTsTopOpt(zObjMesh &_meshObj)
+	ZSPACE_TOOLSETS_INLINE zTsTopOpt::zTsTopOpt(zObjMesh &_meshObj)
 	{
 		meshObj = &_meshObj;
 		fnMesh = zFnMesh(_meshObj);
@@ -39,11 +39,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsTopOpt::~zTsTopOpt() {}
+	ZSPACE_TOOLSETS_INLINE zTsTopOpt::~zTsTopOpt() {}
 
 	//---- TO METHOD
 
-	ZSPACE_INLINE void zTsTopOpt::to(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::to(string path, zFileTpye type)
 	{
 		if (type == zJSON)
 		{
@@ -55,14 +55,14 @@ namespace zSpace
 
 	//---- CREATE
 
-	ZSPACE_INLINE void zTsTopOpt::createFromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::createFromFile(string path, zFileTpye type)
 	{
 		fnMesh.from(path, type, true);
 	}
 
 	//--- SET METHODS 
 
-	ZSPACE_INLINE void zTsTopOpt::setSinglePointConstraints(const vector<int> &_SPC)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::setSinglePointConstraints(const vector<int> &_SPC)
 	{
 
 		if (SPC_Boolean.size() != fnMesh.numVertices())
@@ -84,7 +84,7 @@ namespace zSpace
 		if (_SPC.size() == 0) std::fill(SPC_Boolean.begin(), SPC_Boolean.end(), false);
 	}
 
-	ZSPACE_INLINE void zTsTopOpt::setNonDesignSpace(const vector<int> &_NonDesignSpace )
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::setNonDesignSpace(const vector<int> &_NonDesignSpace )
 	{
 		if (designSpace_Boolean.size() != fnMesh.numPolygons())
 		{
@@ -105,17 +105,17 @@ namespace zSpace
 		if (_NonDesignSpace.size() == 0) std::fill(designSpace_Boolean.begin(), designSpace_Boolean.end(), true);
 	}
 
-	ZSPACE_INLINE void zTsTopOpt::setMaterial(zTopOptMaterial &material)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::setMaterial(zTopOptMaterial &material)
 	{
 		mat = material;
 	}
 
-	ZSPACE_INLINE void zTsTopOpt::setPatternGrouping(zTopOptPattern &_pattern)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::setPatternGrouping(zTopOptPattern &_pattern)
 	{
 		pattern = _pattern;
 	}
 
-	ZSPACE_INLINE void zTsTopOpt::setPatternGrouping(int type, const zVector &anchor, const zVector &n1, const zVector &n2 )
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::setPatternGrouping(int type, const zVector &anchor, const zVector &n1, const zVector &n2 )
 	{
 		pattern.type = type;
 		pattern.anchor = anchor;
@@ -125,7 +125,7 @@ namespace zSpace
 
 	//--- LOAD METHODS 
 
-	ZSPACE_INLINE void zTsTopOpt::addLoad(double _magnitude, zVector &_dir, vector<int>& vIndices)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::addLoad(double _magnitude, zVector &_dir, vector<int>& vIndices)
 	{
 		zTopOptLoads load;
 		load.magnitude = _magnitude;
@@ -136,21 +136,21 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsTopOpt::removeLoad(int index)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::removeLoad(int index)
 	{
 		if (index < 0 || index >= loads.size()) throw std::invalid_argument("input index out of bounds.");
 
 		loads.erase(loads.begin() + index);
 	}
 
-	ZSPACE_INLINE void zTsTopOpt::removeLoads()
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::removeLoads()
 	{
 		loads.clear();
 	}
 
 	//---- PROTECTED FACTORY METHODS
 
-	ZSPACE_INLINE void zTsTopOpt::toJSON(string outfilename)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::toJSON(string outfilename)
 	{
 		zUtilsJsonTopOpt meshJSON;
 		json j;

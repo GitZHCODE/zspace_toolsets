@@ -14,7 +14,7 @@
 #define ZSPACE_TS_STATICS_SPATIALSTRUCTURE_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
 #include <headers/zInterface/functionsets/zFnParticle.h>
@@ -48,7 +48,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsSpatialStructures
+	class ZSPACE_TOOLSETS zTsSpatialStructures
 	{
 	protected:
 		//--------------------------
@@ -268,7 +268,7 @@ namespace zSpace
 	
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/statics/zTsSpatialStructure.cpp>

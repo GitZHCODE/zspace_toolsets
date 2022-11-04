@@ -14,6 +14,7 @@
 #define ZSPACE_TS_STATICS_TOPOPT_H
 
 #pragma once
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 
 namespace zSpace
@@ -184,7 +185,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsTopOpt
+	class ZSPACE_TOOLSETS zTsTopOpt
 	{
 	protected:
 
@@ -355,7 +356,7 @@ namespace zSpace
 
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/statics/zTsTopOpt.cpp>
