@@ -19,10 +19,10 @@ namespace zSpace
 
 	ZSPACE_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra() {}
 
-	ZSPACE_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra(zObjGraph &_graphObj)
+	ZSPACE_INLINE zTsGraphPolyhedra::zTsGraphPolyhedra(zObjGraph& _graphObj)
 	{
 		graphObj = &_graphObj;
-		fnGraph = zFnGraph(_graphObj);		
+		fnGraph = zFnGraph(_graphObj);
 	}
 
 	//---- DESTRUCTOR
@@ -31,7 +31,7 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::createGraphFromFile(string &_path, zFileTpye _type, bool _staticGeom)
+	ZSPACE_INLINE void zTsGraphPolyhedra::createGraphFromFile(string& _path, zFileTpye _type, bool _staticGeom)
 	{
 		// create graph
 		fnGraph.from(_path, _type, _staticGeom);
@@ -55,13 +55,13 @@ namespace zSpace
 		model->addObject(*graphObj);
 		graphObj->setDisplayElements(true, true);
 
-		for (auto &obj : convexHullMeshes) model->addObject(obj);
-		for (auto &obj : dualMeshes) model->addObject(obj);
+		for (auto& obj : convexHullMeshes) model->addObject(obj);
+		for (auto& obj : dualMeshes) model->addObject(obj);
 #endif
 
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::createGraphFromMesh(zObjMesh &_inMeshObj, zVector &_verticalForce)
+	ZSPACE_INLINE void zTsGraphPolyhedra::createGraphFromMesh(zObjMesh& _inMeshObj, zVector& _verticalForce)
 	{
 		zFnMesh fnMesh(_inMeshObj);
 
@@ -79,7 +79,7 @@ namespace zSpace
 		for (zItMeshVertex v(_inMeshObj); !v.end(); v++)
 		{
 			zPoint newPos = v.getPosition() + (_verticalForce * -1);
-			
+
 			edgeConnects.push_back(v.getId());
 			edgeConnects.push_back(vertexPositions.size());
 
@@ -104,11 +104,14 @@ namespace zSpace
 #endif
 
 	}
-	
+
 	ZSPACE_INLINE void zTsGraphPolyhedra::create()
 	{
+		int activeNodes = 0;
+		double tol = 0.002;
+
 		for (zItGraphVertex g_v(*graphObj); !g_v.end(); g_v++)
-		{		
+		{
 			if (!g_v.checkValency(1))
 			{
 				nodeId.push_back(g_v.getId());
@@ -116,65 +119,103 @@ namespace zSpace
 				//cout << "\n\t\t\tNODE_ID: " << g_v.getId();
 
 				// make clean convex hull
-				
+
 				cleanConvexHull(g_v);
 
 				// dual mesh from convex hull
-				createDualMesh(g_v);
-								
-				//cout << "\n////////////////////////////////////////////////////////////////////";
+				createDualMesh(g_v, tol);
+
+				activeNodes++;
 			}
 		}
+		cout << "\n////////////////////////////////////////////////////////////////////\n";
+		cout << "convexhull mesh size: " << convexHullMeshes.size() << endl;
+		cout << "dual mesh size: " << dualMeshes.size() << endl;
+		cout << "active nodes: " << activeNodes << endl;
+
+		colors.insert(colors.end(),
+			{
+				zColor(1, 0, 0, 1), //red
+				zColor(1, 1, 0, 1), //yellow
+				zColor(0, 1, 0, 1), //green
+				zColor(0, 1, 1, 1), //cyan
+				zColor(0, 0, 1, 1), //blue
+				zColor(1, 0, 1, 1), //magenta
+				zColor(0.5, 0.5, 0.5, 1), //gray
+				zColor(1, 0.5, 0, 1) //orange
+			});
+
+
 		// set edge and face centers
-		//for (auto &m : convexHullMeshes)
-		//{
-		//	zPointArray edgeCenters, faceCenters;
+		for (auto& m : convexHullMeshes)
+		{
+			zPointArray edgeCenters, faceCenters;
 
-		//	for (zItMeshEdge e(m); !e.end(); e++)
-		//		edgeCenters.push_back(e.getCenter());
+			for (zItMeshEdge e(m); !e.end(); e++)
+				edgeCenters.push_back(e.getCenter());
 
-		//	for (zItMeshFace f(m); !f.end(); f++)
-		//		faceCenters.push_back(f.getCenter());
+			for (zItMeshFace f(m); !f.end(); f++)
+				faceCenters.push_back(f.getCenter());
 
-		//	m.setEdgeCenters(edgeCenters);
-		//	m.setFaceCenters(faceCenters);
-		//}
+			m.setEdgeCenters(edgeCenters);
+			m.setFaceCenters(faceCenters);
+		}
 
-		//for (auto &m : dualMeshes)
-		//{
-		//	zPointArray edgeCenters, faceCenters;
+		for (auto& m : dualMeshes)
+		{
+			zPointArray edgeCenters, faceCenters;
 
-		//	for (zItMeshEdge e(m); !e.end(); e++)
-		//		edgeCenters.push_back(e.getCenter());
+			for (zItMeshEdge e(m); !e.end(); e++)
+				edgeCenters.push_back(e.getCenter());
 
-		//	for (zItMeshFace f(m); !f.end(); f++)
-		//		faceCenters.push_back(f.getCenter());
+			for (zItMeshFace f(m); !f.end(); f++)
+				faceCenters.push_back(f.getCenter());
 
-		//	m.setEdgeCenters(edgeCenters);
-		//	m.setFaceCenters(faceCenters);
-		//}
+			m.setEdgeCenters(edgeCenters);
+			m.setFaceCenters(faceCenters);
+		}
 
-		//zPointArray graphEdgeCenters;
-		//for (zItGraphEdge e(*graphObj); !e.end(); e++) graphEdgeCenters.push_back(e.getCenter());
-		//graphObj->setEdgeCenters(graphEdgeCenters);
+		zPointArray graphEdgeCenters;
+		for (zItGraphEdge e(*graphObj); !e.end(); e++) graphEdgeCenters.push_back(e.getCenter());
+		graphObj->setEdgeCenters(graphEdgeCenters);
 
-		//// color connected faces
-		//colorDualFaceConnectivity();
-		//
-		//// snap and merge dual cells
-		//zItGraphVertexArray(graphCenters);
-		//fnGraph.getGraphEccentricityCenter(graphCenters);
+		// color connected faces
+		colorDualFaceConnectivity();
+
+		// snap and merge dual cells
+		zItGraphVertexArray(graphCenters);
+		fnGraph.getGraphEccentricityCenter(graphCenters);
 		//snapDualCells(sortedGraphVertices, graphCenters);
+
+
+		cout << "------MAP 1-------" << endl;
+
+		for (auto itr = graphHalfedge_dualCellFace.begin();
+			itr != graphHalfedge_dualCellFace.end(); itr++)
+		{
+			cout << "HE:" << itr->first << "-->" <<
+				"F(node, face):" << (itr->second).first << "," << (itr->second).second << endl;
+		}
+
+		cout << "------MAP 2-------" << endl;
+
+		for (auto itr = dualCellFace_graphHalfedge.begin();
+			itr != dualCellFace_graphHalfedge.end(); itr++)
+		{
+			cout << "F(node, face):" << itr->first << "-->" <<
+				"HE:" << itr->second << endl;
+		}
+
 	}
 
 	//---- UPDATE METHODS
 
-	bool zTsGraphPolyhedra::equilibrium(bool & compTargets,  double dT, zIntergrationType type, int numIterations, double angleTolerance, double areaTolerance, bool printInfo)
+	bool zTsGraphPolyhedra::equilibrium(bool& compTargets, double dT, zIntergrationType type, int numIterations, double angleTolerance, double areaTolerance, bool printInfo)
 	{
 		if (compTargets)
 		{
 			printf("\n compute targets ");
-			computeTargets();	
+			computeTargets();
 			compTargets = !compTargets;
 		}
 
@@ -190,16 +231,60 @@ namespace zSpace
 		return (outP && outA) ? true : false;
 	}
 
-	
+	//---- DRAW METHODS
+
+	ZSPACE_INLINE void zTsGraphPolyhedra::draw()
+	{
+		zItGraphHalfEdge he(*graphObj);
+
+		int node = -1;
+		int face = -1;
+
+		for (he.begin(); !he.end(); he++)
+		{
+			auto gotFace_A = graphHalfedge_dualCellFace.find(to_string(he.getId()));
+			auto gotFace_B = graphHalfedge_dualCellFace.find(to_string(he.getSym().getId()));
+			if (gotFace_A != graphHalfedge_dualCellFace.end())
+			{
+				node = (gotFace_A->second).first;
+				face = (gotFace_A->second).second;
+
+				zItMeshFace f(dualMeshes[node], face);
+				zVector o = f.getCenter();
+				zVector n = f.getNormal();
+				n.normalize();
+				zVector e = o + n * 1;
+
+				model->displayUtils.drawLine(o, e, colors[he.getId() % colors.size()], 3);
+				model->displayUtils.drawLine(he.getVertex().getPosition(), he.getSym().getVertex().getPosition(), colors[he.getId() % colors.size()], 3);
+			}
+
+			if (gotFace_B != graphHalfedge_dualCellFace.end())
+			{
+				node = (gotFace_B->second).first;
+				face = (gotFace_B->second).second;
+
+				zItMeshFace f(dualMeshes[node], face);
+				zVector o = f.getCenter();
+				zVector n = f.getNormal();
+				n.normalize();
+				zVector e = o + n * 1;
+
+				model->displayUtils.drawLine(o, e, colors[he.getId() % colors.size()], 3);
+				model->displayUtils.drawLine(he.getVertex().getPosition(), he.getSym().getVertex().getPosition(), colors[he.getId() % colors.size()], 3);
+			}
+		}
+	}
+
 #if defined (ZSPACE_UNREAL_INTEROP) || defined (ZSPACE_MAYA_INTEROP) || defined (ZSPACE_RHINO_INTEROP)
 	// Do Nothing
 #else
 
 	//---- DISPLAY SET METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayModel(zModel&_model)
+	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayModel(zModel& _model)
 	{
-		model = &_model;	
+		model = &_model;
 	}
 
 	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayGraphElements(bool _drawGraph, bool _drawVertIds, bool _drawEdgeIds)
@@ -207,22 +292,22 @@ namespace zSpace
 		graphObj->setDisplayObject(_drawGraph);
 		graphObj->setDisplayElementIds(_drawVertIds, _drawEdgeIds);
 	}
-	
+
 	//---- DRAW METHODS
 
 	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayHullElements(bool _drawConvexHulls, bool _drawFaces, bool _drawVertexIds, bool _drawEdgeIds, bool _drawFaceIds)
 	{
-		for (auto &m : convexHullMeshes)
+		for (auto& m : convexHullMeshes)
 		{
 			m.setDisplayFaces(_drawFaces);
 			m.setDisplayElementIds(_drawVertexIds, _drawEdgeIds, _drawFaceIds);
 			m.setDisplayObject(_drawConvexHulls);
-		}		
+		}
 	}
 
 	ZSPACE_INLINE void zTsGraphPolyhedra::setDisplayPolyhedraElements(bool _drawDualMesh, bool _drawFaces, bool _drawVertexIds, bool _drawEdgeIds, bool _drawFaceIds)
-	{	
-		for (auto &m : dualMeshes)
+	{
+		for (auto& m : dualMeshes)
 		{
 			m.setDisplayFaces(_drawFaces);
 			m.setDisplayElementIds(_drawVertexIds, _drawEdgeIds, _drawFaceIds);
@@ -232,7 +317,7 @@ namespace zSpace
 
 	//---- PRIVATE CREATE METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::createDualMesh(zItGraphVertex &_graphVertex)
+	ZSPACE_INLINE void zTsGraphPolyhedra::createDualMesh(zItGraphVertex& _graphVertex, double _tol)
 	{
 		zFnMesh fnMesh(convexHullMeshes[_graphVertex.getId()]);
 		zIntArray inEdge_dualEdge;
@@ -251,6 +336,7 @@ namespace zSpace
 		// map positionId -> graphVertexId
 		zPoint* hullPos = fnConHull.getRawVertexPositions();
 
+		cout << "num cHalEdges" << connectedHalfEdges.size() << endl;
 		for (auto he : connectedHalfEdges)
 		{
 			//zPoint hullP = (he.getVertex().checkValency(1)) ? he.getVertex().getPosition() : he.getCenter();
@@ -262,13 +348,40 @@ namespace zSpace
 
 			for (int i = 0; i < fnConHull.numVertices(); i++)
 			{
-				if (hullP.distanceTo(hullPos[i]) < 0.001)
+				if (hullP.distanceTo(hullPos[i]) < _tol)
 				{
+					//old map; seems adding the symmetry he to the map?
 					c_graphHalfEdge_dualCellFace[he.getId()].push_back(make_pair(_graphVertex.getId(), i));
-						
+
+					//set the values to the two maps
+					string hash1 = to_string(_graphVertex.getId()) + "," + to_string(i);
+					dualCellFace_graphHalfedge[hash1] = he.getSym().getId();
+
+					string hash2 = to_string(he.getSym().getId());
+					graphHalfedge_dualCellFace[hash2] = pair<int, int>(_graphVertex.getId(), i);
+
 				}
 			}
 		}
+
+
+
+		////scale for visulisation
+		zPoint center = fnMesh.getCenter();
+		zPointArray vertices;
+		fnDual.getVertexPositions(vertices);
+		for (auto& v : vertices)
+		{
+			zVector vec = v - center;
+			vec.normalize();
+			vec *= 1;
+			v += vec;
+		}
+		fnDual.setVertexPositions(vertices);
+
+		//move it to the graph node
+		zVector move = _graphVertex.getPosition() - center;
+		fnDual.setTranslation(move);
 	}
 
 #endif
@@ -285,7 +398,7 @@ namespace zSpace
 		dualCellFace_AreaTargets.clear();
 		dualCellFace_AreaTargets.assign(dualMeshes.size(), zDoubleArray());
 
-		for (int i =0; i< dualMeshes.size(); i++)
+		for (int i = 0; i < dualMeshes.size(); i++)
 		{
 			zFnMesh tempFn(dualMeshes[i]);
 			dualCellFace_NormTargets[i].assign(tempFn.numPolygons(), zVector());
@@ -295,14 +408,14 @@ namespace zSpace
 
 		for (int i = 0; i < c_graphHalfEdge_dualCellFace.size(); i++)
 		{
-			
+
 			for (int j = 0; j < c_graphHalfEdge_dualCellFace[i].size(); j++)
 			{
 				int cellId = c_graphHalfEdge_dualCellFace[i][j].first;
 				int faceId = c_graphHalfEdge_dualCellFace[i][j].second;
 
 				zItGraphHalfEdge he(*graphObj, i);
-				
+
 				dualCellFace_NormTargets[cellId][faceId] = he.getVector();
 				dualCellFace_NormTargets[cellId][faceId].normalize();
 
@@ -312,8 +425,7 @@ namespace zSpace
 
 	}
 
-
-	void zTsGraphPolyhedra::updateDual(double & dT, zIntergrationType & type, int & numIterations)
+	void zTsGraphPolyhedra::updateDual(double& dT, zIntergrationType& type, int& numIterations)
 	{
 		// create particles
 		if (fnFormParticles.size() != dualMeshes.size())
@@ -325,10 +437,10 @@ namespace zSpace
 			fnFormParticles.assign(dualMeshes.size(), vector<zFnParticle>());
 
 			int cellId = 0;
-			for (auto &cell : dualMeshes)
+			for (auto& cell : dualMeshes)
 			{
 				zFnMesh tmpFn(cell);
-				if (tmpFn.numVertices() == 0) 
+				if (tmpFn.numVertices() == 0)
 				{
 					cellId++;
 					continue;
@@ -336,7 +448,7 @@ namespace zSpace
 
 				zPoint* pos = tmpFn.getRawVertexPositions();
 
-				
+
 
 				for (zItMeshVertex v(cell); !v.end(); v++)
 				{
@@ -363,7 +475,7 @@ namespace zSpace
 		for (int k = 0; k < numIterations; k++)
 		{
 			int cellId = 0;
-			for (auto &cell : dualMeshes)
+			for (auto& cell : dualMeshes)
 			{
 				zFnMesh tmpFn(cell);
 				if (tmpFn.numVertices() == 0)
@@ -372,7 +484,7 @@ namespace zSpace
 					continue;
 				}
 
-				zPoint* pos = tmpFn.getRawVertexPositions();				
+				zPoint* pos = tmpFn.getRawVertexPositions();
 
 				for (zItMeshVertex v(cell); !v.end(); v++)
 				{
@@ -389,7 +501,7 @@ namespace zSpace
 
 					// compute barycenter per vertex for normal alignment
 					zPoint b_i_norm;
-					for (auto &f : cFaces)
+					for (auto& f : cFaces)
 					{
 						int fId = f.getId();
 
@@ -398,20 +510,20 @@ namespace zSpace
 
 						zPoint v_j = v_i + fNorm;
 
-						
+
 
 						zVector t_ij = dualCellFace_NormTargets[cellId][fId];;
 						if (fNorm * t_ij > 0) t_ij *= -1;
 
 						b_i_norm += (v_j + (t_ij));
 
-						cout << "\n vi: " << v_i;
-						cout << "   fNorm: " << fNorm;
-						cout << "   v_j: " << v_j;
-						cout << "   t_ij: " << t_ij;
-						cout << "   b_i_norm: " << b_i_norm;
+						//cout << "\n vi: " << v_i;
+						//cout << "   fNorm: " << fNorm;
+						//cout << "   v_j: " << v_j;
+						//cout << "   t_ij: " << t_ij;
+						//cout << "   b_i_norm: " << b_i_norm;
 
-						
+
 					}
 
 					b_i_norm /= cFaces.size();
@@ -443,14 +555,14 @@ namespace zSpace
 
 	}
 
-	bool zTsGraphPolyhedra::checkParallelity(zDomainDouble & deviation, double & angleTolerance, bool & printInfo)
+	bool zTsGraphPolyhedra::checkParallelity(zDomainDouble& deviation, double& angleTolerance, bool& printInfo)
 	{
 		bool out = true;
 		vector<double> deviations;
 		deviation = zDomainDouble(10000, -10000);
 
 		int cellId = 0;
-		for (auto &cell : dualMeshes)
+		for (auto& cell : dualMeshes)
 		{
 			zFnMesh tmpFn(cell);
 			if (tmpFn.numVertices() == 0)
@@ -492,16 +604,16 @@ namespace zSpace
 		return out;
 	}
 
-	bool zTsGraphPolyhedra::checkArea(zDomainDouble & deviations, double & areaTolerance, bool & printInfo)
+	bool zTsGraphPolyhedra::checkArea(zDomainDouble& deviations, double& areaTolerance, bool& printInfo)
 	{
 		bool out = true;
 
 		return out;
 	}
-	
+
 	//---- PRIVATE UTILITY METHODS
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::sortGraphVertices(zItGraphVertexArray &_graphVertices)
+	ZSPACE_INLINE void zTsGraphPolyhedra::sortGraphVertices(zItGraphVertexArray& _graphVertices)
 	{
 		// get eccentricity center
 		zItGraphVertexArray outV;
@@ -514,7 +626,7 @@ namespace zSpace
 		bsf.getBSF(_graphVertices);
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::cleanConvexHull(zItGraphVertex &_vIt)
+	ZSPACE_INLINE void zTsGraphPolyhedra::cleanConvexHull(zItGraphVertex& _vIt)
 	{
 		zPointArray _hullPts;
 
@@ -536,7 +648,7 @@ namespace zSpace
 		zFnMesh fnMesh(convexHullMeshes[_vIt.getId()]);
 		fnMesh.makeConvexHull(_hullPts);
 
-		while (fnMesh.numPolygons() > cHalfEdges.size()) 
+		while (fnMesh.numPolygons() > cHalfEdges.size())
 		{
 			zDoubleArray hedralAngles;
 			fnMesh.getEdgeDihedralAngles(hedralAngles);
@@ -559,7 +671,7 @@ namespace zSpace
 	{
 		for (int i = 0; i < c_graphHalfEdge_dualCellFace.size(); i++)
 		{
-			
+
 			for (int j = 0; j < c_graphHalfEdge_dualCellFace[i].size(); j++)
 			{
 				int cellId = c_graphHalfEdge_dualCellFace[i][j].first;
@@ -574,9 +686,9 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsGraphPolyhedra::snapDualCells(zItGraphVertexArray &_bsf, zItGraphVertexArray &_gCenters)
+	ZSPACE_INLINE void zTsGraphPolyhedra::snapDualCells(zItGraphVertexArray& _bsf, zItGraphVertexArray& _gCenters)
 	{
-		
+
 		map<zIntPair, int> volVert_globalId;
 		int globalId_counter = 0;
 
@@ -589,7 +701,7 @@ namespace zSpace
 
 
 		for (auto g_v : _bsf)
-		{			
+		{
 			// get vertices > valence 1
 			if (g_v.getValence() > 1)
 			{
@@ -679,10 +791,10 @@ namespace zSpace
 							zIntArray tmpArray = { c_graphHalfEdge_dualCellFace[graphEdgeId][0].first, f1Edge.getId(), c_graphHalfEdge_dualCellFace[graphEdgeId][1].first, f2Edge.getId() };
 
 							mapped_volEdges.push_back(tmpArray);
-							
+
 							zIntPair tmpp1(c_graphHalfEdge_dualCellFace[graphEdgeId][0].first, f1Edge.getId());
 							zIntPair tmpp2(c_graphHalfEdge_dualCellFace[graphEdgeId][1].first, f2Edge.getId());
-							
+
 							volEdge_mappedVolEdge[tmpp1] = tmpp2;
 						}
 
@@ -702,8 +814,8 @@ namespace zSpace
 		//for (auto g : gCenters) vVisited[g.getId()] = true;
 
 		//for (zItGraphVertex v(*graphObj); !v.end(); v++) if (v.checkValency(1)) vVisited[v.getId()] = true;
-		
-			
+
+
 
 		for (int j = 0; j < _gCenters.size(); j++)
 		{
@@ -713,27 +825,27 @@ namespace zSpace
 			_gCenters[j].getConnectedHalfEdges(conHEdges);
 
 			queue<zItGraphHalfEdge> q;
-			for (auto &he : conHEdges) q.push(he);
-						
+			for (auto& he : conHEdges) q.push(he);
+
 
 			while (!q.empty())
 			{
 				auto he = q.front();
 				q.pop();
-				
+
 				if (eVisited[he.getEdge().getId()]) continue;
-				
+
 				zItGraphHalfEdgeArray tConHEdges;
 				he.getVertex().getConnectedHalfEdges(tConHEdges);
-				for (auto &tHe : tConHEdges) q.push(tHe);
-				
-					
+				for (auto& tHe : tConHEdges) q.push(tHe);
+
+
 				eVisited[he.getEdge().getId()] = true;
 
 				printf("\n he: %i %i", he.getStartVertex().getId(), he.getVertex().getId());
 
 				int graphEdgeId = he.getEdge().getId();
-				
+
 				if (c_graphHalfEdge_dualCellFace[graphEdgeId].size() != 2)	continue;
 
 				int vol1 = c_graphHalfEdge_dualCellFace[graphEdgeId][0].first;
@@ -743,7 +855,7 @@ namespace zSpace
 				zIntArray f1Verts;
 				f1.getVertices(f1Verts);
 
-					
+
 				for (auto id : f1Verts)
 				{
 					bool chk = false;
@@ -759,15 +871,15 @@ namespace zSpace
 
 						globalId_counter++;
 
-						
+
 					}
 				}
-					
-				
+
+
 
 				zItMeshFace f2(dualMeshes[vol2], c_graphHalfEdge_dualCellFace[graphEdgeId][1].second);
 				zIntArray f2Verts;
-				f2.getVertices(f2Verts);				
+				f2.getVertices(f2Verts);
 
 				for (zItMeshVertex v(dualMeshes[vol2]); !v.end(); v++)
 				{
@@ -812,8 +924,8 @@ namespace zSpace
 					}
 
 					f1Edge = f1Edge.getNext();
-					f2Edge = f2Edge.getPrev();					
-				}		
+					f2Edge = f2Edge.getPrev();
+				}
 			}
 		}
 
@@ -827,12 +939,12 @@ namespace zSpace
 
 			zItMeshHalfEdge f1Edge(dualMeshes[vol1], mapped_volEdges[j][1]);
 			zItMeshHalfEdge f2Edge(dualMeshes[vol2], mapped_volEdges[j][3]);
-			
+
 			zItMeshFace f1 = f1Edge.getFace();
 			zItMeshFace f2 = f2Edge.getFace();
 			zIntArray f2Vert;
 			f2.getVertices(f2Vert);
-			
+
 			zFnMesh tempFn_Vol2(dualMeshes[vol2]);
 			zPoint* pos2 = tempFn_Vol2.getRawVertexPositions();
 
@@ -848,7 +960,7 @@ namespace zSpace
 					globalId_counter++;
 				}
 			}
-			
+
 			for (zItMeshVertex v(dualMeshes[vol2]); !v.end(); v++)
 			{
 				bool chk = false;
@@ -870,10 +982,10 @@ namespace zSpace
 					globalId_counter++;
 				}
 			}*/
-			
+
 
 			// snap corresponding vertices
-			for (int i = 0; i <f1.getNumVertices(); i++)
+			for (int i = 0; i < f1.getNumVertices(); i++)
 			{
 				if (vol1 < snapSteps) pos2[f2Edge.getVertex().getId()] = pos1[f1Edge.getStartVertex().getId()];
 
@@ -936,7 +1048,7 @@ namespace zSpace
 				{
 					/*cout << "\n\n i " << i;
 					cout << "\n j " << j;
-					
+
 					cout << "\n " << nodeIdVertId_1[i][0] << " " << nodeIdVertId_1[i][1] << "  ->  " << nodeIdVertId_2[i][0] << " " << nodeIdVertId_2[i][1];
 
 					cout << "\n " << nodeIdVertId_1[j][0] << " " << nodeIdVertId_1[j][1] << "  ->  " << nodeIdVertId_2[j][0] << " " << nodeIdVertId_2[j][1];
@@ -945,18 +1057,18 @@ namespace zSpace
 
 
 
-					/*zItMeshVertex v1_1(dualMeshes[nodeIdVertId_1[i][0]], nodeIdVertId_1[i][1]);
-					zItMeshVertex v2_1(dualMeshes[nodeIdVertId_2[i][0]], nodeIdVertId_2[i][1]);
+/*zItMeshVertex v1_1(dualMeshes[nodeIdVertId_1[i][0]], nodeIdVertId_1[i][1]);
+zItMeshVertex v2_1(dualMeshes[nodeIdVertId_2[i][0]], nodeIdVertId_2[i][1]);
 
-					zItMeshVertex v1_2(dualMeshes[nodeIdVertId_1[j][0]], nodeIdVertId_1[j][1]);
-					zItMeshVertex v2_2(dualMeshes[nodeIdVertId_2[j][0]], nodeIdVertId_2[j][1]);	*/
+zItMeshVertex v1_2(dualMeshes[nodeIdVertId_1[j][0]], nodeIdVertId_1[j][1]);
+zItMeshVertex v2_2(dualMeshes[nodeIdVertId_2[j][0]], nodeIdVertId_2[j][1]);	*/
 
-					/*zVector newPos = (v1_1.getPosition() + v2_1.getPosition() + v1_2.getPosition() + v2_2.getPosition()) / 4;
+/*zVector newPos = (v1_1.getPosition() + v2_1.getPosition() + v1_2.getPosition() + v2_2.getPosition()) / 4;
 
-					v1_1.setPosition(newPos);
-					v1_2.setPosition(newPos);
-					v2_1.setPosition(newPos);
-					v2_2.setPosition(newPos);*/
+v1_1.setPosition(newPos);
+v1_2.setPosition(newPos);
+v2_1.setPosition(newPos);
+v2_2.setPosition(newPos);*/
 
 
 				}
@@ -964,43 +1076,43 @@ namespace zSpace
 
 
 
-		//for (auto i : nodeVert_1)
-		//{
-		//	cout << "\n";
-		//	for (auto j : i)
-		//	{
-		//		cout << " " << j;
-		//	}
-		//}
+			//for (auto i : nodeVert_1)
+			//{
+			//	cout << "\n";
+			//	for (auto j : i)
+			//	{
+			//		cout << " " << j;
+			//	}
+			//}
 
-		//for (int i = 0; i < nodeIdVertId_1.size(); i++)
-		//{
-		//	//nodeVert_1[i][0]; // vol1
-		//	//nodeVert_1[i][1]; // vId
-		//	for (int j = 0; j < nodeIdVertId_1.size(); j++)
-		//	{
-		//		if (nodeIdVertId_1[i][0] == nodeIdVertId_1[j][0] && nodeIdVertId_1[i][1] == nodeIdVertId_1[j][1] && i != j)
-		//		{
-		//			cout << "\n\n i " << i;
-		//			cout << "\n j " << j;
-		//			cout << "\n " << nodeIdVertId_1[i][0] << " " << nodeIdVertId_1[i][1] << " -> " << nodeIdVertId_2[i][0] << " " << nodeIdVertId_2[i][1];
+			//for (int i = 0; i < nodeIdVertId_1.size(); i++)
+			//{
+			//	//nodeVert_1[i][0]; // vol1
+			//	//nodeVert_1[i][1]; // vId
+			//	for (int j = 0; j < nodeIdVertId_1.size(); j++)
+			//	{
+			//		if (nodeIdVertId_1[i][0] == nodeIdVertId_1[j][0] && nodeIdVertId_1[i][1] == nodeIdVertId_1[j][1] && i != j)
+			//		{
+			//			cout << "\n\n i " << i;
+			//			cout << "\n j " << j;
+			//			cout << "\n " << nodeIdVertId_1[i][0] << " " << nodeIdVertId_1[i][1] << " -> " << nodeIdVertId_2[i][0] << " " << nodeIdVertId_2[i][1];
 
-		//			zItMeshVertex v1_1(dualMeshes[nodeIdVertId_1[i][0]], nodeIdVertId_1[i][1]);
-		//			zItMeshVertex v2_1(dualMeshes[nodeIdVertId_2[i][0]], nodeIdVertId_2[i][1]);
+			//			zItMeshVertex v1_1(dualMeshes[nodeIdVertId_1[i][0]], nodeIdVertId_1[i][1]);
+			//			zItMeshVertex v2_1(dualMeshes[nodeIdVertId_2[i][0]], nodeIdVertId_2[i][1]);
 
-		//			zItMeshVertex v1_2(dualMeshes[nodeIdVertId_1[j][0]], nodeIdVertId_1[j][1]);
-		//			zItMeshVertex v2_2(dualMeshes[nodeIdVertId_2[j][0]], nodeIdVertId_2[j][1]);	
+			//			zItMeshVertex v1_2(dualMeshes[nodeIdVertId_1[j][0]], nodeIdVertId_1[j][1]);
+			//			zItMeshVertex v2_2(dualMeshes[nodeIdVertId_2[j][0]], nodeIdVertId_2[j][1]);	
 
-		//			zVector newPos = (v1_1.getPosition() + v2_1.getPosition() + v1_2.getPosition() + v2_2.getPosition()) / 4;
+			//			zVector newPos = (v1_1.getPosition() + v2_1.getPosition() + v1_2.getPosition() + v2_2.getPosition()) / 4;
 
-		//			v1_1.setPosition(newPos);
-		//			v1_2.setPosition(newPos);
-		//			v2_1.setPosition(newPos);
-		//			v2_2.setPosition(newPos);
+			//			v1_1.setPosition(newPos);
+			//			v1_2.setPosition(newPos);
+			//			v2_1.setPosition(newPos);
+			//			v2_2.setPosition(newPos);
 
 
-		//		}
-		//	}
+			//		}
+			//	}
 
 
 
