@@ -45,7 +45,6 @@ namespace zSpace
 		}
 	}
 
-	
 	ZSPACE_TOOLSETS_INLINE void ext_KMean_computeKmeans(zTsKMeans*& kmean, double* _data, int dataCount, int strideCount, int& numCluster, int& numIterations, int initMethod, int seed1, int seed2, int* outClusterID)
 	{
 		//create matrix from 1d data
@@ -148,6 +147,5 @@ namespace zSpace
 
 		return optimalK;
 	}
-	
 
 }

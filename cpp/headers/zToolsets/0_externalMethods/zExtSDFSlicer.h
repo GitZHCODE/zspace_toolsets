@@ -18,66 +18,106 @@
 #pragma once
 
 #include <headers/zToolsets/geometry/zTsSDFSlicer.h>
-
+#include <headers/zToolsets/0_externalMethods/zExtMeshUtility.h>
+#include <headers/zToolsets/0_externalMethods/zExtGraph.h>
 
 namespace zSpace
 {
-	ZSPACE_TOOLSETS_EXT{
-ZSPACE_TOOLSETS void EXT_SetFromJSON(zTsSDFSlicer*& slicer, char* path, int blockID, bool& isDeckBlock, bool& rightExist, bool& leftExist);
-		ZSPACE_TOOLSETS void EXT_SetFromJSON2(zTsSDFSlicer*& slicer, char* path, int blockStride, int braceStride);
+	struct zExtTsSDFSlicer
+	{
+		zTsSDFSlicer* slicer;
+		int blockID;
+		bool deckBlock;
+		bool leftPlaneExist;
+		bool rightPlaneExist;
+		int sectionGraphCount;
+		int contourGraphCount;
+		int trimGraphCount;
 
-		ZSPACE_TOOLSETS void EXT_createFieldMesh(zTsSDFSlicer*& slicer, float* domainMin, float* domainMax, int resX, int resY);
-		ZSPACE_TOOLSETS int EXT_checkLayerHeight(zTsSDFSlicer*& slicer, bool& check);
+		void updateFields()
+		{
+			blockID = slicer->blockId;
+			deckBlock = slicer->onDeckBlock();
+			leftPlaneExist = slicer->leftPlaneExists;
+			rightPlaneExist = slicer->rightPlaneExists;
+			sectionGraphCount = slicer->o_sectionGraphs.size();
+			contourGraphCount = slicer->o_contourGraphs.size();
+			trimGraphCount = slicer->o_trimGraphs.size();
+		}
+
+		/*zExtMesh rightMesh;
+		zExtMesh leftMesh;
+		zExtMesh fieldMesh;
+		zExtGraphSet sectionGraphsSet;
+		zExtGraphSet contourGraphsSet;
+		zExtGraphSet trimGraphsSet;*/
+	};
+	
+	ZSPACE_TOOLSETS_EXT
+	{
+		ZSPACE_TOOLSETS void ext_sdf_SetFromJSON(zExtTsSDFSlicer& extSlicer, char* path, int blockID);
+		ZSPACE_TOOLSETS int ext_sdf_createFieldMesh(zExtTsSDFSlicer& extSlicer, float* domainMin, float* domainMax, int resX, int resY, zExtMesh& extFieldMesh);
+		ZSPACE_TOOLSETS int ext_sdf_getRawMesh(zExtTsSDFSlicer& extSlicer, zExtMesh& rightMesh, zExtMesh& leftMesh);
+		ZSPACE_TOOLSETS int ext_sdf_getBlockSectionGraphs(zExtTsSDFSlicer& extSlicer, zExtGraphSet& graphSet);
 
 
-		ZSPACE_TOOLSETS int EXT_computePrintBlocks(zTsSDFSlicer*& slicer, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFLayers, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax, float printPlaneStep, bool compFrames, bool compSDF);
-		ZSPACE_TOOLSETS int EXT_computePrintBlocksPar(zTsSDFSlicer*& slicer, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFLayers, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax, float printPlaneStep, bool compFrames, bool compSDF);
 
-		ZSPACE_TOOLSETS void EXT_computeSDFLayer(zTsSDFSlicer*& slicer, int SDFLayerNumber, float printLayerWidth, float raftLayerWidth, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax, float printPlaneStep, bool compFrames);
-		ZSPACE_TOOLSETS void EXT_duplicateSlicer(zTsSDFSlicer* inSlicer, zTsSDFSlicer*& outSlicer);
+
+		ZSPACE_TOOLSETS void ext_sdf_SetFromJSON3(zTsSDFSlicer*& slicer, char* path, int blockID, bool& isDeckBlock);
+		ZSPACE_TOOLSETS void ext_sdf_SetFromJSON2(zTsSDFSlicer*& slicer, char* path, int blockStride, int braceStride);
+
+		ZSPACE_TOOLSETS void ext_sdf_createFieldMesh2(zTsSDFSlicer*& slicer, float* domainMin, float* domainMax, int resX, int resY);
+		ZSPACE_TOOLSETS int ext_sdf_checkLayerHeight2(zTsSDFSlicer*& slicer, bool& check);
+
+
+		ZSPACE_TOOLSETS int ext_sdf_computePrintBlocks2(zTsSDFSlicer*& slicer, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFLayers, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax, float printPlaneStep, bool compFrames, bool compSDF);
+		ZSPACE_TOOLSETS int ext_sdf_computePrintBlocksPar2(zTsSDFSlicer*& slicer, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFLayers, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax, float printPlaneStep, bool compFrames, bool compSDF);
+
+		ZSPACE_TOOLSETS void ext_sdf_computeSDFLayer2(zTsSDFSlicer*& slicer, int SDFLayerNumber, float printLayerWidth, float raftLayerWidth, int SDFFunc_Num, int SDFFunc_NumSmooth, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax, float printPlaneStep, bool compFrames);
+		ZSPACE_TOOLSETS void ext_sdf_duplicateSlicer2(zTsSDFSlicer* inSlicer, zTsSDFSlicer*& outSlicer);
 		//Get Methods
-		ZSPACE_TOOLSETS int EXT_getRawMesh(zTsSDFSlicer* slicer, zObjMesh*& objMesh, bool rightMesh);
-		ZSPACE_TOOLSETS int EXT_getRawFieldMesh(zTsSDFSlicer* slicer, zObjMesh*& objMesh);
-		ZSPACE_TOOLSETS int EXT_getBlockSectionGraphs(zTsSDFSlicer* slicer, zObjGraphPointerArray*& graph, int numGraphs, int& outGraphsCount);
-		ZSPACE_TOOLSETS int EXT_getBlockContourGraphs(zTsSDFSlicer* slicer, zObjGraphPointerArray*& graph, int numGraphs, int& outGraphsCount);
-		ZSPACE_TOOLSETS int EXT_getRawMedialGraph(zTsSDFSlicer* slicer, zObjGraph*& graph);
-		ZSPACE_TOOLSETS int EXT_getBlockFrames(zTsSDFSlicer* slicer, vector<zTransform>*& frames, vector<zTransform>*& rightPlanes, vector<zTransform>*& leftPlanes, int& countFrames, int& countRightPlanes, int& countLefPlanes);
-		ZSPACE_TOOLSETS int EXT_getTrimGraph(zTsSDFSlicer* slicer, zObjGraphPointerArray*& graphs, int& Count);
+		ZSPACE_TOOLSETS int ext_sdf_getRawMesh2(zTsSDFSlicer* slicer, zObjMesh*& objMesh, bool rightMesh);
+		ZSPACE_TOOLSETS int ext_sdf_getRawFieldMesh2(zTsSDFSlicer* slicer, zObjMesh*& objMesh);
+		ZSPACE_TOOLSETS int ext_sdf_getBlockSectionGraphs2(zTsSDFSlicer* slicer, zObjGraphPointerArray*& graph, int numGraphs, int& outGraphsCount);
+		ZSPACE_TOOLSETS int ext_sdf_getBlockContourGraphs2(zTsSDFSlicer* slicer, zObjGraphPointerArray*& graph, int numGraphs, int& outGraphsCount);
+		ZSPACE_TOOLSETS int ext_sdf_getRawMedialGraph2(zTsSDFSlicer* slicer, zObjGraph*& graph);
+		ZSPACE_TOOLSETS int ext_sdf_getBlockFrames2(zTsSDFSlicer* slicer, vector<zTransform>*& planes, int& count);
+		ZSPACE_TOOLSETS int ext_sdf_getTrimGraph2(zTsSDFSlicer* slicer, zObjGraphPointerArray*& graphs, int& Count);
 
-		//Plane Data
-		//ZSPACE_TOOLSETS void EXT_getPlanesData(vector<zTransform>* graph, float* outOrigin, float* outNormal, float* outXAxis, float* outYAxis);
-		ZSPACE_TOOLSETS void EXT_getPlanesData(vector<zTransform>* graph, float* matrix);
-
-
-		//Graph Data
-		ZSPACE_TOOLSETS void EXT_getGraphsSetFromPointersVector(zObjGraphPointerArray* graphs, zObjGraph** outGraphArray);
-		ZSPACE_TOOLSETS void EXT_getGraphsSetFromVector(zObjGraphArray* graphs, zObjGraph** outGraphArray);
-
-		ZSPACE_TOOLSETS void EXT_getGraphCounts(zObjGraph* graph, int& outvCount, int& outeCount);
-		ZSPACE_TOOLSETS void EXT_getGraphData(zObjGraph* graph, float* outVPostions, float* outvColors, int* outePair, float* outeColors);
-		ZSPACE_TOOLSETS void EXT_getGraphSequence(zObjGraph* graph, int* outSequence);
-
-		//Mesh Data
-		ZSPACE_TOOLSETS void EXT_getMeshCounts(zObjMesh* objMesh, int& out_vCount, int& out_fCount);
-		ZSPACE_TOOLSETS void EXT_getMeshPosition(zObjMesh* objMesh, float* outVPostions, float* outVColors);
-		ZSPACE_TOOLSETS void EXT_getMeshFaceCount(zObjMesh* objMesh, int* outfCounts);
-		ZSPACE_TOOLSETS void EXT_getMeshFaceConnect(zObjMesh* objMesh, int* outfConnects);
-
-		//Export JSON
-		ZSPACE_TOOLSETS void EXT_ExportJSON(zTsSDFSlicer* slicer, char* fileCurrent, int fileCount, char* fileNew, int newCount, char* fileName, int nameCount, float printLayerWidth, float raftLayerWidth);
+		////Plane Data
+		////ZSPACE_TOOLSETS void ext_sdf_getPlanesData(vector<zTransform>* graph, float* outOrigin, float* outNormal, float* outXAxis, float* outYAxis);
+		//ZSPACE_TOOLSETS void ext_sdf_getPlanesData2(vector<zTransform>* graph, float* matrix);
 
 
-		//Check
+		////Graph Data
+		//ZSPACE_TOOLSETS void ext_sdf_getGraphsSetFromPointersVector(zObjGraphPointerArray* graphs, zObjGraph** outGraphArray);
+		//ZSPACE_TOOLSETS void ext_sdf_getGraphsSetFromVector(zObjGraphArray* graphs, zObjGraph** outGraphArray);
+
+		//ZSPACE_TOOLSETS void ext_sdf_getGraphCounts(zObjGraph* graph, int& outvCount, int& outeCount);
+		//ZSPACE_TOOLSETS void ext_sdf_getGraphData(zObjGraph* graph, float* outVPostions, float* outvColors, int* outePair, float* outeColors);
+		//ZSPACE_TOOLSETS void ext_sdf_getGraphSequence(zObjGraph* graph, int* outSequence);
+
+		////Mesh Data
+		//ZSPACE_TOOLSETS void ext_sdf_getMeshCounts(zObjMesh* objMesh, int& out_vCount, int& out_fCount);
+		//ZSPACE_TOOLSETS void ext_sdf_getMeshPosition(zObjMesh* objMesh, float* outVPostions, float* outVColors);
+		//ZSPACE_TOOLSETS void ext_sdf_getMeshFaceCount(zObjMesh* objMesh, int* outfCounts);
+		//ZSPACE_TOOLSETS void ext_sdf_getMeshFaceConnect(zObjMesh* objMesh, int* outfConnects);
+
+		////Export JSON
+		//ZSPACE_TOOLSETS void ext_sdf_ExportJSON(zTsSDFSlicer* slicer, char* fileCurrent, int fileCount, char* fileNew, int newCount, char* fileName, int nameCount, float printLayerWidth, float raftLayerWidth);
 
 
-		//Iterate
-		ZSPACE_TOOLSETS void EXT_CheckFolder(char* folderDirectoryChar, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax);
-
-		//Draw Mesh
-		ZSPACE_TOOLSETS void EXT_DrawMesh(zObjMesh* objMesh);
+		////Check
 
 
-		
+		////Iterate
+		//ZSPACE_TOOLSETS void ext_sdf_CheckFolder(char* folderDirectoryChar, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax);
+
+		////Draw Mesh
+		//ZSPACE_TOOLSETS void ext_sdf_DrawMesh(zObjMesh* objMesh);
+
+
+
 	}
 
 }
