@@ -50,10 +50,10 @@ namespace zSpace
 		//--------------------------
 
 		/*!	\brief pointer to graph Object  */
-		zObjGraph *graphObj;		
+		zObjGraph* graphObj;
 
 		/*!	\brief container of  form particle objects  */
-		vector<zObjParticleArray> formParticlesObj;		
+		vector<zObjParticleArray> formParticlesObj;
 
 		/*!	\brief container of form particle function set  */
 		vector<vector<zFnParticle>> fnFormParticles;
@@ -68,10 +68,13 @@ namespace zSpace
 		zObjMeshArray dualMeshes;
 
 		/*!	\brief DISCRIPTION  */
+
+		zColorArray colors;
+		unordered_map<string, pair<int, int>> graphHalfedge_dualCellFace;
+		unordered_map<string, int> dualCellFace_graphHalfedge;
+
 		vector<zIntPairArray> c_graphHalfEdge_dualCellFace;
-
 		vector<zVectorArray> dualCellFace_NormTargets;
-
 		vector<zDoubleArray> dualCellFace_AreaTargets;
 
 		/*!	\brief DISCRIPTION  */
@@ -108,7 +111,7 @@ namespace zSpace
 		*	\param		[in]	_graphObj			- input graph object.
 		*	\since version 0.0.4
 		*/
-		zTsGraphPolyhedra(zObjGraph &_graphObj);
+		zTsGraphPolyhedra(zObjGraph& _graphObj);
 
 		//--------------------------
 		//---- DESTRUCTOR
@@ -128,13 +131,13 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void createGraphFromFile(string &_path, zFileTpye _type, bool _staticGeom = false);
+		void createGraphFromFile(string& _path, zFileTpye _type, bool _staticGeom = false);
 
 		/*! \brief DISCRIPTION
 		*
 		*	\since version 0.0.4
 		*/
-		void createGraphFromMesh(zObjMesh &_inMeshObj, zVector &_verticalForce);
+		void createGraphFromMesh(zObjMesh& _inMeshObj, zVector& _verticalForce);
 
 		/*! \brief DISCRIPTION
 		*
@@ -142,11 +145,12 @@ namespace zSpace
 		*/
 		void create();
 
+		void draw();
 		//--------------------------
 		//---- UPDATE METHODS
 		//--------------------------
 
-		bool equilibrium(bool &compTargets, double dT, zIntergrationType type, int numIterations = 1000, double angleTolerance = EPS, double areaTolerance = EPS, bool printInfo = false);
+		bool equilibrium(bool& compTargets, double dT, zIntergrationType type, int numIterations = 1000, double angleTolerance = EPS, double areaTolerance = EPS, bool printInfo = false);
 
 
 #if defined (ZSPACE_UNREAL_INTEROP) || defined (ZSPACE_MAYA_INTEROP) || defined (ZSPACE_RHINO_INTEROP)
@@ -162,7 +166,7 @@ namespace zSpace
 		*	\param		[in]	_index				- input housing unit index
 		*	\since version 0.0.4
 		*/
-		void setDisplayModel(zModel&_model);
+		void setDisplayModel(zModel& _model);
 
 		//--------------------------
 		//---- DRAW METHODS
@@ -187,9 +191,9 @@ namespace zSpace
 		void setDisplayPolyhedraElements(bool _drawDualMesh, bool _drawFaces = true, bool _drawVertIds = false, bool _drawEdgeIds = false, bool _drawFaceIds = false);
 
 	protected:
-		
+
 		/*!	\brief DISCRIPTION  */
-			zModel *model;
+		zModel* model;
 #endif
 
 	private:
@@ -201,19 +205,19 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void createDualMesh(zItGraphVertex &_graphVertex);
+		void createDualMesh(zItGraphVertex& _graphVertex, double _tol);
 
 		//--------------------------
 		//---- PRIVATE COMPUTE / UPDATE METHODS
 		//--------------------------
-		   	
+
 		void computeTargets();
 
-		void updateDual(double &dT, zIntergrationType &type, int &numIterations);
+		void updateDual(double& dT, zIntergrationType& type, int& numIterations);
 
-		bool checkParallelity(zDomainDouble &deviations, double &angleTolerance,  bool &printInfo);
+		bool checkParallelity(zDomainDouble& deviations, double& angleTolerance, bool& printInfo);
 
-		bool checkArea(zDomainDouble &deviations, double &areaTolerance, bool &printInfo);
+		bool checkArea(zDomainDouble& deviations, double& areaTolerance, bool& printInfo);
 
 		//--------------------------
 		//---- PRIVATE UTILITY METHODS
@@ -223,13 +227,13 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void sortGraphVertices(zItGraphVertexArray &_graphVertices);
+		void sortGraphVertices(zItGraphVertexArray& _graphVertices);
 
 		/*! \brief DISCRIPTION
 		*
 		*	\since version 0.0.4
 		*/
-		void cleanConvexHull(zItGraphVertex &_vIt);
+		void cleanConvexHull(zItGraphVertex& _vIt);
 
 		/*! \brief DISCRIPTION
 		*
@@ -241,7 +245,7 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void snapDualCells(zItGraphVertexArray &bsf, zItGraphVertexArray &gCenters);
+		void snapDualCells(zItGraphVertexArray& bsf, zItGraphVertexArray& gCenters);
 	};
 }
 
