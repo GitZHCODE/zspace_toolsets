@@ -11,168 +11,63 @@
 //
 
 
-#include<headers/zToolsets/0_externalMethods/zExtGraph.h>
+#include<headers/zToolsets/0_externalMethods/zExtPlane.h>
 
 
 namespace zSpace
 {
-	ZSPACE_TOOLSETS_INLINE void zExtGraph::updateFields()
+	ZSPACE_TOOLSETS_INLINE zExtPlane::zExtPlane(zTransform plane)
 	{
-		zFnGraph g(*graph);
-		eCount = g.numEdges();
-		vCount = g.numVertices();
-	}
-	ZSPACE_TOOLSETS_INLINE void zExtGraphSet::updateFields()
-	{
-		graphsCount = graphSet->size();
-	}
+		zTransform frameTranspose = plane.transpose();
+		float* m = frameTranspose.data();
 
-	ZSPACE_TOOLSETS_INLINE void ext_graphUtil_getGraph(zExtGraph extGraph, float* vPositions, float* vColors, int* ePairs, float* eColors)
-	{
-		zObjGraph* graph;
-		graph = extGraph.graph;
-		zFnGraph g(*graph);
-		int vCount = g.numVertices();
-		int eCount = g.numEdges();
+		x_X = m[0];
+		x_Y = m[1];
+		x_Z = m[2];
+		x_R = m[3];
 
+		y_X = m[4];
+		y_Y = m[5];
+		y_Z = m[6];
+		y_R = m[7];
 
-		zPointArray inVerticies;
-		g.getVertexPositions(inVerticies);
+		n_X = m[8];
+		n_Y = m[9];
+		n_Z = m[10];
+		n_R = m[11];
 
-		zColorArray inVColors;
-		g.getVertexColors(inVColors);
-
-		zColorArray ineColors;
-		g.getEdgeColors(ineColors);
-
-		zIntArray inEdges;
-		g.getEdgeData(inEdges);
-		for (int i = 0; i < vCount; i++)
-		{
-			vPositions[i * 3 + 0] = inVerticies[i].x;
-			vPositions[i * 3 + 1] = inVerticies[i].y;
-			vPositions[i * 3 + 2] = inVerticies[i].z;
-
-			vColors[i * 4 + 0] = inVColors[i].r;
-			vColors[i * 4 + 1] = inVColors[i].g;
-			vColors[i * 4 + 2] = inVColors[i].b;
-			vColors[i * 4 + 3] = inVColors[i].a;
-		}
-		for (int64_t i = 0; i < eCount; i++)
-		{
-
-			ePairs[i * 2 + 0] = inEdges[i * 2 + 0];
-			ePairs[i * 2 + 1] = inEdges[i * 2 + 1];
-
-			eColors[i * 4 + 0] = ineColors[i].r;
-			eColors[i * 4 + 1] = ineColors[i].g;
-			eColors[i * 4 + 2] = ineColors[i].b;
-			eColors[i * 4 + 3] = ineColors[i].a;
-
-		}
-	}
-	ZSPACE_TOOLSETS_INLINE void ext_graphUtil_getGraphsSet(zExtGraphSet graphSet, zExtGraph* outGraphArray)
-	{
-
-		for (int i = 0; i < graphSet.graphsCount; i++)
-		{
-			outGraphArray[i].graph = graphSet.graphSet->at(i);
-			outGraphArray[i].updateFields();
-		}
-		/*zObjGraphArray* graphs;
-		graphs = graphSet.graphSet;
-		for (int i = 0; i < graphs->size(); i++)
-		{
-			outGraphArray[i] = graphSet.graphSet->at(i);
-		}*/
+		o_X = m[12];
+		o_Y = m[13];
+		o_Z = m[14];
+		o_R = m[15];
 	}
 
-
-
-
-
-
-	ZSPACE_TOOLSETS_INLINE void ext_sdf_getPlanesData(vector<zTransform>* graph, float* matrix)
+	ZSPACE_TOOLSETS_INLINE void zExtPlane::updateAttributes(zTransform plane)
 	{
-		for (int i = 0; i < graph->size(); i++)
-		{
-			//outPlanes[i * 4 + 0] = 
-			zTransform frame = graph->at(i);
-
-			zTransform frameTranspose = frame.transpose();
-
+			zTransform frameTranspose = plane.transpose();
 			float* m = frameTranspose.data();
+
+			x_X = m[0];
+			x_Y = m[1];
+			x_Z = m[2];
+			x_R = m[3];
+
+			y_X = m[4];
+			y_Y = m[5];
+			y_Z = m[6];
+			y_R = m[7];
+
+			n_X = m[8];
+			n_Y = m[9];
+			n_Z = m[10];
+			n_R = m[11];
+
+			o_X = m[12];
+			o_Y = m[13];
+			o_Z = m[14];
+			o_R = m[15];
 			
-			//float* m = graph->at(i).transpose().data(); //doesn't work
-			for (int j = 0; j < 16; j++)
-			{
-				matrix[i * 16 + j] = m[j];
-			}
-		}
 	}
-
-	//Graph Data
-	ZSPACE_TOOLSETS_INLINE void ext_graphUtil_getGraphsSetFromPointersVector2(zObjGraphPointerArray* graphs, zObjGraph** outGraphArray)
-	{
-		for (int i = 0; i < graphs->size(); i++)
-		{
-			outGraphArray[i] = graphs->at(i);
-		}
-	}
-	ZSPACE_TOOLSETS_INLINE void ext_graphUtil_getGraphsSetFromVector2(zObjGraphArray* graphs, zObjGraph** outGraphArray)
-	{
-		for (int i = 0; i < graphs->size(); i++)
-		{
-			outGraphArray[i] = &graphs->at(i);
-		}
-	}
-	ZSPACE_TOOLSETS_INLINE void ext_graphUtil_getGraphCounts2(zObjGraph* graph, int& outvCount, int& outeCount)
-	{
-		zFnGraph g(*graph);
-		outeCount = g.numEdges();
-		outvCount = g.numVertices();
-	}
-	ZSPACE_TOOLSETS_INLINE void ext_graphUtil_getGraphData2(zObjGraph* graph, float* vPositions, float* vColors, int* ePairs, float* eColors)
-	{
-		zFnGraph g(*graph);
-		int vCount = g.numVertices();
-		int eCount = g.numEdges();
-
-
-		zPointArray inVerticies;
-		g.getVertexPositions(inVerticies);
-
-		zColorArray inVColors;
-		g.getVertexColors(inVColors);
-
-		zColorArray ineColors;
-		g.getEdgeColors(ineColors);
-
-		zIntArray inEdges;
-		g.getEdgeData(inEdges);
-		for (int i = 0; i < vCount; i++)
-		{
-			vPositions[i * 3 + 0] = inVerticies[i].x;
-			vPositions[i * 3 + 1] = inVerticies[i].y;
-			vPositions[i * 3 + 2] = inVerticies[i].z;
-
-			vColors[i * 4 + 0] = inVColors[i].r;
-			vColors[i * 4 + 1] = inVColors[i].g;
-			vColors[i * 4 + 2] = inVColors[i].b;
-			vColors[i * 4 + 3] = inVColors[i].a;
-		}
-		for (int64_t i = 0; i < eCount; i++)
-		{
-
-			ePairs[i * 2 + 0] = inEdges[i * 2 + 0];
-			ePairs[i * 2 + 1] = inEdges[i * 2 + 1];
-
-			eColors[i * 4 + 0] = ineColors[i].r;
-			eColors[i * 4 + 1] = ineColors[i].g;
-			eColors[i * 4 + 2] = ineColors[i].b;
-			eColors[i * 4 + 3] = ineColors[i].a;
-
-		}
-	}
-
+	
+	
 }

@@ -10,8 +10,8 @@
 // Author : Heba Eiz <heba.eiz@zaha-hadid.com>
 //
 
-#ifndef ZSPACE_EXT_TS_GRAPH_H
-#define ZSPACE_EXT_TS_GRAPH_H
+#ifndef ZSPACE_EXT_TS_PLANE_H
+#define ZSPACE_EXT_TS_PLANE_H
 
 
 
@@ -22,7 +22,7 @@
 #include <headers/base/zSpace_Toolsets.h>
 
 #include <headers/zCore/base/zExtern.h>
-#include <headers/zInterface/functionsets/zFnMesh.h>
+//#include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
 
 #include <stdlib.h>
@@ -36,38 +36,32 @@ using namespace std;
 
 namespace zSpace
 {
-	struct zExtGraph
+	struct zExtPlane
 	{
-		zObjGraph* graph;
-		int vCount;
-		int eCount;
-		void updateFields();
-	};
-	struct zExtGraphSet
-	{
-		zObjGraphPointerArray* graphSet;
-		int graphsCount;
-		void updateFields();
-	};
-	
-	ZSPACE_TOOLSETS_EXT
-	{
+		float x_X;
+		float x_Y;
+		float x_Z;
+		float x_R;
 
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraph(zExtGraph extGraph, float* vPositions, float* vColors, int* ePairs, float* eColors);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSet(zExtGraphSet graphSet, zExtGraph* outGraphArray);
-	
-		//Plane Data
-		//ZSPACE_TOOLSETS void ext_sdf_getPlanesData(vector<zTransform>* graph, float* outOrigin, float* outNormal, float* outXAxis, float* outYAxis);
-		ZSPACE_TOOLSETS void ext_sdf_getPlanesData(vector<zTransform>* graph, float* matrix);
+		float y_X;
+		float y_Y;
+		float y_Z;	
+		float y_R;	
 
-		//Graph Data
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSetFromPointersVector2(zObjGraphPointerArray* graphs, zObjGraph** outGraphArray);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSetFromVector2(zObjGraphArray* graphs, zObjGraph** outGraphArray);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphCounts2(zObjGraph* graph, int& outvCount, int& outeCount);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphData2(zObjGraph* graph, float* outVPostions, float* outvColors, int* outePair, float* outeColors);
-
+		float n_X;
+		float n_Y;
+		float n_Z;
+		float n_R;
 		
-	}
+		float o_X;
+		float o_Y;
+		float o_Z;
+		float o_R;
+
+		zExtPlane(zTransform plane);
+
+		void updateAttributes(zTransform plane);
+	};
 
 }
 
@@ -77,7 +71,7 @@ namespace zSpace
 #if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include<source/zToolsets/0_externalMethods/zExtGraph.cpp>
+#include<source/zToolsets/0_externalMethods/zExtPlane.cpp>
 #endif
 
 #endif

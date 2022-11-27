@@ -41,30 +41,29 @@ namespace zSpace
 		zObjGraph* graph;
 		int vCount;
 		int eCount;
-		void updateFields();
+		zExtGraph(zObjGraph* g);
+		void updateAttributes();
+		zIntArray getGraphSequence();
 	};
 	struct zExtGraphSet
 	{
 		zObjGraphPointerArray* graphSet;
 		int graphsCount;
-		void updateFields();
+		void updateAttributes();
 	};
 	
 	ZSPACE_TOOLSETS_EXT
 	{
 
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraph(zExtGraph extGraph, float* vPositions, float* vColors, int* ePairs, float* eColors);
+		ZSPACE_TOOLSETS void ext_graphUtil_getGraphData(zExtGraph extGraph, float* vPositions, float* vColors, int* ePairs, float* eColors);
+		ZSPACE_TOOLSETS void ext_graphUtil_getGraphSequence(zExtGraph extGraph, int* outSequence);
 		ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSet(zExtGraphSet graphSet, zExtGraph* outGraphArray);
-	
-		//Plane Data
-		//ZSPACE_TOOLSETS void ext_sdf_getPlanesData(vector<zTransform>* graph, float* outOrigin, float* outNormal, float* outXAxis, float* outYAxis);
-		ZSPACE_TOOLSETS void ext_sdf_getPlanesData(vector<zTransform>* graph, float* matrix);
 
-		//Graph Data
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSetFromPointersVector2(zObjGraphPointerArray* graphs, zObjGraph** outGraphArray);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSetFromVector2(zObjGraphArray* graphs, zObjGraph** outGraphArray);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphCounts2(zObjGraph* graph, int& outvCount, int& outeCount);
-		ZSPACE_TOOLSETS void ext_graphUtil_getGraphData2(zObjGraph* graph, float* outVPostions, float* outvColors, int* outePair, float* outeColors);
+		////Graph Data
+		//ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSetFromPointersVector2(zObjGraphPointerArray* graphs, zObjGraph** outGraphArray);
+		//ZSPACE_TOOLSETS void ext_graphUtil_getGraphsSetFromVector2(zObjGraphArray* graphs, zObjGraph** outGraphArray);
+		//ZSPACE_TOOLSETS void ext_graphUtil_getGraphCounts2(zObjGraph* graph, int& outvCount, int& outeCount);
+		//ZSPACE_TOOLSETS void ext_graphUtil_getGraphData2(zObjGraph* graph, float* outVPostions, float* outvColors, int* outePair, float* outeColors);
 
 		
 	}
