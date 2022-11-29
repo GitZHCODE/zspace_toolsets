@@ -189,6 +189,9 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtSDFSlicer.h">
       <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsPaneling.h">
+      <Filter>Header Files\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
@@ -301,6 +304,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtSDFSlicer.cpp">
       <Filter>Source Files\externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">
+      <Filter>Source Files\Geometry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
