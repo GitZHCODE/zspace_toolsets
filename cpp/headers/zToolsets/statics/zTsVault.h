@@ -15,7 +15,7 @@
 
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
 #include <headers/zInterface/functionsets/zFnParticle.h>
@@ -52,7 +52,7 @@ namespace zSpace
 	/** @}*/
 
 	template<typename T, typename U>
-	class ZSPACE_TOOLS zTsVault
+	class ZSPACE_TOOLSETS zTsVault
 	{
 	protected:
 
@@ -698,7 +698,7 @@ namespace zSpace
 
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/statics/zTsVault.cpp>

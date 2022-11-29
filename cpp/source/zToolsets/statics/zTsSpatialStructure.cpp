@@ -18,9 +18,9 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsSpatialStructures::zTsSpatialStructures() {}
+	ZSPACE_TOOLSETS_INLINE zTsSpatialStructures::zTsSpatialStructures() {}
 
-	ZSPACE_INLINE zTsSpatialStructures::zTsSpatialStructures(zObjGraph &_formObj, vector<zObjMesh> &_volumeObjs, vector<zObjMesh>  &_polytopalObjs)
+	ZSPACE_TOOLSETS_INLINE zTsSpatialStructures::zTsSpatialStructures(zObjGraph &_formObj, vector<zObjMesh> &_volumeObjs, vector<zObjMesh>  &_polytopalObjs)
 	{
 		formObj = &_formObj;
 		fnForm = zFnGraph(_formObj);
@@ -39,11 +39,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsSpatialStructures::~zTsSpatialStructures() {}
+	ZSPACE_TOOLSETS_INLINE zTsSpatialStructures::~zTsSpatialStructures() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsSpatialStructures::createVolumeFromFile(string directory, string filename, int numFiles, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::createVolumeFromFile(string directory, string filename, int numFiles, zFileTpye type)
 	{
 
 		if (type == zJSON)
@@ -74,7 +74,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::createFormFromVolume(double offset, int precisionFac , zColor edgeCol )
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::createFormFromVolume(double offset, int precisionFac , zColor edgeCol )
 	{
 
 		vector<zVector>positions;
@@ -225,7 +225,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::createPolytopalsFromVolume()
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::createPolytopalsFromVolume()
 	{
 
 		for (int i = 0; i < fnVolumes.size(); i++)
@@ -237,7 +237,7 @@ namespace zSpace
 
 	//----UPDATE METHOD
 
-	ZSPACE_INLINE bool zTsSpatialStructures::equilibrium(bool computeTargets, double minmax_Edge, double dT, zIntergrationType type, int numIterations, double angleTolerance, bool colorEdges, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsSpatialStructures::equilibrium(bool computeTargets, double minmax_Edge, double dT, zIntergrationType type, int numIterations, double angleTolerance, bool colorEdges, bool printInfo)
 	{
 
 		if (computeTargets)
@@ -259,21 +259,21 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_INLINE void zTsSpatialStructures::setVertexOffset(double offset)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::setVertexOffset(double offset)
 	{
 		formGraphVertex_Offsets.clear();
 
 		for (int i = 0; i < fnForm.numVertices(); i++) formGraphVertex_Offsets.push_back(offset);
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::setVertexOffsets(vector<double> &offsets)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::setVertexOffsets(vector<double> &offsets)
 	{
 		if (offsets.size() != fnForm.numVertices()) throw std::invalid_argument("size of offsets contatiner is not equal to number of graph vertices.");
 
 		formGraphVertex_Offsets = offsets;
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::setFormEdgeWeightsfromVolume(zDomainFloat weightDomain)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::setFormEdgeWeightsfromVolume(zDomainFloat weightDomain)
 	{
 		//compute edgeWeights
 		vector<vector<double>> volMesh_fAreas;
@@ -321,7 +321,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::extrudeConnectionFaces(int volumeIndex)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::extrudeConnectionFaces(int volumeIndex)
 	{
 
 
@@ -410,7 +410,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::getPolytopal(int volumeIndex)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::getPolytopal(int volumeIndex)
 	{
 		if (volumeIndex > fnVolumes.size()) throw std::invalid_argument(" error: index out of bounds.");
 
@@ -449,7 +449,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::computeVolumesFaceCenters()
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::computeVolumesFaceCenters()
 	{
 		volume_fCenters.clear();
 
@@ -462,7 +462,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsSpatialStructures::computeFormTargets()
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::computeFormTargets()
 	{
 		targetEdges_form.clear();
 
@@ -519,7 +519,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsSpatialStructures::checkParallelity(zDomainFloat & deviation, double angleTolerance, bool colorEdges, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsSpatialStructures::checkParallelity(zDomainFloat & deviation, double angleTolerance, bool colorEdges, bool printInfo)
 	{
 		bool out = true;
 		vector<float> deviations;
@@ -575,7 +575,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE bool zTsSpatialStructures::updateFormDiagram(double minmax_Edge, double dT, zIntergrationType type, int numIterations)
+	ZSPACE_TOOLSETS_INLINE bool zTsSpatialStructures::updateFormDiagram(double minmax_Edge, double dT, zIntergrationType type, int numIterations)
 	{
 		bool out = true;
 

@@ -18,9 +18,9 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsVariableExtrude::zTsVariableExtrude() {}
+	ZSPACE_TOOLSETS_INLINE zTsVariableExtrude::zTsVariableExtrude() {}
 
-	ZSPACE_INLINE zTsVariableExtrude::zTsVariableExtrude(zObjMesh &_meshObj)
+	ZSPACE_TOOLSETS_INLINE zTsVariableExtrude::zTsVariableExtrude(zObjMesh &_meshObj)
 	{
 		meshObj = &_meshObj;
 		fnMesh = zFnMesh(_meshObj);
@@ -28,9 +28,9 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsVariableExtrude::~zTsVariableExtrude() {}
+	ZSPACE_TOOLSETS_INLINE zTsVariableExtrude::~zTsVariableExtrude() {}
 
-	ZSPACE_INLINE zObjMesh zTsVariableExtrude::getVariableFaceOffset(bool keepExistingFaces, bool assignColor, float minVal, float maxVal, bool useVertexColor)
+	ZSPACE_TOOLSETS_INLINE zObjMesh zTsVariableExtrude::getVariableFaceOffset(bool keepExistingFaces, bool assignColor, float minVal, float maxVal, bool useVertexColor)
 	{
 
 		vector<zVector>positions;
@@ -136,7 +136,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjMesh zTsVariableExtrude::getVariableBoundaryOffset(bool keepExistingFaces, bool assignColor, float minVal, float maxVal)
+	ZSPACE_TOOLSETS_INLINE zObjMesh zTsVariableExtrude::getVariableBoundaryOffset(bool keepExistingFaces, bool assignColor, float minVal, float maxVal)
 	{
 
 		vector<zVector>positions;
@@ -390,7 +390,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE zObjMesh zTsVariableExtrude::getVariableFaceThicknessExtrude(bool assignColor, float minVal, float maxVal)
+	ZSPACE_TOOLSETS_INLINE zObjMesh zTsVariableExtrude::getVariableFaceThicknessExtrude(bool assignColor, float minVal, float maxVal)
 	{
 
 

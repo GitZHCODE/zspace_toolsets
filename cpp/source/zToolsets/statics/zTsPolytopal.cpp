@@ -27,7 +27,7 @@ namespace zSpace
 
 	ZSPACE_EXTERN std::vector<double> internal_fAreas;
 
-	ZSPACE_INLINE void loadPath_func(const alglib::real_1d_array &Q, double &func, void *ptr)
+	ZSPACE_TOOLSETS_INLINE void loadPath_func(const alglib::real_1d_array &Q, double &func, void *ptr)
 	{
 		func = 0;
 		for (int i = 0; i < Q.length(); i++) func += abs(Q[i]) * internal_fAreas[i];
@@ -45,9 +45,9 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsPolytopal::zTsPolytopal() {}
+	ZSPACE_TOOLSETS_INLINE zTsPolytopal::zTsPolytopal() {}
 
-	ZSPACE_INLINE zTsPolytopal::zTsPolytopal(zObjGraph &_formObj, zObjMeshArray &_forceObjs, zObjMeshArray  &_polytopalObjs)
+	ZSPACE_TOOLSETS_INLINE zTsPolytopal::zTsPolytopal(zObjGraph &_formObj, zObjMeshArray &_forceObjs, zObjMeshArray  &_polytopalObjs)
 	{
 		formObj = &_formObj;
 		fnForm = zFnGraph(_formObj);
@@ -68,11 +68,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsPolytopal::~zTsPolytopal() {}
+	ZSPACE_TOOLSETS_INLINE zTsPolytopal::~zTsPolytopal() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsPolytopal::createForceFromFiles(zStringArray filePaths, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createForceFromFiles(zStringArray filePaths, zFileTpye type)
 	{
 
 		if (type == zJSON)
@@ -102,7 +102,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::createFormFromForce(zColor edgeCol, bool includeBoundary, double boundaryEdgelength)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createFormFromForce(zColor edgeCol, bool includeBoundary, double boundaryEdgelength)
 	{
 
 		zPointArray positions;
@@ -181,7 +181,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::createPolytopalsFromForce(double offset, double param , int subdivs )
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createPolytopalsFromForce(double offset, double param , int subdivs )
 	{
 		smoothSubDivs = subdivs;
 
@@ -192,7 +192,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::createPolytopalsFromForce_profile(int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createPolytopalsFromForce_profile(int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
 	{
 		smoothSubDivs = subdivs;
 
@@ -205,7 +205,7 @@ namespace zSpace
 		getPolytopal_Beams_Profile(user_nEdges, user_edgeLength, param);
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::createSectionPoints(int user_nEdges, double user_edgeLength)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createSectionPoints(int user_nEdges, double user_edgeLength)
 	{
 		// get Yvertex
 		Y_vertex.clear();
@@ -264,7 +264,7 @@ namespace zSpace
 
 	//----3D GS ITERATIVE 
 
-	ZSPACE_INLINE bool zTsPolytopal::equilibrium(bool &computeTargets, double minmax_Edge, zDomainFloat &deviations, double dT, zIntergrationType type, int numIterations, double angleTolerance, bool colorEdges, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::equilibrium(bool &computeTargets, double minmax_Edge, zDomainFloat &deviations, double dT, zIntergrationType type, int numIterations, double angleTolerance, bool colorEdges, bool printInfo)
 	{
 
 		if (computeTargets)
@@ -285,7 +285,7 @@ namespace zSpace
 
 	//----3D GS ALGEBRAIC
 
-	ZSPACE_INLINE void zTsPolytopal::getPrimal_GlobalElementIndicies(zDiagramType type, int GFP_SSP_Index, int precisionFac)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPrimal_GlobalElementIndicies(zDiagramType type, int GFP_SSP_Index, int precisionFac)
 	{
 		if (type == zForceDiagram)
 		{
@@ -631,7 +631,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getDual(double threshold, bool includeBoundary , double boundaryEdgelength)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getDual(double threshold, bool includeBoundary , double boundaryEdgelength)
 	{
 		VectorXd q;
 		getDual_ForceDensities_LPA(q);
@@ -811,7 +811,7 @@ namespace zSpace
 
 	//----POLYTOPAL
 
-	ZSPACE_INLINE void zTsPolytopal::closePolytopals()
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::closePolytopals()
 	{
 		for (int i = 0; i < fnPolytopals.size(); i++)
 		{
@@ -819,7 +819,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getPolytopal(int forceIndex, double offset, double param, int subdivs)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal(int forceIndex, double offset, double param, int subdivs)
 	{
 		if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
 
@@ -979,7 +979,7 @@ namespace zSpace
 		if (subdivs == 0) fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
 	}
 	
-	ZSPACE_INLINE void zTsPolytopal::getPolytopal_Profile(int forceIndex, int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal_Profile(int forceIndex, int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
 	{
 		if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
 
@@ -1308,7 +1308,7 @@ namespace zSpace
 		if (subdivs == 0) fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getPolytopal_Beams_Profile(int user_nEdges, double user_edgeLength, double param)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal_Beams_Profile(int user_nEdges, double user_edgeLength, double param)
 	{
 		zPointArray positions;
 		zIntArray polyConnects;
@@ -1401,21 +1401,21 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_INLINE void zTsPolytopal::setVertexOffset(double offset)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setVertexOffset(double offset)
 	{
 		formGraphVertex_Offsets.clear();
 
 		for (int i = 0; i < fnForm.numVertices(); i++) formGraphVertex_Offsets.push_back(offset);
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::setVertexOffsets(zDoubleArray &offsets)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setVertexOffsets(zDoubleArray &offsets)
 	{
 		if (offsets.size() != fnForm.numVertices()) throw std::invalid_argument("size of offsets contatiner is not equal to number of graph vertices.");
 
 		formGraphVertex_Offsets = offsets;
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::setDualEdgeWeightsfromPrimal(zDomainFloat weightDomain)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setDualEdgeWeightsfromPrimal(zDomainFloat weightDomain)
 	{
 		//compute edgeWeights
 
@@ -1455,7 +1455,7 @@ namespace zSpace
 
 	//---- UTILITY METHOD
 
-	ZSPACE_INLINE zObjMesh zTsPolytopal::getPolytopals()
+	ZSPACE_TOOLSETS_INLINE zObjMesh zTsPolytopal::getPolytopals()
 	{
 		zObjMesh out;
 
@@ -1502,7 +1502,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getBisectorPlanes(zVector3DArray &planes)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getBisectorPlanes(zVector3DArray &planes)
 	{
 		planes.clear();
 
@@ -1594,7 +1594,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::exportBisectorPlanes(string outfilename)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::exportBisectorPlanes(string outfilename)
 	{
 		zVector3DArray planes;		
 		getBisectorPlanes(planes);
@@ -1670,7 +1670,7 @@ namespace zSpace
 
 	//---- PROTECTED ITERATIVE METHOD UTILITIES
 
-	ZSPACE_INLINE void  zTsPolytopal::computeForcesFaceCenters()
+	ZSPACE_TOOLSETS_INLINE void  zTsPolytopal::computeForcesFaceCenters()
 	{
 		force_fCenters.clear();
 
@@ -1683,7 +1683,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::computeFormTargets()
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::computeFormTargets()
 	{
 		targetEdges_form.clear();
 
@@ -1723,7 +1723,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsPolytopal::checkParallelity(zDomainFloat & deviation, double angleTolerance, bool colorEdges, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::checkParallelity(zDomainFloat & deviation, double angleTolerance, bool colorEdges, bool printInfo)
 	{
 		bool out = true;
 		vector<float> deviations;
@@ -1784,7 +1784,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::updateFormDiagram(double minmax_Edge, double dT, zIntergrationType type, int numIterations )
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::updateFormDiagram(double minmax_Edge, double dT, zIntergrationType type, int numIterations )
 	{
 
 		zPoint* pos = fnForm.getRawVertexPositions();
@@ -1894,7 +1894,7 @@ namespace zSpace
 
 	//---- ALGEBRAIC METHOD UTILITIES
 
-	ZSPACE_INLINE bool zTsPolytopal::getPrimal_EdgeVertexMatrix(zDiagramType type, zSparseMatrix &out)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::getPrimal_EdgeVertexMatrix(zDiagramType type, zSparseMatrix &out)
 	{
 		if (type == zForceDiagram)
 		{
@@ -1928,7 +1928,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsPolytopal::getPrimal_EdgeFaceMatrix(zDiagramType type, zSparseMatrix &out)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::getPrimal_EdgeFaceMatrix(zDiagramType type, zSparseMatrix &out)
 	{
 		if (type == zForceDiagram)
 		{
@@ -2004,7 +2004,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsPolytopal::getPrimal_FaceCellMatrix(zDiagramType type, zSparseMatrix &out)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::getPrimal_FaceCellMatrix(zDiagramType type, zSparseMatrix &out)
 	{
 		if (type == zForceDiagram)
 		{
@@ -2058,7 +2058,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE bool zTsPolytopal::get_EquilibriumMatrix(zDiagramType type, MatrixXd &out)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::get_EquilibriumMatrix(zDiagramType type, MatrixXd &out)
 	{
 		double factor = pow(10, 3);
 
@@ -2126,7 +2126,7 @@ namespace zSpace
 		return true;
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getDual_ForceDensities_LPA(VectorXd &q)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getDual_ForceDensities_LPA(VectorXd &q)
 	{
 		MatrixXd A;
 		get_EquilibriumMatrix(zForceDiagram, A);
@@ -2233,7 +2233,7 @@ namespace zSpace
 
 #ifdef USING_ARMA
 	
-	ZSPACE_INLINE void zTsPolytopal::getDual_ForceDensities_MPI(VectorXd &q, double threshold)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getDual_ForceDensities_MPI(VectorXd &q, double threshold)
 	{
 
 		MatrixXd A;
@@ -2255,7 +2255,7 @@ namespace zSpace
 		cout << "\n AQ norm: " << endl << (A * q).norm() << endl;
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getDual_ForceDensities_RREF(VectorXd &q, double threshold )
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getDual_ForceDensities_RREF(VectorXd &q, double threshold )
 	{
 
 		MatrixXd A;
@@ -2309,7 +2309,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::get_BMatrix(mat &A, double threshold, int &rank, mat &B, zBoolArray &indEdges)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::get_BMatrix(mat &A, double threshold, int &rank, mat &B, zBoolArray &indEdges)
 	{
 		mat r = coreUtils.rref(A, threshold);
 
@@ -2363,7 +2363,7 @@ namespace zSpace
 
 #endif
 
-	ZSPACE_INLINE double zTsPolytopal::getDual_Loadpath(VectorXd &q)
+	ZSPACE_TOOLSETS_INLINE double zTsPolytopal::getDual_Loadpath(VectorXd &q)
 	{
 		VectorXd fAreas(primal_n_f_i);
 
@@ -2376,7 +2376,7 @@ namespace zSpace
 
 	//---- POLYTOPAL METHOD UTILITIES
 
-	ZSPACE_INLINE void zTsPolytopal::getPolytopal(int forceIndex, int subdivs)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal(int forceIndex, int subdivs)
 	{
 		if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
 
@@ -2498,7 +2498,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getPolytopalRulingRemesh(int index, zObjMesh &inMeshObj, int SUBDIVS)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopalRulingRemesh(int index, zObjMesh &inMeshObj, int SUBDIVS)
 	{
 		zPointArray positions;
 		zIntArray polyConnects;
@@ -2577,7 +2577,7 @@ namespace zSpace
 		fnPolytopals[index].create(positions, polyCounts, polyConnects);
 	}
 
-	ZSPACE_INLINE bool zTsPolytopal::computeRulingIntersection(int polytopalIndex, zItMeshVertex &v0, zItMeshVertex &v1, zPoint &closestPt)
+	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::computeRulingIntersection(int polytopalIndex, zItMeshVertex &v0, zItMeshVertex &v1, zPoint &closestPt)
 	{
 		bool out = false;
 
@@ -2669,7 +2669,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getClosePolytopalMesh(int forceIndex)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getClosePolytopalMesh(int forceIndex)
 	{
 		if (smoothSubDivs == 0) return;
 
@@ -2976,7 +2976,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::get_YVertex(zIntArray &Y_vertex)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::get_YVertex(zIntArray &Y_vertex)
 	{
 		Y_vertex.clear();
 		Y_vertex.assign(primal_n_f, -1);
@@ -3054,7 +3054,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsPolytopal::getUserSection(int face_numEdges, zPointArray &sectionPoints)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getUserSection(int face_numEdges, zPointArray &sectionPoints)
 	{
 		sectionPoints.clear();
 

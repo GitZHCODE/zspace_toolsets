@@ -19,9 +19,9 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsMesh2Pix::zTsMesh2Pix() {}
+	ZSPACE_TOOLSETS_INLINE zTsMesh2Pix::zTsMesh2Pix() {}
 
-	ZSPACE_INLINE zTsMesh2Pix::zTsMesh2Pix(zObjMesh &_meshObj, int _maxVerts, int _maxEdges, int _maxFaces)
+	ZSPACE_TOOLSETS_INLINE zTsMesh2Pix::zTsMesh2Pix(zObjMesh &_meshObj, int _maxVerts, int _maxEdges, int _maxFaces)
 	{
 		meshObj = &_meshObj;
 		fnMesh = zFnMesh(_meshObj);
@@ -32,7 +32,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zTsMesh2Pix::zTsMesh2Pix(zObjMesh &_meshObj, zObjMesh &_predictedObj, int _maxVerts, int _maxEdges, int _maxFaces)
+	ZSPACE_TOOLSETS_INLINE zTsMesh2Pix::zTsMesh2Pix(zObjMesh &_meshObj, zObjMesh &_predictedObj, int _maxVerts, int _maxEdges, int _maxFaces)
 	{
 		meshObj = &_meshObj;
 		fnMesh = zFnMesh(_meshObj);
@@ -48,11 +48,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsMesh2Pix::~zTsMesh2Pix() {}
+	ZSPACE_TOOLSETS_INLINE zTsMesh2Pix::~zTsMesh2Pix() {}
 
 	//---- GENERATE DATA METHODS
 	
-	ZSPACE_INLINE void zTsMesh2Pix::generatePrintSupport2Pix(string directory, string filename, double angle_threshold, bool train, int numIters, bool perturbPositions, zVector perturbVal)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::generatePrintSupport2Pix(string directory, string filename, double angle_threshold, bool train, int numIters, bool perturbPositions, zVector perturbVal)
 	{
 		vector<MatrixXf> outMat_A;
 		vector<MatrixXf> outMat_B;
@@ -172,7 +172,7 @@ namespace zSpace
 
 	}
 	
-	ZSPACE_INLINE bool zTsMesh2Pix::generateFDM2Pix(string directory, string filename, zIntArray &fixedConstrained, zFloatArray &forceDensities, zDomainFloat &densityDomain, bool train, int numIters, bool perturbPositions, zDomainFloat maxDensityDomain)
+	ZSPACE_TOOLSETS_INLINE bool zTsMesh2Pix::generateFDM2Pix(string directory, string filename, zIntArray &fixedConstrained, zFloatArray &forceDensities, zDomainFloat &densityDomain, bool train, int numIters, bool perturbPositions, zDomainFloat maxDensityDomain)
 	{
 		bool out = true;
 
@@ -356,7 +356,7 @@ namespace zSpace
 
 	//---- PREDICT DATA METHODS
 
-	ZSPACE_INLINE void zTsMesh2Pix::predictPrintSupport2Pix(string directory, string filename, bool genPix)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::predictPrintSupport2Pix(string directory, string filename, bool genPix)
 	{
 		vector<MatrixXf> outMat;	
 
@@ -442,7 +442,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsMesh2Pix::predictFDM2Pix(string directory, string filename, zIntArray &fixedConstrained, zFloatArray &forceDensities, zDomainFloat &densityDomain, bool genPix)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::predictFDM2Pix(string directory, string filename, zIntArray &fixedConstrained, zFloatArray &forceDensities, zDomainFloat &densityDomain, bool genPix)
 	{
 		vector<MatrixXf> outMat;
 
@@ -556,7 +556,7 @@ namespace zSpace
 
 	//---- UTILITY METHODS
 
-	ZSPACE_INLINE void zTsMesh2Pix::scaleToBounds(double maxSide)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::scaleToBounds(double maxSide)
 	{
 		zVector minBB, maxBB;
 		fnMesh.getBounds(minBB, maxBB);
@@ -580,7 +580,7 @@ namespace zSpace
 
 	//---- PRIVATE GET METHODS
 
-	ZSPACE_INLINE void zTsMesh2Pix::getMatrixFromNormals(zConnectivityType type, zDomainFloat &outDomain, vector<MatrixXf> &normMat)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getMatrixFromNormals(zConnectivityType type, zDomainFloat &outDomain, vector<MatrixXf> &normMat)
 	{
 		if (type == zVertexVertex)
 		{		
@@ -595,7 +595,7 @@ namespace zSpace
 		else throw std::invalid_argument(" error: invalid zConnectivityType");
 	}
 	
-	ZSPACE_INLINE void zTsMesh2Pix::getMatrixFromPositions(zConnectivityType type, zDomainFloat &outDomain, vector<MatrixXf> &posMat)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getMatrixFromPositions(zConnectivityType type, zDomainFloat &outDomain, vector<MatrixXf> &posMat)
 	{
 		if (type == zVertexVertex)
 		{
@@ -644,7 +644,7 @@ namespace zSpace
 		else throw std::invalid_argument(" error: invalid zConnectivityType");
 	}
 
-	ZSPACE_INLINE void zTsMesh2Pix::getMatrixFromContainer(zConnectivityType type, zVectorArray &data, zDomainFloat &outDomain, vector<MatrixXf> &outMat)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getMatrixFromContainer(zConnectivityType type, zVectorArray &data, zDomainFloat &outDomain, vector<MatrixXf> &outMat)
 	{
 		if (type == zVertexVertex)
 		{
@@ -684,7 +684,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsMesh2Pix::getMatrixFromContainer(zConnectivityType type, zBoolArray &data, zDomainFloat &outDomain, vector<MatrixXf> &outMat)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getMatrixFromContainer(zConnectivityType type, zBoolArray &data, zDomainFloat &outDomain, vector<MatrixXf> &outMat)
 	{
 		if (type == zVertexVertex)
 		{
@@ -746,7 +746,7 @@ namespace zSpace
 		else throw std::invalid_argument(" error: invalid zConnectivityType");
 	}
 
-	ZSPACE_INLINE void zTsMesh2Pix::getMatrixFromContainer(zConnectivityType type, int numVerts, zFloatArray &data, zIntPairArray &dataPair, zDomainFloat &outDomain, vector<MatrixXf> &outMat)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getMatrixFromContainer(zConnectivityType type, int numVerts, zFloatArray &data, zIntPairArray &dataPair, zDomainFloat &outDomain, vector<MatrixXf> &outMat)
 	{
 		if (type == zVertexVertex)
 		{
@@ -809,7 +809,7 @@ namespace zSpace
 		else throw std::invalid_argument(" error: invalid zConnectivityType");
 	}
 
-	ZSPACE_INLINE void zTsMesh2Pix::getVertexSupport(double angle_threshold, zBoolArray &support)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getVertexSupport(double angle_threshold, zBoolArray &support)
 	{
 		int numVerts_lowPoly = fnMesh.numVertices();
 		
@@ -867,7 +867,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsMesh2Pix::getCombinedMatrix(vector<MatrixXf>& mat1, vector<MatrixXf>& mat2, vector<MatrixXf>& out)
+	ZSPACE_TOOLSETS_INLINE void zTsMesh2Pix::getCombinedMatrix(vector<MatrixXf>& mat1, vector<MatrixXf>& mat2, vector<MatrixXf>& out)
 	{
 		if (mat1.size() == 0) throw std::invalid_argument(" error: mat1 container size is 0. ");
 		if (mat2.size() == 0) throw std::invalid_argument(" error: mat2 container size is 0. ");

@@ -20,12 +20,12 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zLink::zLink()
+	ZSPACE_TOOLSETS_INLINE zLink::zLink()
 	{
 		linkDH.alpha = linkDH.d = linkDH.theta = linkDH.a = 0.0;
 	}
 
-	ZSPACE_INLINE zLink::zLink(zDHparameter &DH)
+	ZSPACE_TOOLSETS_INLINE zLink::zLink(zDHparameter &DH)
 	{
 		linkDH = DH;
 
@@ -34,11 +34,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zLink::~zLink() {}
+	ZSPACE_TOOLSETS_INLINE zLink::~zLink() {}
 
 	//---- METHODS
 
-	ZSPACE_INLINE void zLink::updateTransform()
+	ZSPACE_TOOLSETS_INLINE void zLink::updateTransform()
 	{
 		T(0, 0) = cos(linkDH.theta);
 		T(0, 1) = -sin(linkDH.theta) * cos(linkDH.alpha);
@@ -69,7 +69,7 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsRobot::zTsRobot()
+	ZSPACE_TOOLSETS_INLINE zTsRobot::zTsRobot()
 	{
 		robot_scale = 1.0;
 
@@ -93,7 +93,7 @@ namespace zSpace
 		jointGraphObj = nullptr;
 	}
 
-	ZSPACE_INLINE zTsRobot::zTsRobot(zObjGraph &_jointGraphObj, vector<zObjMesh> &_jointMeshObjs)
+	ZSPACE_TOOLSETS_INLINE zTsRobot::zTsRobot(zObjGraph &_jointGraphObj, vector<zObjMesh> &_jointMeshObjs)
 	{
 		jointGraphObj = &_jointGraphObj;
 		fnGraphJoint = zFnGraph(_jointGraphObj);
@@ -113,11 +113,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsRobot::~zTsRobot() {}
+	ZSPACE_TOOLSETS_INLINE zTsRobot::~zTsRobot() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsRobot::createRobot(vector<double>(&_d), vector<double>(&_a), vector<double>(&_alpha), vector<double>(&_theta), double _robot_scale)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobot(vector<double>(&_d), vector<double>(&_a), vector<double>(&_alpha), vector<double>(&_theta), double _robot_scale)
 	{
 		robot_scale = _robot_scale;
 
@@ -156,7 +156,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::createRobotfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotfromFile(string path, zFileTpye type)
 	{
 		if (type == zJSON)
 		{
@@ -173,7 +173,7 @@ namespace zSpace
 		else throw std::invalid_argument(" invalid file type.");
 	}
 
-	ZSPACE_INLINE void zTsRobot::createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector)
 	{
 		//fnMeshJoints.clear();
 
@@ -246,7 +246,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::createTargetsfromFile(string infilename, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createTargetsfromFile(string infilename, zFileTpye type)
 	{
 		if (type == zTXT)
 		{
@@ -254,7 +254,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsRobot::addTarget(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::addTarget(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ)
 	{
 		zTransform target;
 
@@ -281,12 +281,12 @@ namespace zSpace
 
 	//---- SET METHODS
 
-	ZSPACE_INLINE void zTsRobot::setTarget(zTransform &target)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setTarget(zTransform &target)
 	{
 		robot_target_matrix = target.transpose();
 	}
 
-	ZSPACE_INLINE void zTsRobot::setEndEffector(zTransform &EE)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setEndEffector(zTransform &EE)
 	{
 		//zTransform temp = coreUtils.toLocalMatrix(EE);
 		robot_endEffector_matrix = EE.transpose();
@@ -294,7 +294,7 @@ namespace zSpace
 
 	//----KINMATICS METHODS
 
-	ZSPACE_INLINE void zTsRobot::computeJoints()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeJoints()
 	{
 		zTransform Tbase;
 		Tbase.setIdentity();
@@ -311,7 +311,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zVector zTsRobot::forwardKinematics(zRobotRotationType rotType)
+	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::forwardKinematics(zRobotRotationType rotType)
 	{
 		zVector out;
 
@@ -344,7 +344,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE zVector zTsRobot::inverseKinematics()
+	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::inverseKinematics()
 	{
 		// compute target for joint 6
 		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
@@ -412,7 +412,7 @@ namespace zSpace
 
 	//----MESH METHODS
 
-	ZSPACE_INLINE void zTsRobot::setJointMeshDihedralEdges()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshDihedralEdges()
 	{
 		robot_jointMeshes_edgeAngle.clear();
 		for (int i = 0; i < DOF + 2 /*fnMeshJoints.size()*/; i++)
@@ -428,7 +428,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsRobot::setJointMeshColor(zVector lightVec)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshColor(zVector lightVec)
 	{
 		for (int i = 0; i < DOF + 2 /*fnMeshJoints.size()*/; i++)
 		{
@@ -441,7 +441,7 @@ namespace zSpace
 		setJointMeshDihedralEdges();
 	}
 
-	ZSPACE_INLINE void zTsRobot::setJointMeshTransform(bool updatePositions)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshTransform(bool updatePositions)
 	{
 
 		for (int i = 0; i < DOF; i++)
@@ -457,7 +457,7 @@ namespace zSpace
 
 	//----GCODE METHODS
 
-	ZSPACE_INLINE void zTsRobot::gCode_store(zVector &target_position, double velocity, zRobotMoveType moveType, zRobotEEControlType endEffectorControl)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::gCode_store(zVector &target_position, double velocity, zRobotMoveType moveType, zRobotEEControlType endEffectorControl)
 	{
 		zGCode inGCode;
 		inGCode.vel = velocity;
@@ -498,7 +498,7 @@ namespace zSpace
 		robot_gCode.push_back(inGCode);
 	}
 
-	ZSPACE_INLINE void zTsRobot::gCode_to(string directoryPath, zRobotType type)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::gCode_to(string directoryPath, zRobotType type)
 	{
 		if (type == zRobotABB)
 		{
@@ -517,7 +517,7 @@ namespace zSpace
 
 	//----PROTECTED METHODS
 
-	ZSPACE_INLINE void zTsRobot::createRobotJointGraph()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotJointGraph()
 	{
 		vector<zVector> positions;
 		vector<int> edgeConnects;
@@ -546,7 +546,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::update_robotJointGraph()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::update_robotJointGraph()
 	{
 		zVector p(zVector(0, 0, robotJointTransforms[0](2, 3)));
 
@@ -568,7 +568,7 @@ namespace zSpace
 
 	//---- PROTECTED FACTORY METHODS
 
-	ZSPACE_INLINE void zTsRobot::fromJSON(string infilename)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::fromJSON(string infilename)
 	{
 		json j;
 		zUtilsJsonRobot robotJSON;
@@ -650,7 +650,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::fromTXT(string infilename)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::fromTXT(string infilename)
 	{
 		robotTargets.clear();
 
@@ -713,7 +713,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zTsRobot::toABBGcode(string infilename)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::toABBGcode(string infilename)
 	{
 		printf(" ----------- writing \n ");
 
@@ -817,7 +817,7 @@ namespace zSpace
 		myfile.close();
 	}
 
-	ZSPACE_INLINE void zTsRobot::toNACHI_MZ07Gcode(string infilename)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::toNACHI_MZ07Gcode(string infilename)
 	{
 		printf("\n----------- writing \n ");
 

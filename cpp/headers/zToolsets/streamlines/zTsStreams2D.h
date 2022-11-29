@@ -14,7 +14,7 @@
 #define ZSPACE_TS_STREAMLINES_2D_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 
 #include <headers/zInterface/functionsets/zFnMeshField.h>
 
@@ -45,7 +45,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zStreamLine
+	class ZSPACE_TOOLSETS zStreamLine
 	{
 	protected:
 
@@ -116,7 +116,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsStreams2D 
+	class ZSPACE_TOOLSETS zTsStreams2D 
 	{
 	protected:
 		//--------------------------
@@ -382,7 +382,7 @@ namespace zSpace
 
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/streamlines/zTsStreams2D.cpp>

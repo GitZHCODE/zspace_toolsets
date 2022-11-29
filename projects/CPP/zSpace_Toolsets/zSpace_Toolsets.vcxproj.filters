@@ -61,6 +61,15 @@
     <Filter Include="Depends\SPA">
       <UniqueIdentifier>{651748a5-ec62-4b83-9b83-1f77dc5504b3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\0_base">
+      <UniqueIdentifier>{f46167c4-235a-4a38-b49e-b52d1aa5ec01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\0_externalMethods">
+      <UniqueIdentifier>{fc332fc6-61a3-4be6-b812-01f411d0f797}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ExternalMethods">
+      <UniqueIdentifier>{7eac32f8-db0e-4c7d-9233-df21177534ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h">
@@ -68,9 +77,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsOSM.h">
       <Filter>Header Files\Data</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobot.h">
-      <Filter>Header Files\DigiFab</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsRemesh.h">
       <Filter>Header Files\Geometry</Filter>
@@ -159,8 +165,17 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFSlicer.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSpatialGraph.h">
-      <Filter>Header Files\Geometry</Filter>
+    <ClInclude Include="..\..\..\cpp\headers\base\zSpace_Toolsets.h">
+      <Filter>Header Files\0_base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobot.h">
+      <Filter>Header Files\DigiFab</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\0_externalMethods\zExtSDFSlicer.h">
+      <Filter>Header Files\ExternalMethods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\0_externalMethods\zExtKMeans.h">
+      <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -257,8 +272,11 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSpatialGraph.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtSDFSlicer.cpp">
+      <Filter>Source Files\0_externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtKMeans.cpp">
+      <Filter>Source Files\0_externalMethods</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

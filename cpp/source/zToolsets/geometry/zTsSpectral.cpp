@@ -18,9 +18,9 @@ namespace zSpace
 
 	//---- CONSTRUCTOR
 
-	ZSPACE_INLINE zTsSpectral::zTsSpectral() {}
+	ZSPACE_TOOLSETS_INLINE zTsSpectral::zTsSpectral() {}
 
-	ZSPACE_INLINE zTsSpectral::zTsSpectral(zObjMesh &_meshObj)
+	ZSPACE_TOOLSETS_INLINE zTsSpectral::zTsSpectral(zObjMesh &_meshObj)
 	{
 		meshObj = &_meshObj;
 		fnMesh = zFnMesh(_meshObj);
@@ -30,11 +30,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_INLINE zTsSpectral::~zTsSpectral() {}
+	ZSPACE_TOOLSETS_INLINE zTsSpectral::~zTsSpectral() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_INLINE void zTsSpectral::createMeshfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::createMeshfromFile(string path, zFileTpye type)
 	{
 		fnMesh.from(path, type, false);
 
@@ -43,7 +43,7 @@ namespace zSpace
 
 	//---- COMPUTE METHODS
 
-	ZSPACE_INLINE double zTsSpectral::computeEigenFunction(double &frequency, bool &computeEigenVectors)
+	ZSPACE_TOOLSETS_INLINE double zTsSpectral::computeEigenFunction(double &frequency, bool &computeEigenVectors)
 	{
 		int n_v = fnMesh.numVertices();
 
@@ -125,7 +125,7 @@ namespace zSpace
 		return eigenValues[val];
 	}
 
-	ZSPACE_INLINE void zTsSpectral::computeVertexType()
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::computeVertexType()
 	{
 		int n_v = fnMesh.numVertices();
 
@@ -207,20 +207,20 @@ namespace zSpace
 
 	//---- SET METHODS
 
-	ZSPACE_INLINE void zTsSpectral::setNumEigens(int _numEigen)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::setNumEigens(int _numEigen)
 	{
 		n_Eigens = _numEigen;
 
 		if (_numEigen >= fnMesh.numVertices()) n_Eigens = fnMesh.numVertices() - 1;
 	}
 
-	ZSPACE_INLINE void zTsSpectral::setColorDomain(zDomainColor &colDomain, zColorType colType)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::setColorDomain(zDomainColor &colDomain, zColorType colType)
 	{
 		colorDomain = colDomain;
 		colorType = colType;
 	}
 
-	ZSPACE_INLINE void zTsSpectral::setVertexColorFromEigen(bool setFaceColor)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::setVertexColorFromEigen(bool setFaceColor)
 	{
 		zColor* cols = fnMesh.getRawVertexColors();
 
@@ -234,24 +234,24 @@ namespace zSpace
 
 	//---- GET METHODS
 
-	ZSPACE_INLINE int zTsSpectral::numEigens()
+	ZSPACE_TOOLSETS_INLINE int zTsSpectral::numEigens()
 	{
 		return n_Eigens;
 	}
 
-	ZSPACE_INLINE void zTsSpectral::getEigenFunctionValues(vector<double> &_eigenFunctionValues)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::getEigenFunctionValues(vector<double> &_eigenFunctionValues)
 	{
 		_eigenFunctionValues = eigenFunctionValues;
 	}
 
-	ZSPACE_INLINE double*zTsSpectral::getRawEigenFunctionValues()
+	ZSPACE_TOOLSETS_INLINE double*zTsSpectral::getRawEigenFunctionValues()
 	{
 		return &eigenFunctionValues[0];
 	}
 
 	//---- PROTECTED UTILITY METHODS
 
-	ZSPACE_INLINE void zTsSpectral::computeMinMax_Eigen(int &colIndex, zDomainFloat &inDomain)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::computeMinMax_Eigen(int &colIndex, zDomainFloat &inDomain)
 	{
 		inDomain.min = 10000;
 		inDomain.max = -10000;

@@ -18,11 +18,11 @@ namespace zSpace
 	//---- CONSTRUCTOR
 
 	template<typename T, typename U>
-	ZSPACE_INLINE zTsShortestPath<T,U>::zTsShortestPath() {}
+	ZSPACE_TOOLSETS_INLINE zTsShortestPath<T,U>::zTsShortestPath() {}
 
 	//---- graph specilization for zTsShortestPath constructor
 	template<>
-	ZSPACE_INLINE  zTsShortestPath<zObjGraph, zFnGraph>::zTsShortestPath(zObjGraph & _graph)
+	ZSPACE_TOOLSETS_INLINE  zTsShortestPath<zObjGraph, zFnGraph>::zTsShortestPath(zObjGraph & _graph)
 	{
 		heObj = &_graph;
 		fnHE = zFnGraph(_graph);
@@ -30,7 +30,7 @@ namespace zSpace
 
 	//---- mesh specilization for zTsShortestPath constructor
 	template<>
-	ZSPACE_INLINE  zTsShortestPath<zObjMesh, zFnMesh>::zTsShortestPath(zObjMesh & _mesh)
+	ZSPACE_TOOLSETS_INLINE  zTsShortestPath<zObjMesh, zFnMesh>::zTsShortestPath(zObjMesh & _mesh)
 	{
 		heObj = &_mesh;
 		fnHE = zFnMesh(_mesh);
@@ -39,13 +39,13 @@ namespace zSpace
 	//---- DESTRUCTOR
 
 	template<typename T, typename U>
-	ZSPACE_INLINE zTsShortestPath<T, U>::~zTsShortestPath() {}
+	ZSPACE_TOOLSETS_INLINE zTsShortestPath<T, U>::~zTsShortestPath() {}
 
 	//--- WALK METHODS 
 
 	//---- graph specilization for shortestDistance
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestDistance(int index, vector<float> &dist, vector<int> &parent)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestDistance(int index, vector<float> &dist, vector<int> &parent)
 	{
 		if (index > fnHE.numVertices()) throw std::invalid_argument("index out of bounds.");
 
@@ -108,7 +108,7 @@ namespace zSpace
 
 	//---- mesh specilization for shortestDistance
 	template<>
-	ZSPACE_INLINE  void  zTsShortestPath<zObjMesh, zFnMesh>::shortestDistance(int index, vector<float> &dist, vector<int> &parent)
+	ZSPACE_TOOLSETS_INLINE  void  zTsShortestPath<zObjMesh, zFnMesh>::shortestDistance(int index, vector<float> &dist, vector<int> &parent)
 	{
 		float maxDIST = 100000;
 
@@ -169,7 +169,7 @@ namespace zSpace
 
 	//---- graph specilization for shortestPath
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPath_DistanceParent(int indexA, int indexB, vector<float> &dist, vector<int> &parent, zWalkType type, vector<int> &edgePath)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPath_DistanceParent(int indexA, int indexB, vector<float> &dist, vector<int> &parent, zWalkType type, vector<int> &edgePath)
 	{
 		vector<int> tempEdgePath;
 
@@ -230,7 +230,7 @@ namespace zSpace
 
 	//---- mesh specilization for shortestPath
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPath_DistanceParent(int indexA, int indexB, vector<float> &dist, vector<int> &parent, zWalkType type, vector<int> &edgePath)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPath_DistanceParent(int indexA, int indexB, vector<float> &dist, vector<int> &parent, zWalkType type, vector<int> &edgePath)
 	{
 		vector<int> tempEdgePath;
 
@@ -291,7 +291,7 @@ namespace zSpace
 
 	//---- graph specilization for shortestPath
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPath(int indexA, int indexB, zWalkType type, vector<int> &edgePath)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPath(int indexA, int indexB, zWalkType type, vector<int> &edgePath)
 	{
 
 		vector<int> tempEdgePath;
@@ -357,7 +357,7 @@ namespace zSpace
 
 	//---- mesh specilization for shortestPath
 	template<>
-	ZSPACE_INLINE  void  zTsShortestPath<zObjMesh, zFnMesh>::shortestPath(int indexA, int indexB, zWalkType type, vector<int> &edgePath)
+	ZSPACE_TOOLSETS_INLINE  void  zTsShortestPath<zObjMesh, zFnMesh>::shortestPath(int indexA, int indexB, zWalkType type, vector<int> &edgePath)
 	{
 		vector<int> tempEdgePath;
 
@@ -424,7 +424,7 @@ namespace zSpace
 
 	//---- graph specilization for getShortestPathGraph
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::getShortestPathGraph(int indexA, int indexB, zObjGraph & outGraph)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::getShortestPathGraph(int indexA, int indexB, zObjGraph & outGraph)
 	{
 		vector<int> edgePath;
 		shortestPath(indexA, indexB, zEdgePath, edgePath);
@@ -477,7 +477,7 @@ namespace zSpace
 
 	//---- mesh specilization for getShortestPathGraph
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::getShortestPathGraph(int indexA, int indexB, zObjGraph & outGraph)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::getShortestPathGraph(int indexA, int indexB, zObjGraph & outGraph)
 	{
 		vector<int> edgePath;
 		shortestPath(indexA, indexB, zEdgePath, edgePath);
@@ -528,7 +528,7 @@ namespace zSpace
 
 	//---- graph specilization for shortestPathWalks
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPathWalks(vector<int> &edgeVisited)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPathWalks(vector<int> &edgeVisited)
 	{
 		edgeVisited.clear();
 
@@ -559,7 +559,7 @@ namespace zSpace
 
 	//---- mesh specilization for shortestPathWalks
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPathWalks(vector<int> &edgeVisited)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPathWalks(vector<int> &edgeVisited)
 	{
 		edgeVisited.clear();
 
@@ -590,7 +590,7 @@ namespace zSpace
 
 	//---- graph specilization for shortestPathWalks_SourceToAll 
 	template<>
-	ZSPACE_INLINE  void  zTsShortestPath<zObjGraph, zFnGraph>::shortestPathWalks_SourceToAll(vector<int> &sourceVertices, vector<int> &edgeVisited)
+	ZSPACE_TOOLSETS_INLINE  void  zTsShortestPath<zObjGraph, zFnGraph>::shortestPathWalks_SourceToAll(vector<int> &sourceVertices, vector<int> &edgeVisited)
 	{
 
 		// initialise edge visits to 0
@@ -621,7 +621,7 @@ namespace zSpace
 
 	//---- mesh specilization for shortestPathWalks_SourceToAll 
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPathWalks_SourceToAll(vector<int> &sourceVertices, vector<int> &edgeVisited)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPathWalks_SourceToAll(vector<int> &sourceVertices, vector<int> &edgeVisited)
 	{
 		// initialise edge visits to 0
 		if (edgeVisited.size() == 0 || edgeVisited.size() < fnHE.numHalfEdges())
@@ -651,7 +651,7 @@ namespace zSpace
 
 	//---- graph specilization for shortestPathWalks_SourceToOtherSource 
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPathWalks_SourceToOtherSource(vector<int> &sourceVertices, vector<int> &edgeVisited)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::shortestPathWalks_SourceToOtherSource(vector<int> &sourceVertices, vector<int> &edgeVisited)
 	{
 		edgeVisited.clear();
 
@@ -684,7 +684,7 @@ namespace zSpace
 
 	//---- mesh specilization for shortestPathWalks_SourceToOtherSource 
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPathWalks_SourceToOtherSource(vector<int> &sourceVertices, vector<int> &edgeVisited)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::shortestPathWalks_SourceToOtherSource(vector<int> &sourceVertices, vector<int> &edgeVisited)
 	{
 		edgeVisited.clear();
 
@@ -717,7 +717,7 @@ namespace zSpace
 
 	//---- graph specilization for walking distance sources
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::walk_DistanceFromSources(vector<int>& sourceVertices, vector<double>& vertexDistances)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnGraph>::walk_DistanceFromSources(vector<int>& sourceVertices, vector<double>& vertexDistances)
 	{
 		float maxDIST = 100000;
 
@@ -744,7 +744,7 @@ namespace zSpace
 
 	//---- mesh specilization for walking distance sources
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::walk_DistanceFromSources(vector<int>& sourceVertices, vector<double>& vertexDistances)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::walk_DistanceFromSources(vector<int>& sourceVertices, vector<double>& vertexDistances)
 	{
 		float maxDIST = 100000;
 
@@ -771,7 +771,7 @@ namespace zSpace
 
 	//---- graph specilization for walking distance sources
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjGraph, zFnMesh>::walk_Animate(double MaxDistance, vector<double>& vertexDistances, vector<zVector>& walkedEdges, vector<zVector>& currentWalkingEdges)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjGraph, zFnMesh>::walk_Animate(double MaxDistance, vector<double>& vertexDistances, vector<zVector>& walkedEdges, vector<zVector>& currentWalkingEdges)
 	{
 		currentWalkingEdges.clear();
 		walkedEdges.clear();
@@ -851,7 +851,7 @@ namespace zSpace
 
 	//---- mesh specilization for walking distance sources
 	template<>
-	ZSPACE_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::walk_Animate(double MaxDistance, vector<double>& vertexDistances, vector<zVector>& walkedEdges, vector<zVector>& currentWalkingEdges)
+	ZSPACE_TOOLSETS_INLINE  void zTsShortestPath<zObjMesh, zFnMesh>::walk_Animate(double MaxDistance, vector<double>& vertexDistances, vector<zVector>& walkedEdges, vector<zVector>& currentWalkingEdges)
 	{
 
 		currentWalkingEdges.clear();
@@ -933,7 +933,7 @@ namespace zSpace
 	//--- SPANNING TREE METHODS 
 
 	template<typename T, typename U>	
-	ZSPACE_INLINE int zTsShortestPath<T, U>::minDistance(vector<float> &dist, vector<bool> &sptSet)
+	ZSPACE_TOOLSETS_INLINE int zTsShortestPath<T, U>::minDistance(vector<float> &dist, vector<bool> &sptSet)
 	{
 		if (dist.size() != sptSet.size()) throw std::invalid_argument("input container sizes are not equal.");
 
@@ -954,7 +954,7 @@ namespace zSpace
 
 
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 	// explicit instantiation
 	template class zTsShortestPath<zObjMesh, zFnMesh>;
 

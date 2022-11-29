@@ -14,7 +14,7 @@
 #define ZSPACE_TS_GEOMETRY_GRAPH_POLYHEDRA_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
 #include <headers/zInterface/functionsets/zFnParticle.h>
@@ -22,6 +22,21 @@
 
 namespace zSpace
 {
+	struct zPair_hash {
+		template <class T1, class T2>
+		size_t operator()(const pair<T1, T2>& p) const
+		{
+			auto hash1 = hash<T1>{}(p.first);
+			auto hash2 = hash<T2>{}(p.second);
+
+			if (hash1 != hash2) {
+				return hash1 ^ hash2;
+			}
+
+			// If hash1 == hash2, their XOR is zero.
+			return hash1;
+		}
+	};
 
 	/** \addtogroup zToolsets
 	*	\brief Collection of toolsets for applications.
@@ -42,7 +57,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsGraphPolyhedra
+	class ZSPACE_TOOLSETS zTsGraphPolyhedra
 	{
 	protected:
 		//--------------------------
@@ -50,32 +65,41 @@ namespace zSpace
 		//--------------------------
 
 		/*!	\brief pointer to graph Object  */
-		zObjGraph* graphObj;
+		zObjGraph o_formGraph;
 
 		/*!	\brief container of  form particle objects  */
-		vector<zObjParticleArray> formParticlesObj;
+		zObjParticleArray o_formParticles;
 
 		/*!	\brief container of form particle function set  */
-		vector<vector<zFnParticle>> fnFormParticles;
+		vector<zFnParticle> fnFormParticles;
 
 		/*!	\brief DISCRIPTION  */
 		zUtilsCore coreUtils;
 
 		/*!	\brief DISCRIPTION  */
-		zObjMeshArray convexHullMeshes;
+		zObjMeshArray o_convexHullMeshes;
 
 		/*!	\brief DISCRIPTION  */
-		zObjMeshArray dualMeshes;
+		zObjMeshArray o_forceMeshes;
+
+		/*!	\brief container of  force particle objects  */
+		vector<zObjParticleArray> o_forceParticles;
+
+		/*!	\brief container of force particle function set  */
+		vector<vector<zFnParticle>> fnForceParticles;
 
 		/*!	\brief DISCRIPTION  */
 
 		zColorArray colors;
-		unordered_map<string, pair<int, int>> graphHalfedge_dualCellFace;
-		unordered_map<string, int> dualCellFace_graphHalfedge;
+		unordered_map<int, zIntPair> formHalfedge_forceCellFace;
+		unordered_map<zIntPair, int, zPair_hash> forceCellFace_formHalfedge;
 
-		vector<zIntPairArray> c_graphHalfEdge_dualCellFace;
-		vector<zVectorArray> dualCellFace_NormTargets;
-		vector<zDoubleArray> dualCellFace_AreaTargets;
+		//vector<zIntPairArray> c_graphHalfEdge_dualCellFace;
+		
+		zVectorArray  form_targetHalfEdges;
+
+		vector<zVectorArray> force_targetNormals;
+		vector<zDoubleArray> force_targetAreas;
 
 		/*!	\brief DISCRIPTION  */
 		vector<pair<zPoint, zPoint>> dualConnectivityLines;
@@ -89,12 +113,8 @@ namespace zSpace
 		//--------------------------
 
 		/*!	\brief form function set  */
-		zFnGraph fnGraph;
-
 		zDomainDouble deviations[2];
 
-		// TMP!!
-		int snapSteps = 0;
 
 		//--------------------------
 		//---- CONSTRUCTOR
@@ -106,13 +126,7 @@ namespace zSpace
 		*/
 		zTsGraphPolyhedra();
 
-		/*! \brief Overloaded constructor.
-		*
-		*	\param		[in]	_graphObj			- input graph object.
-		*	\since version 0.0.4
-		*/
-		zTsGraphPolyhedra(zObjGraph& _graphObj);
-
+	
 		//--------------------------
 		//---- DESTRUCTOR
 		//--------------------------
@@ -124,6 +138,42 @@ namespace zSpace
 		~zTsGraphPolyhedra();
 
 		//--------------------------
+		//---- SET METHODS
+		//--------------------------
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		void setFormGraphFromFile(string& _path, zFileTpye _type, bool _staticGeom = false);
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		void setFormGraphFromMesh(zObjMesh& _inMeshObj, zVector& _verticalForce);
+
+		//--------------------------
+		//---- GET METHODS
+		//--------------------------
+
+		/*! \brief This method gets pointer to the internal form graph object.
+		*
+		*	\return				zObjGraph*					- pointer to internal graph object.
+		*	\since version 0.0.4
+		*/
+		zObjGraph* getRawFormGraph();
+
+		/*! \brief This method gets the block section graphs
+		*
+		*	\param		[out]	numMeshes				- output number of meshes.
+		*	\return				zObjMeshPointerArray	- pointer conatiner of meshes if they exist.
+		*	\since version 0.0.2
+		*/
+		zObjMeshPointerArray getRawForceMeshes(int& numMeshes);
+
+
+		//--------------------------
 		//---- CREATE METHODS
 		//--------------------------
 
@@ -131,70 +181,16 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void createGraphFromFile(string& _path, zFileTpye _type, bool _staticGeom = false);
-
-		/*! \brief DISCRIPTION
-		*
-		*	\since version 0.0.4
-		*/
-		void createGraphFromMesh(zObjMesh& _inMeshObj, zVector& _verticalForce);
-
-		/*! \brief DISCRIPTION
-		*
-		*	\since version 0.0.4
-		*/
-		void create();
-
-		void draw();
+		void createForceMeshes();
+	
 		//--------------------------
 		//---- UPDATE METHODS
 		//--------------------------
 
-		bool equilibrium(bool& compTargets, double dT, zIntergrationType type, int numIterations = 1000, double angleTolerance = EPS, double areaTolerance = EPS, bool printInfo = false);
+		bool equilibrium(bool& compTargets, float formWeight, float areaScale,  double dT, zIntergrationType type, float minMax_formEdge = 0.1, float minMax_forceEdge = 0.1, int numIterations = 1000, double angleTolerance = EPS, double areaTolerance = EPS, bool printInfo = false);
 
 
-#if defined (ZSPACE_UNREAL_INTEROP) || defined (ZSPACE_MAYA_INTEROP) || defined (ZSPACE_RHINO_INTEROP)
-		// Do Nothing
-#else
 
-		//--------------------------
-		//---- DISPLAY SET METHODS
-		//--------------------------
-
-		/*! \brief This method sets the display model not for Unreal.
-		*
-		*	\param		[in]	_index				- input housing unit index
-		*	\since version 0.0.4
-		*/
-		void setDisplayModel(zModel& _model);
-
-		//--------------------------
-		//---- DRAW METHODS
-		//--------------------------
-
-		/*! \brief DISCRIPTION
-		*
-		*	\since version 0.0.4
-		*/
-		void setDisplayGraphElements(bool _drawGraph, bool _drawVertIds = false, bool _drawEdgeIds = false);
-
-		/*! \brief DISCRIPTION
-		*
-		*	\since version 0.0.4
-		*/
-		void setDisplayHullElements(bool _drawConvexHulls, bool _drawFaces = true, bool _drawVertIds = false, bool _drawEdgeIds = false, bool _drawFaceIds = false);
-
-		/*! \brief DISCRIPTION
-		*
-		*	\since version 0.0.4
-		*/
-		void setDisplayPolyhedraElements(bool _drawDualMesh, bool _drawFaces = true, bool _drawVertIds = false, bool _drawEdgeIds = false, bool _drawFaceIds = false);
-
-	protected:
-
-		/*!	\brief DISCRIPTION  */
-		zModel* model;
-#endif
 
 	private:
 		//--------------------------
@@ -205,29 +201,23 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void createDualMesh(zItGraphVertex& _graphVertex, double _tol);
+		void createForceMesh(zItGraphVertex& _graphVertex, double _tol);
 
 		//--------------------------
 		//---- PRIVATE COMPUTE / UPDATE METHODS
 		//--------------------------
 
-		void computeTargets();
+		void computeTargets(float formWeight, float areaScale);
 
-		void updateDual(double& dT, zIntergrationType& type, int& numIterations);
+		void updateFormDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations = 1);
 
-		bool checkParallelity(zDomainDouble& deviations, double& angleTolerance, bool& printInfo);
+		void updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations = 1);
 
-		bool checkArea(zDomainDouble& deviations, double& areaTolerance, bool& printInfo);
+		bool checkDeviations(zDomainDouble& angleDeviations, double& angleTolerance, zDomainDouble& areaDeviations, double& areaTolerance, bool& printInfo);
 
 		//--------------------------
 		//---- PRIVATE UTILITY METHODS
 		//--------------------------
-
-		/*! \brief DISCRIPTION
-		*
-		*	\since version 0.0.4
-		*/
-		void sortGraphVertices(zItGraphVertexArray& _graphVertices);
 
 		/*! \brief DISCRIPTION
 		*
@@ -245,11 +235,12 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void snapDualCells(zItGraphVertexArray& bsf, zItGraphVertexArray& gCenters);
+		void colorGraphEdges();
+
 	};
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsGraphPolyhedra.cpp>

@@ -14,7 +14,7 @@
 #define ZSPACE_TS_PATHNETWORK_SLIME_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnPointCloud.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
@@ -52,7 +52,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zSlimeAgent
+	class ZSPACE_TOOLSETS zSlimeAgent
 	{
 
 	protected:
@@ -283,7 +283,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zSlimeEnvironment : public zFnMeshField<zScalar>
+	class ZSPACE_TOOLSETS zSlimeEnvironment : public zFnMeshField<zScalar>
 	{
 	protected:
 
@@ -415,7 +415,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLS zTsSlime
+	class ZSPACE_TOOLSETS zTsSlime
 	{
 	protected:
 		//--------------------------
@@ -627,7 +627,7 @@ namespace zSpace
 
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/pathNetworks/zTsSlimeMould.cpp>

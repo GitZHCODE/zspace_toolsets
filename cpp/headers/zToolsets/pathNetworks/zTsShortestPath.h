@@ -14,7 +14,7 @@
 #define ZSPACE_TS_PATHNETWORK_SHORTESTPATH_H
 
 #pragma once
-
+#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
 
@@ -43,7 +43,7 @@ namespace zSpace
 	/** @}*/
 
 	template<typename T, typename U>
-	class ZSPACE_TOOLS zTsShortestPath
+	class ZSPACE_TOOLSETS zTsShortestPath
 	{
 	protected:
 		/*!	\brief pointer to half edge Object  */		
@@ -236,7 +236,7 @@ namespace zSpace
 
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/pathNetworks/zTsShortestPath.cpp>
