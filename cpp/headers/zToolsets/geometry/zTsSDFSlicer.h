@@ -27,6 +27,22 @@
 
 #include <headers/zInterface/functionsets/zFnMeshField.h>
 
+#include <igl/avg_edge_length.h>
+#include <igl/cotmatrix.h>
+#include <igl/invert_diag.h>
+#include <igl/massmatrix.h>
+#include <igl/parula.h>
+#include <igl/per_corner_normals.h>
+#include <igl/per_face_normals.h>
+#include <igl/per_vertex_normals.h>
+#include <igl/principal_curvature.h>
+#include <igl/gaussian_curvature.h>
+#include <igl/read_triangle_mesh.h>
+
+#include <igl/point_mesh_squared_distance.h>
+
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -144,7 +160,14 @@ namespace zSpace
 		zObjMeshScalarField o_field;
 		zObjGraph o_isoContour;
 
-		
+		//--------------------------
+		//---- GRADIENT ATTRIBUTES
+		//--------------------------
+
+		zObjMesh o_gradientTriMesh;
+		MatrixXd gradientTriMesh_V;
+		MatrixXi gradientTriMesh_FTris;
+		zDomainFloat offsetDomain;
 
 		//--------------------------
 		//---- COLOR ATTRIBUTES
@@ -154,7 +177,8 @@ namespace zSpace
 
 		zColorArray blockColors;
 
-		bool leftPlaneExists, rightPlaneExists;
+		bool leftPlaneExists = false;
+		bool rightPlaneExists = false;
 
 		int blockId = 1;
 
@@ -204,6 +228,8 @@ namespace zSpace
 		//--- SET METHODS 
 		//--------------------------
 
+		void setFromOBJ(string path, int blockID, zInt2 medialVertices, zInt2 leftPlaneFaces, zInt2 rightPlaneFaces, int blockStride, int braceStride);
+
 		/*! \brief This method creates the filed mesh.
 		*
 		*	\param		[in]	bb			- input domain of bounds.
@@ -245,6 +271,9 @@ namespace zSpace
 		*/
 		void setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left);
 
+		void setGradientTriMesh(zObjMesh& _o_gradientTriMesh);
+
+		void setOffsetDomain(zDomainFloat& _offsetDomain);
 
 		void setTransforms(bool toLocal);
 
@@ -349,13 +378,45 @@ namespace zSpace
 		*/
 		zObjMesh* getRawGuideMesh();
 
+		/*! \brief This method gets pointer to the internal guide mesh object.
+		*
+		*	\return				zObjMesh*					- pointer to internal mesh object.
+		*	\since version 0.0.4
+		*/
+		zObjMesh* getRawGradientMesh();
+
 		//--------------------------
-		//---- COMPUTE METHODS
+		//---- COMPUTE METHODS GENERIC
+		//--------------------------
+		
+		/*! \brief This method computes the.
+		*
+		* 	\param		[in]	printLayerDepth				- input print layer depth.
+		*	\since version 0.0.4
+		*/
+		void computePrintBlock_Generic(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, bool compFrames = true, bool compSDF = true);
+
+		/*! \brief This method computes the SDF for the blocks.
+		*
+		*	\since version 0.0.4
+		*/
+		void computeSDF_Generic(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth);
+
+		/*! \brief This method compute the block SDF for the balustrade.
+		*
+		*	\param		[in]	_block						- input block.
+		*	\param		[in]	graphId						- input index of section graph.
+		*	\since version 0.0.4
+		*/
+		void computeBlockSDF_Generic(int funcNum, int numSmooth, int graphId, float printWidth, zDomainFloat &p_heightDomain, zDomainFloat &p_offsetDomain);
+
+		void computePrintBlock_Generic_TrimGraphs(zObjGraph& o_sectionGraph, zObjGraph& o_outGraph, float edgeLength);
+
+		//--------------------------
+		//---- COMPUTE METHODS STRIATUS
 		//--------------------------
 
 		bool onDeckBlock();
-
-
 
 		/*! \brief This method computes the.
 		*
@@ -511,6 +572,10 @@ namespace zSpace
 		zTsSDFSlicer* copy();
 
 
+		void computeClosestPointToGradientMesh(zPointArray& inPoints, zIntArray& faceID, zPointArray &closestPoints);
+
+		float computeWeightedGradientValue(int& faceID, zPoint& closestPt);
+
 		//--------------------------
 		//---- PROTECTED UTILITY METHODS
 		//--------------------------
@@ -521,6 +586,11 @@ namespace zSpace
 		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
 
 		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset );
+
+		void getScalars_3dp_pattern(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset);
+
+		void getScalars_3dp_patternMesh(zScalarArray& scalars, zObjGraph& o_sectionGraph, zIntArray& faceIDs, zPointArray& closestPoints, zDomainFloat &offsetDomain);
+
 
 		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset , bool alternate);
 

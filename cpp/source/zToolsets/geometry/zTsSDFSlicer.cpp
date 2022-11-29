@@ -54,6 +54,163 @@ namespace zSpace
 
 	//--- SET METHODS 
 
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setFromOBJ(string dir, int _blockID, zInt2 medialVertices, zInt2 leftPlaneFaces, zInt2 rightPlaneFaces, int _blockStride, int _braceStride)
+	{
+
+		string fileDeck = dir + "deck_" + to_string(_blockID) + ".obj";
+		bool checkDeck = coreUtils.fileExists(fileDeck);
+		if (checkDeck) deckBlock = true;
+		if (checkDeck) printf("\n %s exists", fileDeck.c_str());
+		else printf("\n %s doesnt exists", fileDeck.c_str());
+
+		string fileBalustrade = dir + "balustrade_" + to_string(_blockID) + ".obj";
+		bool checkBalustrade = coreUtils.fileExists(fileBalustrade);
+		if (checkBalustrade) deckBlock = false;
+		if (checkBalustrade) printf("\n %s exists", fileBalustrade.c_str());
+		else printf("\n %s doesnt exists", fileBalustrade.c_str());
+
+
+		string path = (checkDeck) ? fileDeck : fileBalustrade;
+		bool fileChk = coreUtils.fileExists(path);
+
+		if (!fileChk) return;
+
+
+		zFnMesh fnMesh(o_GuideMesh);
+		fnMesh.from(path, zOBJ);
+		fnMesh.computeMeshNormals();
+		
+
+		zPoint* tmpPositions = fnMesh.getRawVertexPositions();
+
+		blockId = _blockID;
+
+		int blockStride = _blockStride;
+		int braceStride = _braceStride;
+
+		numMagentaLoops = blockStride - 1;
+
+
+		int sID = medialVertices[0];
+		int eID = medialVertices[1];
+
+		zPoint startPoint = tmpPositions[sID];
+		zPoint endPoint = tmpPositions[eID];
+
+		computeMedialGraph(o_GuideMesh, sID, eID);
+
+
+		//left plane
+		if (leftPlaneFaces[0] == -1)
+		{
+			//do nothing  left plane doesnt exist
+			leftPlaneExists = false;
+		}
+		else
+		{
+			leftPlaneExists = true;
+
+			zItMeshFace fStart(o_GuideMesh, leftPlaneFaces[0]);
+
+			zVector fNormStart = fStart.getNormal();
+			fNormStart *= -1;
+			zTransform sPlane = coreUtils.getTransformFromOrigin_Normal(startPoint, fNormStart);
+
+			zItMeshFace fEnd(o_GuideMesh, leftPlaneFaces[1]);
+			zVector fNormEnd = fEnd.getNormal();
+			zTransform ePlane = coreUtils.getTransformFromOrigin_Normal(endPoint, fNormEnd);
+
+			cout << "\n left sNorm " << fNormStart;
+			cout << "\n left eNorm " << fNormEnd;
+
+			setStartEndPlanes(sPlane, ePlane, true);
+
+			base_world = sPlane;
+
+		}
+
+		//right planes
+		if (rightPlaneFaces[0] == -1)
+		{
+			//do nothing  right plane doesnt exist
+			rightPlaneExists = false;
+
+		}
+		else
+		{
+			rightPlaneExists = true;
+
+			zItMeshFace fStart(o_GuideMesh, rightPlaneFaces[0]);
+			zVector fNormStart = fStart.getNormal();
+			fNormStart *= -1;
+			zTransform sPlane = coreUtils.getTransformFromOrigin_Normal(startPoint, fNormStart);
+
+			zItMeshFace fEnd(o_GuideMesh, rightPlaneFaces[1]);
+			zVector fNormEnd = fEnd.getNormal();
+			zTransform ePlane = coreUtils.getTransformFromOrigin_Normal(endPoint, fNormEnd); ;
+
+			cout << "\n right sNorm " << fNormStart;
+			cout << "\n right eNorm " << fNormEnd;
+
+			setStartEndPlanes(sPlane, ePlane, false);
+
+			if (!leftPlaneExists) base_world = sPlane;
+
+		}
+
+		base_local.setIdentity();
+
+		//medial axis
+		computeMedialGraph(o_GuideMesh, sID, eID);
+
+
+		//left mesh
+		if (leftPlaneExists)
+		{
+			// left mesh
+			if (deckBlock)
+			{
+				computeSliceMesh(o_GuideMesh, sID, eID, blockStride, true);
+				computeMedial_BraceEdges(o_SliceMesh_Left, 0, 3, blockStride, braceStride);
+			}
+			else
+			{
+				zFnMesh fnMesh_Left(o_SliceMesh_Left);
+				fnMesh_Left.clear();
+				fnMesh_Left.from(path, zOBJ);
+
+				computeMedial_BraceEdges(o_SliceMesh_Left, sID, eID, blockStride, braceStride);
+			}
+
+		}
+
+		//right mesh
+		if (rightPlaneExists)
+		{
+			// right mesh
+			if (deckBlock)
+			{
+				computeSliceMesh(o_GuideMesh, sID, eID, blockStride, false);
+				computeMedial_BraceEdges(o_SliceMesh_Right, 1, 0, blockStride, braceStride);
+			}
+			else
+			{
+				zFnMesh fnMesh_Right(o_SliceMesh_Right);
+				fnMesh_Right.clear();
+				fnMesh_Right.from(path, zOBJ);
+
+				computeMedial_BraceEdges(o_SliceMesh_Right, sID, eID, blockStride, braceStride);
+			}
+		}
+
+		//zFnMesh tmpFn(o_SliceMesh_Left);
+		//tmpFn.to("data/Block_Slicer/left.obj", zOBJ);
+
+		//zFnMesh tmpFn1(o_SliceMesh_Right);
+		//tmpFn1.to("data/Block_Slicer/right.obj", zOBJ);
+
+	}
+
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setFromJSON(string path, int blockStride, int braceStride)
 	{
 		//printf("\n setFromJSON: %i", 0);
@@ -294,6 +451,8 @@ namespace zSpace
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setSliceMesh(zObjMesh& _o_SliceMesh, bool left)
 	{
 		(left) ? o_SliceMesh_Left = _o_SliceMesh : o_SliceMesh_Right = _o_SliceMesh;
+
+		(left) ? leftPlaneExists = true : rightPlaneExists = true;
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setMedialGraph(zObjGraph& _o_MedialGraph)
@@ -307,6 +466,74 @@ namespace zSpace
 		(left) ? leftPlanes[1] = _ePlane : rightPlanes[1] = _ePlane;
 
 		(left) ? leftPlaneExists = true : rightPlaneExists = true;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setGradientTriMesh(zObjMesh& _o_gradientTriMesh)
+	{
+		
+		zFnMesh fnGradMesh(o_gradientTriMesh);			
+		o_gradientTriMesh = _o_gradientTriMesh;
+
+		//fnGradMesh.setFaceColor(zColor(), true);
+
+		zPoint* vPositions = fnGradMesh.getRawVertexPositions();
+		MatrixXd V(fnGradMesh.numVertices(), 3);
+
+		
+
+		// fill vertex matrix
+		for (int i = 0; i < fnGradMesh.numVertices(); i++)
+		{
+			V(i, 0) = vPositions[i].x;
+			V(i, 1) = vPositions[i].y;
+			V(i, 2) = vPositions[i].z;
+		}
+
+		gradientTriMesh_V = V;
+
+		// fill triangle matrix
+		MatrixXi FTris(fnGradMesh.numPolygons(), 3);
+
+		int nTris = 0;
+		for (zItMeshFace f(o_gradientTriMesh);!f.end(); f++)
+		{
+			int i = f.getId();
+			
+			zIntArray fVerts;
+			f.getVertices(fVerts);
+
+
+			FTris(i, 0) = fVerts[0];
+			FTris(i, 1) = fVerts[1];
+			FTris(i, 2) = fVerts[2];			
+		}
+
+		/*zIntArray pCounts, pConnects;
+		fnGradMesh.getPolygonData(pConnects, pCounts);
+
+		int pConnectsIndex = 0;
+		for (int i = 0; i < pCounts.size(); i++)
+		{
+			if (pCounts[i] == 3)
+			{
+				FTris(i, 0) = pConnects[pConnectsIndex + 0];
+				FTris(i, 1) = pConnects[pConnectsIndex + 1];
+				FTris(i, 2) = pConnects[pConnectsIndex + 2];
+			}
+			else
+			{
+				printf("\n non Tri mesh %i ", i);
+			}
+
+			pConnectsIndex += pCounts[i];
+		}*/
+
+		gradientTriMesh_FTris = FTris;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setOffsetDomain(zDomainFloat& _offsetDomain)
+	{
+		offsetDomain = _offsetDomain;
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setTransforms(bool toLocal)
@@ -720,7 +947,270 @@ namespace zSpace
 		return &o_GuideMesh;
 	}
 
+	ZSPACE_INLINE zObjMesh* zTsSDFSlicer::getRawGradientMesh()
+	{
+		return &o_gradientTriMesh;
+	}
+
 	//---- COMPUTE METHODS
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computePrintBlock_Generic(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, bool compFrames, bool compSDF)
+	{
+		printHeightDomain = _printHeightDomain;
+		
+
+		bool frameCHECKS = false;
+		bool geomCHECKS = true;
+		bool sdfCHECKS = true;
+
+		if (compFrames)
+		{
+			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
+			{
+				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
+
+				sectionFrames.clear();
+				if (leftPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
+				if (rightPlaneExists) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
+
+				o_sectionGraphs.clear();
+				o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
+				if (leftPlaneExists) computePrintBlockSections(true);
+				if (rightPlaneExists) computePrintBlockSections(false);
+
+				//frameCHECKS = checkPrintLayerHeights(sdfCHECKS, geomCHECKS);
+				printf("\n");
+
+				if (frameCHECKS) break;
+			}
+
+			printf("\n frameCHECKS %s ", (frameCHECKS) ? "T" : "F");
+		}
+
+		if (compSDF)
+		{
+			computeSDF_Generic(allSDFLayers, numSDFlayers, funcNum, numSmooth, printLayerWidth);
+		}
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeSDF_Generic(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth)
+	{
+		o_contourGraphs.clear();
+		o_contourGraphs.assign(o_sectionGraphs.size(), zObjGraph());
+
+		o_trimGraphs.clear();
+		o_trimGraphs.assign(o_sectionGraphs.size(), zObjGraph());
+
+		o_raftGraphs.clear();
+		o_raftGraphs.assign(1, zObjGraph());
+
+		printf("\n num frames : %i ", o_sectionGraphs.size());
+
+		//zDomainFloat hDomain(0.0, 15.00);
+		//zDomainFloat oDomain(0.6, 0.0);
+
+		//zDomainFloat hDomain(0.0, 22.5);
+		//zDomainFloat oDomain(0.6, -0.6);
+		//zDomainFloat oDomain(0.0, 0.7);
+
+		//zDomainFloat hDomain(0.0, 15.0);
+		//zDomainFloat oDomain(0.4, 0.0);
+
+		zDomainFloat hDomain(0.0, 15.0);
+		zDomainFloat oDomain(0.01, 0.7);
+
+
+		int r0 = 0;
+		int r1 = floor(o_sectionGraphs.size() * 0.5) - 1;
+		int r2 = floor(o_sectionGraphs.size() * 0.5);
+		int r3 = (o_sectionGraphs.size()) - 1;
+		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
+
+
+		int end =  o_sectionGraphs.size();
+		numSDFlayers = (numSDFlayers > end) ? end : numSDFlayers;
+		numSDFlayers = (allSDFLayers) ? end : numSDFlayers;
+
+		for (int j = 1; j < numSDFlayers; j++)
+		{
+			computeBlockSDF_Generic(funcNum, numSmooth, j, printWidth, hDomain, offsetDomain);
+		}
+
+
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeBlockSDF_Generic(int funcNum, int numSmooth, int graphId, float printWidth, zDomainFloat& p_heightDomain, zDomainFloat& p_offsetDomain)
+	{
+		if (graphId >= o_sectionGraphs.size()) return;
+
+
+		printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
+
+		zFnGraph fnGraph(o_sectionGraphs[graphId]);
+		float pWidth = printWidth;
+		
+		/*zPoint* positions = fnGraph.getRawVertexPositions();
+
+		float Height = positions[0].z;
+		
+		float midHeight = (p_heightDomain.max - p_heightDomain.min) * 0.5;
+		float H = abs(Height - midHeight);
+		float p_offset = coreUtils.ofMap(H, p_heightDomain, p_offsetDomain);*/
+
+		/*float p_offset = 0;
+		if(Height < p_heightDomain.max)  p_offset = coreUtils.ofMap(Height, p_heightDomain, p_offsetDomain);*/
+
+		zIntArray faceIDs;
+		zPointArray closestPts;
+
+		zPointArray magentaPositions;
+
+		for (zItGraphVertex v(o_sectionGraphs[graphId]); !v.end(); v++)
+		{
+			if (v.getColor() == magenta) magentaPositions.push_back(v.getPosition());			
+		}
+		computeClosestPointToGradientMesh(magentaPositions, faceIDs, closestPts);
+
+		zTransform t = sectionFrames[graphId];
+		fnGraph.setTransform(t, true, false);
+
+		zPoint o(t(3, 0), t(3, 1), t(3, 2));
+		zVector n(t(2, 0), t(2, 1), t(2, 2));
+				
+		// Transform
+		zTransform tLocal;
+		tLocal.setIdentity();
+		fnGraph.setTransform(tLocal, true, true);
+
+		// trim graphs
+		zFnGraph fnTrimGraph;				
+		computePrintBlock_Generic_TrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], 1.0);
+		fnTrimGraph = zFnGraph(o_trimGraphs[graphId]);		
+		
+
+		// field
+		zFnMeshScalarField fnField(o_field);
+
+		float offset_outer = 0.5 * pWidth;
+		float offset_inner = 1.5 * pWidth;
+
+		
+
+		// Profile polygon field
+		zScalarArray polyField;
+		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], false);
+
+		zScalarArray polyField_offset_outer;
+		if (funcNum >= 1)
+		{
+			polyField_offset_outer = polyField;;
+			for (auto& s : polyField_offset_outer) s += offset_outer;
+		}
+
+		zScalarArray polyField_offset_inner;
+		if (funcNum >= 2)
+		{
+			polyField_offset_inner = polyField;;
+			for (auto& s : polyField_offset_inner) s += 2;
+		}
+
+		zScalarArray patternField;
+		if (funcNum >= 2)
+		{
+			getScalars_3dp_patternMesh(patternField, o_sectionGraphs[graphId], faceIDs, closestPts,  p_offsetDomain);
+
+			//getScalars_3dp_pattern(patternField, o_sectionGraphs[graphId], p_offset);
+		}
+
+		zScalarArray booleanField_0;
+		if (funcNum >= 3) fnField.boolean_union(polyField_offset_outer, patternField, booleanField_0, false);
+
+		zScalarArray booleanField_1;
+		if (funcNum >= 4) fnField.boolean_subtract(booleanField_0, polyField_offset_inner, booleanField_1, false);
+
+		// RESULT FIELDS
+		switch (funcNum)
+		{
+		case 0:
+			fnField.setFieldValues(polyField);
+			break;
+
+		case 1:
+			fnField.setFieldValues(polyField_offset_outer);
+			break;
+
+		case 2:
+			fnField.setFieldValues(patternField);
+			break;
+
+		case 3:
+			fnField.setFieldValues(booleanField_0);
+			break;
+
+		case 4:
+			if (numSmooth > 0) fnField.smoothField(booleanField_1, numSmooth);
+			fnField.setFieldValues(booleanField_1);
+			break;
+		}
+
+
+		zFnGraph fnIsoGraph(o_contourGraphs[graphId]);
+		fnField.getIsocontour(o_contourGraphs[graphId], 0.0);
+
+		fnIsoGraph.setEdgeWeight(2);
+		//if (numSmooth > 0) fnIsoGraph.averageVertices(numSmooth);
+
+		// transform back 
+		fnGraph.setTransform(t, true, true);
+		fnIsoGraph.setTransform(t, true, true);
+
+		fnTrimGraph.setTransform(t, true, true);
+		
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computePrintBlock_Generic_TrimGraphs(zObjGraph& o_sectionGraph, zObjGraph& o_outGraph, float edgeLength)
+	{
+		zFnGraph fnGraph(o_sectionGraph);
+		
+		zPoint cen = fnGraph.getCenter();
+		zPointArray magentaPositions;
+
+		for (zItGraphVertex v(o_sectionGraph); !v.end(); v++)
+		{
+			if (v.getColor() == magenta) magentaPositions.push_back(v.getPosition());
+		}
+
+		zPointArray gPositions;
+		zIntArray gEdgeConnects;
+
+		for (int i = 0; i < magentaPositions.size(); i++)
+		{
+			zVector dir = magentaPositions[i] - cen;
+			dir.normalize();
+
+			zPoint p0 = magentaPositions[i]  + dir * 1.0 * edgeLength;
+			zPoint p1 = magentaPositions[i] - dir * 3.5 * edgeLength;
+
+			int numVerts = gPositions.size();
+
+			gEdgeConnects.push_back(numVerts);
+			gEdgeConnects.push_back(numVerts + 1);
+
+			gPositions.push_back(p0);
+			gPositions.push_back(p1);
+
+		}
+				
+		zFnGraph fnOutGraph(o_outGraph);
+		fnOutGraph.create(gPositions, gEdgeConnects);	
+
+		fnOutGraph.setEdgeColor(green);
+
+	}
+
+	//---- COMPUTE METHODS STRIATUS
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computePrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum , int numSmooth, zDomainFloat _neopreneOffset ,  bool compFrames , bool compSDF)
 	{
@@ -1381,7 +1871,7 @@ namespace zSpace
 		Y.normalize();
 
 		//zTransform pFrame = setTransformFromVectors(O, X, Y, tempZ);
-		zTransform pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 0, 1));
+		zTransform pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 1, 0));
 		sectionFrames.push_back(pFrame);
 
 		pOnCurve = O;
@@ -1444,7 +1934,7 @@ namespace zSpace
 
 			// add frame
 			//pFrame = setTransformFromVectors(O, X, Y, tempZ);
-			pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 0, 1));
+			pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 1, 0));
 			sectionFrames.push_back(pFrame);
 
 			pOnCurve = O;
@@ -1873,7 +2363,7 @@ namespace zSpace
 
 				if (orangeCounter != 2)
 				{
-					//printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
+					printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
 
 					zFnGraph fnGraph(o_sectionGraphs[i]);
 					fnGraph.setEdgeColor(orange);
@@ -1884,7 +2374,7 @@ namespace zSpace
 
 				if (magentaCounter != numMagentaLoops * 2)
 				{
-					//printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
+					printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
 					zFnGraph fnGraph(o_sectionGraphs[i]);
 					fnGraph.setEdgeColor(magenta);
 					checkMagentas = false;
@@ -2221,7 +2711,7 @@ namespace zSpace
 		// TOP BOTTOM HALF EDGES
 		zItGraphHalfEdgeArray topHE, bottomHE;
 		float topLength, bottomLength;
-		polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
+		if (funcNum >= 2) polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
 
 
 		// Transform
@@ -2236,8 +2726,13 @@ namespace zSpace
 		float offset_inner = 1.5 * pWidth;
 
 		//trim graph
-		computePrintBlockTrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE);
-		zFnGraph fnTrimGraph(o_trimGraphs[graphId]);
+		zFnGraph fnTrimGraph;
+		if (funcNum >= 2)
+		{
+			computePrintBlockTrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE);
+			fnTrimGraph = zFnGraph(o_trimGraphs[graphId]);
+		}
+		
 		
 
 		// Profile polygon field
@@ -2302,7 +2797,7 @@ namespace zSpace
 		// transform back 
 		fnGraph.setTransform(t, true, true);
 		fnIsoGraph.setTransform(t, true, true);
-		fnTrimGraph.setTransform(t, true, true);
+		if (funcNum >= 2) fnTrimGraph.setTransform(t, true, true);
 	}
 
 	ZSPACE_TOOLSETS_INLINE bool zTsSDFSlicer::exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth)
@@ -2556,10 +3051,82 @@ namespace zSpace
 		return true;
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeClosestPointToGradientMesh(zPointArray& inPoints, zIntArray& faceIDs, zPointArray& closestPoints)
+	{
+		MatrixXd P(inPoints.size(), 3);
+		for (int i = 0; i < inPoints.size(); i++)
+		{
+			P(i, 0) = inPoints[i].x;
+			P(i, 1) = inPoints[i].y;
+			P(i, 2) = inPoints[i].z;
+		}
+		
 
+		VectorXd sqrD;
+		VectorXi I;
+		MatrixXd C;
+		igl::point_mesh_squared_distance(P, gradientTriMesh_V, gradientTriMesh_FTris, sqrD, I, C);
 
+		faceIDs.clear();
+		closestPoints.clear();
 
+		faceIDs.assign(inPoints.size(), int());
+		closestPoints.assign(inPoints.size(), zPoint());
+		
+		//cout << endl << endl;
 
+		for (int i = 0; i< inPoints.size(); i++)
+		{
+			faceIDs[i] = I(i);
+
+			closestPoints[i].x = C(i, 0);
+			closestPoints[i].y = C(i, 1);
+			closestPoints[i].z = C(i, 2);		
+
+			//cout << endl << inPoints[i] << ", " << closestPoints[i] << ", " << faceIDs[i];
+		}
+
+		
+
+				
+	}
+
+	ZSPACE_TOOLSETS_INLINE float zTsSDFSlicer::computeWeightedGradientValue(int& faceID, zPoint& closestPt)
+	{
+		zItMeshFace f(o_gradientTriMesh, faceID);
+
+		zItMeshVertexArray fVerts;
+		f.getVertices(fVerts);
+
+		zPointArray fVPositions;
+		zColorArray fVColors;
+
+		for (auto& v : fVerts)
+		{
+			fVPositions.push_back(v.getPosition());
+			fVColors.push_back(v.getColor());
+		}
+
+		zDoubleArray weights;
+		coreUtils.getDistanceWeights(closestPt, fVPositions,2.0, weights);
+
+		//printf("\n weights %i ", weights.size());
+
+		float out;
+		double w = 0;
+		for (int i = 0; i < weights.size(); i++)
+		{			
+			out += fVColors[i].r * weights[i];
+			w += weights[i];
+		}
+
+		out = (out == 0.0) ? 0.0 : out / w;		
+		out = (out > 1.0) ? 1.0 : out;
+
+		return out;
+	}
+
+	
 	//---- PROTECTED UTILITY METHODS
 
 
@@ -2582,11 +3149,12 @@ namespace zSpace
 
 		zItMeshHalfEdgeArray cHEdges;
 		vStart.getConnectedHalfEdges(cHEdges);
-
+		
 		float val = 10000;
 		for (zItMeshHalfEdge& he : cHEdges)
-		{
+		{			
 			zVector heVec = he.getVector();
+
 			if (1 - (heVec * dir) < val)
 			{
 				val = 1 - (heVec * dir);
@@ -2706,6 +3274,128 @@ namespace zSpace
 		}
 
 		fnField.getScalarsAsVertexDistance(scalars, gPositions, offset, false);
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::getScalars_3dp_pattern(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset)
+	{
+		zFnMeshScalarField fnField(o_field);
+
+		zFnGraph fnSectionGraph(o_sectionGraph);
+		zPoint* trimPositions = fnSectionGraph.getRawVertexPositions();
+
+		zPointArray tmpPositions;
+		zPointArray gPositions;		
+
+		for (zItGraphVertex v(o_sectionGraph); !v.end(); v++)
+		{
+			if (v.getColor() == magenta)
+			{				
+				gPositions.push_back(v.getPosition());
+			}
+			
+		}
+
+		fnField.getScalarsAsVertexDistance(scalars, gPositions, offset, false);
+
+		
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::getScalars_3dp_patternMesh(zScalarArray& scalars, zObjGraph& o_sectionGraph, zIntArray& faceIDs, zPointArray& closestPoints, zDomainFloat& offsetDomain)
+	{
+		zFnMeshScalarField fnField(o_field);
+
+		zFnGraph fnSectionGraph(o_sectionGraph);
+		zPoint* trimPositions = fnSectionGraph.getRawVertexPositions();
+
+		zPointArray tmpPositions;
+		zPointArray gPositions;
+
+		for (zItGraphVertex v(o_sectionGraph); !v.end(); v++)
+		{
+			if (v.getColor() == magenta)
+			{
+				gPositions.push_back(v.getPosition());
+			}
+
+		}
+
+		//zScalarArray scalars_temp, booleanField;
+		
+
+
+
+		zFnMesh fnGradMesh(o_gradientTriMesh);
+		zColorArray gradColors;
+		fnGradMesh.getFaceColors(gradColors);
+		zDomainFloat inDomain(0.0, 1.0);
+
+		//printf("\n numM %i ", gPositions.size());
+
+		//for (int i = 0; i < gPositions.size(); i++)
+		//{
+		//	float inVal = gradColors[faceIDs[i]].r;
+		//	float offset = coreUtils.ofMap(inVal, inDomain, offsetDomain);
+
+		//	printf("\n %i | %i | %1.2f | %1.2f ",i, faceIDs[i], gradColors[faceIDs[i]].r, offset);
+
+		//	/*if (i == 0)
+		//	{
+		//		fnField.getScalars_Circle(scalars, gPositions[i], offset, 0, false);
+		//	}
+		//	else
+		//	{*/
+		//		scalars_temp.clear();
+		//		booleanField.clear();
+		//		fnField.getScalars_Circle(scalars_temp, gPositions[i], offset, 0, false);
+
+		//		fnField.boolean_union(booleanField, scalars, scalars_temp, false);
+
+		//		//scalars.clear();
+		//		scalars = booleanField;
+		//	//}
+		//}
+
+		scalars.clear();
+		zPoint* fieldMeshPositions = fnField.fnMesh.getRawVertexPositions();
+
+		zFloatArray offsets;
+		for (int j = 0; j < faceIDs.size(); j++)
+		{
+			float offset = computeWeightedGradientValue(faceIDs[j], closestPoints[j]);
+			offsets.push_back(offset);
+		}
+
+
+		for (int i = 0; i < fnField.fnMesh.numVertices(); i++)
+		{
+			double d = 0.0;
+			double tempDist = 10000;
+
+			for (int j = 0; j < gPositions.size(); j++)
+			{
+				double r = fieldMeshPositions[i].distanceTo(gPositions[j]);
+
+				//float inVal = gradColors[faceIDs[j]].r;
+
+				float inVal = offsets[j];
+
+				float offset = coreUtils.ofMap(inVal, inDomain, offsetDomain);
+
+				r = r - offset;
+
+				if (r < tempDist)
+				{
+					d = r;
+					tempDist = r;
+				}
+
+			}
+
+			scalars.push_back(d);
+		}
+		
+
+
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset, bool alternate)
