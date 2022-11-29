@@ -5,16 +5,12 @@
     <RhinoDir>C:\Program Files\Rhino 6 SDK</RhinoDir>
     <MayaDir>C:\Program Files\Autodesk\Maya2017</MayaDir>
     <CudaCommonDir>C:\ProgramData\NVIDIA Corporation\CUDA Samples\v10.2\common\inc</CudaCommonDir>
-<<<<<<< HEAD
-    <zspacecoreDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_core</zspacecoreDir>
-    <zspaceDeployDir>C:\Users\heba.eiz\source\repos\GitZHCODE\Alice2018_zSpace\ALICE_PLATFORM\src\zspace</zspaceDeployDir>
-    <aliceEXEDir>C:\Users\heba.eiz\source\repos\GitZHCODE\Alice2018_zSpace\ALICE_PLATFORM\x64\Release\EXE</aliceEXEDir>
-    <zSpaceCoreLibDir>C:/Users/heba.eiz/source/repos/GitZHCODE/zspace_toolsets/cpp/depends/zSpaceCore</zSpaceCoreLibDir>
-=======
+    <zSpaceCoreLibDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\zSpaceCore</zSpaceCoreLibDir>
     <zspacecoreDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_core</zspacecoreDir>
     <zspaceDeployDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_alice\ALICE_PLATFORM\src\zspace</zspaceDeployDir>
     <aliceEXEDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_alice\ALICE_PLATFORM\x64\Release\EXE</aliceEXEDir>
->>>>>>> main
+    <iglIncludeDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\igl\headers</iglIncludeDir>
+    <iglBuildDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\igl\build</iglBuildDir>
   </PropertyGroup>
   <PropertyGroup />
   <ItemDefinitionGroup>
@@ -53,6 +49,14 @@ REM CALL "$(SolutionDir)scripts\"zspace_includedeploy.bat "$(SolutionDir)\cpp\de
     </BuildMacro>
     <BuildMacro Include="zSpaceCoreLibDir">
       <Value>$(zSpaceCoreLibDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="iglIncludeDir">
+      <Value>$(iglIncludeDir)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="iglBuildDir">
+      <Value>$(iglBuildDir)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
 </Project>

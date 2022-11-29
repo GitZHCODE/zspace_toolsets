@@ -3112,7 +3112,7 @@ namespace zSpace
 
 		//printf("\n weights %i ", weights.size());
 
-		float out;
+		float out = 0;
 		double w = 0;
 		for (int i = 0; i < weights.size(); i++)
 		{			

@@ -11,7 +11,7 @@
 //
 
 
-#include<headers/zToolsets/0_externalMethods/zExtKMeans.h>
+#include<headers/zToolsets/externalMethods/zExtKMeans.h>
 
 namespace zSpace
 {

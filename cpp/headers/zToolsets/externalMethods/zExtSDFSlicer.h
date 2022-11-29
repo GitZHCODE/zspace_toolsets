@@ -19,9 +19,9 @@
 
 #include <headers/zToolsets/geometry/zTsSDFSlicer.h>
 
-#include <headers/zToolsets/0_externalMethods/zExtMesh.h>
-#include <headers/zToolsets/0_externalMethods/zExtGraph.h>
-#include <headers/zToolsets/0_externalMethods/zExtPlane.h>
+#include <headers/zToolsets/externalMethods/zExtMesh.h>
+#include <headers/zToolsets/externalMethods/zExtGraph.h>
+#include <headers/zToolsets/externalMethods/zExtPlane.h>
 
 namespace zSpace
 {
@@ -88,7 +88,7 @@ namespace zSpace
 #if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include<source/zToolsets/0_externalMethods/zExtSDFSlicer.cpp>
+#include<source/zToolsets/externalMethods/zExtSDFSlicer.cpp>
 #endif
 
 #endif

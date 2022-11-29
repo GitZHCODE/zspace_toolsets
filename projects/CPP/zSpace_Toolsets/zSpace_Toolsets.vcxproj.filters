@@ -64,11 +64,11 @@
     <Filter Include="Header Files\0_base">
       <UniqueIdentifier>{f46167c4-235a-4a38-b49e-b52d1aa5ec01}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\0_externalMethods">
-      <UniqueIdentifier>{fc332fc6-61a3-4be6-b812-01f411d0f797}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\ExternalMethods">
       <UniqueIdentifier>{7eac32f8-db0e-4c7d-9233-df21177534ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\externalMethods">
+      <UniqueIdentifier>{fc332fc6-61a3-4be6-b812-01f411d0f797}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -171,10 +171,22 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobot.h">
       <Filter>Header Files\DigiFab</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\0_externalMethods\zExtSDFSlicer.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtGraph.h">
       <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\0_externalMethods\zExtKMeans.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtMesh.h">
+      <Filter>Header Files\ExternalMethods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtMeshUtility.h">
+      <Filter>Header Files\ExternalMethods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtPlane.h">
+      <Filter>Header Files\ExternalMethods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtKMeans.h">
+      <Filter>Header Files\ExternalMethods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtSDFSlicer.h">
       <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
   </ItemGroup>
@@ -272,11 +284,23 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtSDFSlicer.cpp">
-      <Filter>Source Files\0_externalMethods</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtGraph.cpp">
+      <Filter>Source Files\externalMethods</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtKMeans.cpp">
-      <Filter>Source Files\0_externalMethods</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtKMeans.cpp">
+      <Filter>Source Files\externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtMesh.cpp">
+      <Filter>Source Files\externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtMeshUtility.cpp">
+      <Filter>Source Files\externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtPlane.cpp">
+      <Filter>Source Files\externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtSDFSlicer.cpp">
+      <Filter>Source Files\externalMethods</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

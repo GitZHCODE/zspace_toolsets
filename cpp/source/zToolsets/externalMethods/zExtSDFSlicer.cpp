@@ -11,7 +11,7 @@
 //
 
 
-#include<headers/zToolsets/0_externalMethods/zExtSDFSlicer.h>
+#include<headers/zToolsets/externalMethods/zExtSDFSlicer.h>
 
 
 namespace zSpace

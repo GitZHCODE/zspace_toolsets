@@ -11,18 +11,13 @@
 //
 
 
-#include<headers/zToolsets/0_externalMethods/zExtMesh.h>
+#include<headers/zToolsets/externalMethods/zExtMeshUtility.h>
 
 
 namespace zSpace
 {
-	ZSPACE_TOOLSETS_INLINE zExtMesh::zExtMesh(zObjMesh* m)
-	{
-		mesh = m;
-		updateAttributes();
-	}
-
-	ZSPACE_TOOLSETS_INLINE void zExtMesh::updateAttributes()
+	
+	ZSPACE_TOOLSETS_INLINE void zExtMesh::updateFields()
 	{
 		zFnMesh fn(*mesh);
 		vCount = fn.numVertices();

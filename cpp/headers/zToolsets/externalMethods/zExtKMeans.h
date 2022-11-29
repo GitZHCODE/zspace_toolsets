@@ -38,7 +38,7 @@ namespace zSpace
 #if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include<source/zToolsets/0_externalMethods/zExtKMeans.cpp>
+#include<source/zToolsets/externalMethods/zExtKMeans.cpp>
 #endif
 
 #endif
