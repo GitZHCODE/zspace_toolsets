@@ -43,6 +43,7 @@
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\stdafx.h" />
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.h" />
     <ClInclude Include="..\..\..\cpp\headers\base\zSpace_Toolsets.h" />
+
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -134,6 +135,7 @@
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\specialfunctions.cpp" />
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\alglib\cpp\src\statistics.cpp" />
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.c" />
+
     <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

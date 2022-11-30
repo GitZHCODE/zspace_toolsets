@@ -308,6 +308,15 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtGraph.cpp">
+      <Filter>Source Files\0_externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtMesh.cpp">
+      <Filter>Source Files\0_externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\0_externalMethods\zExtPlane.cpp">
+      <Filter>Source Files\0_externalMethods</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
