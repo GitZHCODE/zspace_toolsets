@@ -101,13 +101,13 @@ namespace zSpace
 			curvature[i].k1 = PV1(i);
 			curvature[i].k2 = PV2(i);
 
-			curvature[i].v1[0] = PD1(i, 0);
+			/*curvature[i].v1[0] = PD1(i, 0);
 			curvature[i].v1[1] = PD1(i, 1);
 			curvature[i].v1[2] = PD1(i, 2);
 
 			curvature[i].v2[0] = PD2(i, 0);
 			curvature[i].v2[1] = PD2(i, 1);
-			curvature[i].v2[2] = PD2(i, 2);
+			curvature[i].v2[2] = PD2(i, 2);*/
 		}
 	}
 

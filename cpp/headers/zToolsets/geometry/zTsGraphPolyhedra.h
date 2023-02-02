@@ -98,8 +98,13 @@ namespace zSpace
 		
 		zVectorArray  form_targetHalfEdges;
 
+		/*!	\brief container storing the update weights of the form diagram.  */
+		zFloatArray formVWeights;
+
 		vector<zVectorArray> force_targetNormals;
 		vector<zDoubleArray> force_targetAreas;
+
+		vector<zFloatArray> forceVWeights;
 
 		/*!	\brief DISCRIPTION  */
 		vector<pair<zPoint, zPoint>> dualConnectivityLines;
@@ -107,13 +112,15 @@ namespace zSpace
 		/*!	\brief DISCRIPTION  */
 		zIntArray nodeId;
 
+		float angleTol = 5.0;
+
 	public:
 		//--------------------------
 		//---- PUBLIC ATTRIBUTES
 		//--------------------------
 
 		/*!	\brief form function set  */
-		zDomainDouble deviations[2];
+		zDomainFloat deviations[2];
 
 
 		//--------------------------
@@ -145,13 +152,28 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void setFormGraphFromFile(string& _path, zFileTpye _type, bool _staticGeom = false);
+		void setFormGraphFromFile(string _path, zFileTpye _type, bool _staticGeom = false);
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		void setFormGraphFromOffsetMeshes(string _path_top, string _path_bottom, zFileTpye _type);
+
 
 		/*! \brief DISCRIPTION
 		*
 		*	\since version 0.0.4
 		*/
 		void setFormGraphFromMesh(zObjMesh& _inMeshObj, zVector& _verticalForce);
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		void setDiagram_Colors(int type, zDomainFloat wtDomain);
+		
+		void setVertexWeights(zDiagramType type, const vector<float>& vWeights = vector<float>());
 
 		//--------------------------
 		//---- GET METHODS
@@ -172,6 +194,17 @@ namespace zSpace
 		*/
 		zObjMeshPointerArray getRawForceMeshes(int& numMeshes);
 
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		zDomainFloat* getRawAngleDeviation();
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		zDomainFloat* getRawAreaDeviation();
 
 		//--------------------------
 		//---- CREATE METHODS
@@ -187,10 +220,9 @@ namespace zSpace
 		//---- UPDATE METHODS
 		//--------------------------
 
-		bool equilibrium(bool& compTargets, float formWeight, float areaScale,  double dT, zIntergrationType type, float minMax_formEdge = 0.1, float minMax_forceEdge = 0.1, int numIterations = 1000, double angleTolerance = EPS, double areaTolerance = EPS, bool printInfo = false);
+		bool equilibrium(bool& compTargets, float formWeight, float areaScale,  double dT, zIntergrationType type, float minMax_formEdge = 0.1, bool areaForce = false, int numIterations = 1000, double angleTolerance = EPS, double areaTolerance = EPS, bool printInfo = false);
 
-
-
+		void exportFiles(string path);
 
 	private:
 		//--------------------------
@@ -211,9 +243,9 @@ namespace zSpace
 
 		void updateFormDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations = 1);
 
-		void updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations = 1);
+		void updateForceDiagram(bool areaForce, float dT, zIntergrationType type, int numIterations = 1);
 
-		bool checkDeviations(zDomainDouble& angleDeviations, double& angleTolerance, zDomainDouble& areaDeviations, double& areaTolerance, bool& printInfo);
+		bool checkDeviations(zDomainFloat& angleDeviations, double& angleTolerance, zDomainFloat& areaDeviations, double& areaTolerance, bool& printInfo);
 
 		//--------------------------
 		//---- PRIVATE UTILITY METHODS
@@ -229,13 +261,25 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void colorDualFaceConnectivity();
+		void setDiagrams_uniqueColor();
 
 		/*! \brief DISCRIPTION
 		*
 		*	\since version 0.0.4
 		*/
-		void colorGraphEdges();
+		void setDiagrams_forceColor(zDomainFloat weightDomain);
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		void setDiagrams_deviationColor();
+
+		/*! \brief DISCRIPTION
+		*
+		*	\since version 0.0.4
+		*/
+		void exportHEMapToTXT(string path);
 
 	};
 }

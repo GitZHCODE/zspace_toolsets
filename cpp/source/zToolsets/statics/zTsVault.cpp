@@ -3942,7 +3942,7 @@ namespace zSpace
 				// compute residue force				
 				v_residual[i] = (b_i - v_i);
 
-				zVector forceV = v_residual[i] * formVWeights[i];
+				zVector forceV = v_residual[i] * formVWeights[i];				
 				fnFormParticles[i].addForce(forceV);
 			}
 
@@ -4022,20 +4022,57 @@ namespace zSpace
 					if (len_e_ij > maxEdgeLength) len_e_ij = maxEdgeLength;
 
 					zVector t_ij = targetEdges_form[he.getSym().getId()];
+					//zVector t_ij = targetEdges_form[he.getId()]; //// CHECK OTHER INSTANCES THAN HK BRIDGE
 					t_ij.normalize();
 
 					b_i += (v_j + (t_ij * len_e_ij));
 
 				}
 
+				
 				b_i /= cEdges.size();
 
 				// compute residue force				
 				v_residual[i] = (b_i - v_i);
 
+				////// HK BRidge remove z and x componenents
+				v_residual[i].x = 0;
+				v_residual[i].z = 0;
+
 				zVector forceV = v_residual[i] * formVWeights[i];
+				if (formVWeights[i] == 0.0) forceV = zVector();
+								
+				
 				fnFormParticles[i].addForce(forceV);
 			}
+
+			//HK Bridge Min Edge length
+			float minEdgeLen = 5.0;
+			/*for (zItMeshEdge e(*formObj); !e.end(); e++)
+			{
+				int i = e.getId();
+
+				if (e.getLength() < minEdgeLen)
+				{
+
+					zItMeshHalfEdge he0 = e.getHalfEdge(0);
+					zItMeshHalfEdge he1 = e.getHalfEdge(1);
+
+					zVector  he0_vec = he0.getVector();
+					zVector  he1_vec = he1.getVector();
+					he0_vec.normalize();
+					he1_vec.normalize();
+
+					zVector pForce1 = (he1.getStartVertex().getPosition() + he1_vec * minEdgeLen) - he1.getVertex().getPosition();					
+					if (formVWeights[he1.getVertex().getId()] == 0.0) pForce1 = zVector();
+					fnFormParticles[he1.getVertex().getId()].addForce(pForce1);
+
+
+					zVector pForce0 = (he0.getStartVertex().getPosition() + he0_vec * minEdgeLen) - he0.getVertex().getPosition();
+					if (formVWeights[he0.getVertex().getId()] == 0.0) pForce0 = zVector();
+					fnFormParticles[he0.getVertex().getId()].addForce(pForce0);
+				}
+			}*/
 
 			// update positions
 			for (int i = 0; i < fnFormParticles.size(); i++)

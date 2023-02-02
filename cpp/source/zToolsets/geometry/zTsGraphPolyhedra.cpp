@@ -25,23 +25,189 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromFile(string& _path, zFileTpye _type, bool _staticGeom)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromFile(string _path, zFileTpye _type, bool _staticGeom)
 	{
 		// create graph
 		zFnGraph fnGraph(o_formGraph);
+		fnGraph.clear();
 		fnGraph.from(_path, _type, _staticGeom);
 
 		// allocate memory
+		o_convexHullMeshes.clear();
+		o_forceMeshes.clear();
+
 		o_convexHullMeshes.assign(fnGraph.numVertices(), zObjMesh());
 		o_forceMeshes.assign(fnGraph.numVertices(), zObjMesh());
-		//c_graphHalfEdge_dualCellFace.assign(fnGraph.numHalfEdges(), zIntPairArray());
 
 		// color vertices
 		for (zItGraphVertex v(o_formGraph); !v.end(); v++)
 			if (v.getValence() > 1) v.setColor(zColor(0.0, 1.0, 0.0, 1.0));
 
 		// color edges
-		colorGraphEdges();
+		//setDiagrams_uniqueColor();
+		setDiagrams_forceColor(zDomainFloat(1,1));
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromOffsetMeshes(string _path_top, string _path_bottom, zFileTpye _type)
+	{
+		zColor red(1, 0, 0, 1);
+		zColor green(0, 1, 0, 1);
+		zColor blue(0, 0, 1, 1);
+		zColor black(0, 0, 0, 1);
+
+		zObjMesh o_topMesh;
+		zFnMesh fnMesh_top(o_topMesh);
+		fnMesh_top.from(_path_top, _type);
+
+		zObjMesh o_bottomMesh;
+		zFnMesh fnMesh_bottom(o_bottomMesh);
+		fnMesh_bottom.from(_path_bottom, _type);
+
+		zPointArray positions;
+		zIntArray eConnects;
+
+		int numVertices = 0;
+		int numTopVertices = fnMesh_top.numVertices();
+		zIntArray meshToGraphVertexIndexMap;
+		meshToGraphVertexIndexMap.assign(fnMesh_top.numVertices() * 2, -1);
+
+		zFloatArray formVertexWeights;
+		zColorArray formVertexColor;
+
+		for (zItMeshVertex v(o_topMesh); !v.end(); v++)
+		{
+			if (!v.checkValency(2))
+			{
+				positions.push_back(v.getPosition());
+				meshToGraphVertexIndexMap[v.getId()] = numVertices;
+				numVertices++;
+				
+				if (v.getColor() == blue)
+				{
+					formVertexWeights.push_back(0.0);
+					formVertexColor.push_back(blue);
+				}
+				else
+				{
+					formVertexWeights.push_back(1.0);
+					formVertexColor.push_back(red);
+				}
+			}
+		}
+
+		
+		for (zItMeshVertex v(o_bottomMesh); !v.end(); v++)
+		{		
+			if (!v.checkValency(2))
+			{
+				positions.push_back(v.getPosition());
+				meshToGraphVertexIndexMap[numTopVertices + v.getId()] = numVertices;
+				numVertices++;
+
+				if (v.getColor() == blue)
+				{
+					formVertexWeights.push_back(0.0);
+					formVertexColor.push_back(blue);
+				}
+				else
+				{
+					formVertexWeights.push_back(1.0);
+					formVertexColor.push_back(red);
+				}
+
+				if (!v.onBoundary())
+				{
+					int vID_0 = meshToGraphVertexIndexMap[v.getId()];
+					int vID_1 = meshToGraphVertexIndexMap[v.getId() + numTopVertices];
+
+					eConnects.push_back(vID_0);
+					eConnects.push_back(vID_1);
+
+				}
+				
+			}
+			
+		}
+
+		for (zItMeshHalfEdge he(o_topMesh); !he.end(); he++)
+		{
+			if (!he.getEdge().onBoundary())
+			{
+				int vID_0 = meshToGraphVertexIndexMap[he.getStartVertex().getId()];
+				int vID_1 = meshToGraphVertexIndexMap[he.getVertex().getId()];
+
+				eConnects.push_back(vID_0);
+				eConnects.push_back(vID_1);
+			}
+
+			he++;
+		}
+
+		for (zItMeshHalfEdge he(o_bottomMesh); !he.end(); he++)
+		{
+			if (!he.getEdge().onBoundary())
+			{
+				int vID_0 = meshToGraphVertexIndexMap[he.getStartVertex().getId() + numTopVertices];
+				int vID_1 = meshToGraphVertexIndexMap[he.getVertex().getId() + numTopVertices];
+
+				eConnects.push_back(vID_0);
+				eConnects.push_back(vID_1);				
+			}
+
+			he++;
+		}
+
+		zVector up(0, 0, 1);
+		for (zItMeshVertex v(o_topMesh); !v.end(); v++)
+		{
+			if (!v.onBoundary())
+			{
+				positions.push_back(v.getPosition() + up);				
+
+				int vID_0 = meshToGraphVertexIndexMap[v.getId()];
+
+				eConnects.push_back(vID_0);
+				eConnects.push_back(numVertices);
+
+				numVertices++;
+
+				if (v.getColor() == blue)
+				{
+					formVertexWeights.push_back(0.0);
+					formVertexColor.push_back(blue);
+				}
+				else
+				{
+					formVertexWeights.push_back(1.0);
+					formVertexColor.push_back(red);
+				}
+			}
+		}
+
+		
+
+		// create graph
+		zFnGraph fnGraph(o_formGraph);
+		fnGraph.clear();
+		fnGraph.create(positions, eConnects);
+
+		fnGraph.setVertexColors(formVertexColor);
+		setVertexWeights(zFormDiagram, formVertexWeights);
+
+		// allocate memory
+		o_convexHullMeshes.clear();
+		o_forceMeshes.clear();
+
+		o_convexHullMeshes.assign(fnGraph.numVertices(), zObjMesh());
+		o_forceMeshes.assign(fnGraph.numVertices(), zObjMesh());
+
+		// color vertices
+		for (zItGraphVertex v(o_formGraph); !v.end(); v++)
+			if (v.getValence() > 1) v.setColor(zColor(0.0, 1.0, 0.0, 1.0));
+
+		// color edges
+		//setDiagrams_uniqueColor();
+		setDiagrams_forceColor(zDomainFloat(1, 1));
 
 	}
 
@@ -79,8 +245,74 @@ namespace zSpace
 			if (v.getValence() > 1) v.setColor(zColor(0.0, 1.0, 0.0, 1.0));
 
 		// color edges
-		colorGraphEdges();
+		setDiagrams_uniqueColor();
 
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDiagram_Colors(int type, zDomainFloat wtDomain)
+	{	
+		switch (type)
+		{
+		case 0:
+			setDiagrams_forceColor(wtDomain);
+			break;
+
+		case 1:
+			setDiagrams_uniqueColor();
+			break;
+
+		case 2:
+			setDiagrams_deviationColor();
+			break;
+
+		}
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setVertexWeights(zDiagramType type, const vector<float>& vWeights)
+	{
+		if (type == zFormDiagram)
+		{
+			zFnGraph fnForm(o_formGraph);
+
+			if (vWeights.size() == 0)
+			{
+				formVWeights.clear();
+				formVWeights.assign(fnForm.numVertices(), 1.0);
+			}
+			else
+			{
+				if (vWeights.size() != fnForm.numVertices()) throw std::invalid_argument("size of loads contatiner is not equal to number of form vertices.");
+
+				formVWeights = vWeights;
+			}
+
+		}
+
+		else if (type == zForceDiagram)
+		{
+			forceVWeights.clear();
+			forceVWeights.assign(o_forceMeshes.size(), zFloatArray());
+			
+
+			/*if (vWeights.size() == 0)
+			{*/
+				for (int i = 0; i < o_forceMeshes.size(); i++)
+				{
+					zFnMesh fnForce(o_forceMeshes[i]);
+					forceVWeights[i].assign(fnForce.numVertices(), 1.0);
+				}
+
+			/*}
+			else
+			{
+				for (int i = 0; i < o_forceMeshes.size(); i++)
+				{
+					zFnMesh fnForce(o_forceMeshes[i]);
+					forceVWeights[i].assign(fnForce.numVertices(), 1.0);
+				}
+			}*/
+
+		}
 	}
 
 	//---- GET METHODS
@@ -107,6 +339,16 @@ namespace zSpace
 		return out;
 	}
 
+	ZSPACE_TOOLSETS_INLINE zDomainFloat* zTsGraphPolyhedra::getRawAngleDeviation()
+	{
+		return &deviations[0];
+	}
+
+	ZSPACE_TOOLSETS_INLINE zDomainFloat* zTsGraphPolyhedra::getRawAreaDeviation()
+	{
+		return &deviations[1];
+	}
+
 	//---- CREATE METHODS
 
 	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::createForceMeshes()
@@ -121,111 +363,52 @@ namespace zSpace
 
 		for (zItGraphVertex g_v(o_formGraph); !g_v.end(); g_v++)
 		{
-			if (!g_v.checkValency(1))
-			{
+			if (g_v.checkValency(1)) continue;
+			if (g_v.checkValency(2)) continue;
+			if (g_v.checkValency(3)) continue;
+
+			
 				nodeId.push_back(g_v.getId());
 
-				//cout << "\n\t\t\tNODE_ID: " << g_v.getId();
+				cout << "\n NODE_ID: " << g_v.getId() << " | " << g_v.getValence();
 
 				// make clean convex hull
 				cleanConvexHull(g_v);
 
 				// dual mesh from convex hull
-				createForceMesh(g_v, tol);
+				//createForceMesh(g_v, tol);
 
 				activeNodes++;
-			}
+			
 		}
 		cout << "\n////////////////////////////////////////////////////////////////////\n";
 		cout << "convexhull mesh size: " << o_convexHullMeshes.size() << endl;
 		cout << "dual mesh size: " << o_forceMeshes.size() << endl;
 		cout << "active nodes: " << activeNodes << endl;
 
-		//colors.insert(colors.end(),
-		//	{
-		//		zColor(1, 0, 0, 1), //red
-		//		zColor(1, 1, 0, 1), //yellow
-		//		zColor(0, 1, 0, 1), //green
-		//		zColor(0, 1, 1, 1), //cyan
-		//		zColor(0, 0, 1, 1), //blue
-		//		zColor(1, 0, 1, 1), //magenta
-		//		zColor(0.5, 0.5, 0.5, 1), //gray
-		//		zColor(1, 0.5, 0, 1) //orange
-		//	});
-
-
-		// set edge and face centers
-		/*for (auto& m : o_convexHullMeshes)
-		{
-			zPointArray edgeCenters, faceCenters;
-
-			for (zItMeshEdge e(m); !e.end(); e++)
-				edgeCenters.push_back(e.getCenter());
-
-			for (zItMeshFace f(m); !f.end(); f++)
-				faceCenters.push_back(f.getCenter());
-
-			m.setEdgeCenters(edgeCenters);
-			m.setFaceCenters(faceCenters);
-		}
-
-		for (auto& m : o_forceMeshes)
-		{
-			zPointArray edgeCenters, faceCenters;
-
-			for (zItMeshEdge e(m); !e.end(); e++)
-				edgeCenters.push_back(e.getCenter());
-
-			for (zItMeshFace f(m); !f.end(); f++)
-				faceCenters.push_back(f.getCenter());
-
-			m.setEdgeCenters(edgeCenters);
-			m.setFaceCenters(faceCenters);
-		}
-
-		zPointArray graphEdgeCenters;
-		for (zItGraphEdge e(o_formGraph); !e.end(); e++) graphEdgeCenters.push_back(e.getCenter());
-		o_formGraph.setEdgeCenters(graphEdgeCenters);*/
-
 		// color connected faces
-		colorDualFaceConnectivity();
-
-		// snap and merge dual cells
-		//zItGraphVertexArray(graphCenters);
-		//fnGraph.getGraphEccentricityCenter(graphCenters);
-		//snapDualCells(sortedGraphVertices, graphCenters);
+		setDiagrams_forceColor(zDomainFloat(1, 1));
 
 
-		/*cout << "------MAP 1-------" << endl;
-
-		for (auto itr = formHalfedge_forceCellFace.begin();
-			itr != formHalfedge_forceCellFace.end(); itr++)
-		{
-			cout << "HE:" << itr->first << "-->" <<
-				"F(node, face):" << (itr->second).first << "," << (itr->second).second << endl;
-		}
-
-		cout << "------MAP 2-------" << endl;
-
-		for (auto itr = forceCellFace_formHalfedge.begin();
-			itr != forceCellFace_formHalfedge.end(); itr++)
-		{
-			cout << "F(node, face):" << itr->first << "-->" <<
-				"HE:" << itr->second << endl;
-		}*/
 
 	}
 
 	//---- UPDATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE bool zTsGraphPolyhedra::equilibrium(bool& compTargets, float formWeight, float areaScale,  double dT, zIntergrationType type, float minMax_formEdge, float minMax_forceEdge, int numIterations, double angleTolerance, double areaTolerance, bool printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsGraphPolyhedra::equilibrium(bool& compTargets, float formWeight, float areaScale,  double dT, zIntergrationType type, float minMax_formEdge, bool areaForce, int numIterations, double angleTolerance, double areaTolerance, bool printInfo)
 	{
 		if (compTargets)
 		{
-			printf("\n compute targets ");
+			//printf("\n compute targets ");
 			computeTargets(formWeight, areaScale);
+
+			if (formVWeights.size() == 0) setVertexWeights(zDiagramType::zFormDiagram);
+			if (forceVWeights.size() == 0) setVertexWeights(zDiagramType::zForceDiagram);
+
 			compTargets = !compTargets;
 		}
+
+		angleTol = angleTolerance;
 
 		bool out = checkDeviations(deviations[0], angleTolerance, deviations[1], areaTolerance, printInfo);
 
@@ -238,7 +421,7 @@ namespace zSpace
 
 		if (formWeight != 0.0)
 		{
-			updateForceDiagram(minMax_forceEdge, dT, type, numIterations);
+			updateForceDiagram(areaForce, dT, type, numIterations);
 		}
 
 		// check deviations	
@@ -246,6 +429,30 @@ namespace zSpace
 
 		return out;
 
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::exportFiles(string path)
+	{
+
+		string folderName = path  + "/out";
+		_mkdir(folderName.c_str());
+		for (const auto& entry : std::filesystem::directory_iterator(folderName)) std::filesystem::remove_all(entry.path());
+
+		zFnGraph fnGraph(o_formGraph);
+		fnGraph.to(folderName + "/formGraph.json", zJSON);		
+
+		int i = 0;
+		for (auto& m : o_forceMeshes)
+		{
+			zFnMesh fnMesh(m);
+			fnMesh.to(folderName + "/forceMesh_" + to_string(i) + ".json", zJSON);
+
+			i++;
+		}
+
+		exportHEMapToTXT(folderName);
+
+		printf("\n files exported! ");
 	}
 
 	//---- PRIVATE CREATE METHODS
@@ -393,7 +600,10 @@ namespace zSpace
 			if (f2_force_Vec.length() == 0) median_force_Area = f1_force_Area * areaScale;
 
 			// target edge 
-			zVector target_Vec = (he_form_Vec * formWeight) + (median_force_Vec * (1 - formWeight));
+			
+			// weight has to be 1 for force edges ie valence 1 edges
+			float wt = (he_form.getVertex().checkValency(1) || he_form.getSym().getVertex().checkValency(1)) ? 1.0 : formWeight;
+			zVector target_Vec = (he_form_Vec * wt) + (median_force_Vec * (1.0 - wt));
 			target_Vec.normalize();
 
 
@@ -401,35 +611,16 @@ namespace zSpace
 
 			if (gotForce_1 != formHalfedge_forceCellFace.end())
 			{
-				force_targetNormals[(gotForce_2->second).first][(gotForce_2->second).second] = target_Vec;
-				force_targetAreas[(gotForce_2->second).first][(gotForce_2->second).second] = median_force_Area;
+				force_targetNormals[(gotForce_1->second).first][(gotForce_1->second).second] = target_Vec;
+				force_targetAreas[(gotForce_1->second).first][(gotForce_1->second).second] = median_force_Area;
 			}
+
+			
+			//printf("\n %i | %1.2f %1.2f %1.2f ", he_form_id, target_Vec.x, target_Vec.y, target_Vec.z);
+
 		}
 
-		/*for (int i = 0; i < o_forceMeshes.size(); i++)
-		{
-			zFnMesh tempFn(o_forceMeshes[i]);
-			dualCellFace_NormTargets[i].assign(tempFn.numPolygons(), zVector());
-
-			dualCellFace_AreaTargets[i].assign(tempFn.numPolygons(), 1.0);
-		}
-
-		for (int i = 0; i < c_graphHalfEdge_dualCellFace.size(); i++)
-		{
-
-			for (int j = 0; j < c_graphHalfEdge_dualCellFace[i].size(); j++)
-			{
-				int cellId = c_graphHalfEdge_dualCellFace[i][j].first;
-				int faceId = c_graphHalfEdge_dualCellFace[i][j].second;
-
-				zItGraphHalfEdge he(o_formGraph, i);
-
-				dualCellFace_NormTargets[cellId][faceId] = he.getVector();
-				dualCellFace_NormTargets[cellId][faceId].normalize();
-
-				dualCellFace_AreaTargets[cellId][faceId] = he.getLength();
-			}
-		}*/
+		
 
 	}
 
@@ -503,12 +694,12 @@ namespace zSpace
 
 				}
 
-				b_i /= cEdges.size();
+				if(b_i.length2() > 0) b_i /= cEdges.size();
 
 				// compute residue force				
 				v_residual[i] = (b_i - v_i);
 
-				zVector forceV = v_residual[i] * 1.0;
+				zVector forceV = v_residual[i] * formVWeights[i];
 				fnFormParticles[i].addForce(forceV);
 			}
 
@@ -521,7 +712,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::updateForceDiagram(float minmax_Edge, float dT, zIntergrationType type, int numIterations)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::updateForceDiagram(bool areaForce, float dT, zIntergrationType type, int numIterations)
 	{
 		// create particles
 		if (fnForceParticles.size() != o_forceMeshes.size())
@@ -568,6 +759,10 @@ namespace zSpace
 
 		}
 
+
+		zFnGraph fnFormGraph(o_formGraph);
+		zPoint* graphPositions = fnFormGraph.getRawVertexPositions();
+
 		for (int k = 0; k < numIterations; k++)
 		{
 			int cellId = 0;
@@ -596,7 +791,9 @@ namespace zSpace
 					f.getVertices(fVerts);
 
 					float currentArea = f.getPlanarFaceArea();
-					float scale = currentArea / force_targetAreas[cellId][i];
+					float scale = force_targetAreas[cellId][i] / currentArea;
+
+					
 
 					for (int j = 0; j < fVerts.size(); j++)
 					{
@@ -605,22 +802,114 @@ namespace zSpace
 						// Normal alignment force
 						double dist = coreUtils.minDist_Point_Plane(p, fCenters[i], force_targetNormals[cellId][i]);
 						zVector pForce = force_targetNormals[cellId][i] * dist * -1.0;
-
+						
+						pForce *= forceVWeights[cellId][fVerts[j]];
 						fnForceParticles[cellId][fVerts[j]].addForce(pForce);
 
 						// Area  force
-						zVector dir = p - fCenters[i];
-						float len = dir.length();
-						dir.normalize();
+						if (areaForce)
+						{
+							zVector dir = p - fCenters[i];
+							float len = dir.length();
+							dir.normalize();
 
-						zPoint proj_p = fCenters[i] + dir * len * scale;
-						zVector aForce = proj_p - p;
+							zPoint proj_p = fCenters[i] + dir * len * scale;
+							zVector aForce = proj_p - p;
 
-						fnForceParticles[cellId][fVerts[j]].addForce(aForce);
+							aForce *= forceVWeights[cellId][fVerts[j]];
+							fnForceParticles[cellId][fVerts[j]].addForce(aForce);
+						}
+
+						
+
 					}	
 					
 
 				}
+
+				
+				// Centroid force
+				zPoint cell_center;
+				for (zItMeshVertex v(cell); !v.end(); v++)
+				{
+					cell_center += positions[v.getId()];
+				}
+				cell_center /= fnForceMesh.numVertices();
+
+				// Scale Force
+
+				float minLen = 0.25;
+				float maxLen = 2.0;
+				for (zItMeshVertex v(cell); !v.end(); v++)
+				{
+					zVector dir = positions[v.getId()] - cell_center;
+					float len = dir.length();
+					dir.normalize();
+
+					if (len < minLen )
+					{
+						zPoint proj_p = cell_center + dir * minLen;
+						zVector sForce = proj_p - positions[v.getId()];
+
+						sForce *= forceVWeights[cellId][v.getId()];
+						fnForceParticles[cellId][v.getId()].addForce(sForce);
+					}
+
+					else if (len > maxLen)
+					{
+						zPoint proj_p = cell_center + dir * maxLen;
+						zVector sForce = proj_p - positions[v.getId()];
+
+						sForce *= forceVWeights[cellId][v.getId()];
+						fnForceParticles[cellId][v.getId()].addForce(sForce);
+					}
+					
+
+				}
+				
+				
+
+				zVector centroidForce = graphPositions[cellId] - cell_center;
+
+				for (zItMeshVertex v(cell); !v.end(); v++)
+				{
+
+					zVector cForce = centroidForce * forceVWeights[cellId][v.getId()];
+					fnForceParticles[cellId][v.getId()].addForce(cForce);
+				}
+
+				// min edge length
+				float minEdgeLen = 0.2;
+				for (zItMeshEdge e(cell); !e.end(); e++)
+				{
+					int i = e.getId();
+
+					if (e.getLength() < minEdgeLen)
+					{
+
+						zItMeshHalfEdge he0 = e.getHalfEdge(0);
+						zItMeshHalfEdge he1 = e.getHalfEdge(1);
+
+						zVector  he0_vec = he0.getVector();
+						zVector  he1_vec = he1.getVector();
+						he0_vec.normalize();
+						he1_vec.normalize();
+
+						zVector pForce1 = (he1.getStartVertex().getPosition() + he1_vec * minEdgeLen) - he1.getVertex().getPosition();
+						
+						pForce1 *= forceVWeights[cellId][he1.getVertex().getId()];
+						fnForceParticles[cellId][he1.getVertex().getId()].addForce(pForce1);
+
+
+						zVector pForce0 = (he0.getStartVertex().getPosition() + he0_vec * minEdgeLen) - he0.getVertex().getPosition();
+						
+						pForce0 *= forceVWeights[cellId][he0.getVertex().getId()];
+						fnForceParticles[cellId][he0.getVertex().getId()].addForce(pForce0);
+
+
+					}
+				}
+				
 
 				// update Particles
 				for (int i = 0; i < fnForceParticles[cellId].size(); i++)
@@ -640,12 +929,12 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE bool zTsGraphPolyhedra::checkDeviations(zDomainDouble& angleDeviation, double& angleTolerance, zDomainDouble& areaDeviation, double& areaTolerance, bool& printInfo)
+	ZSPACE_TOOLSETS_INLINE bool zTsGraphPolyhedra::checkDeviations(zDomainFloat& angleDeviation, double& angleTolerance, zDomainFloat& areaDeviation, double& areaTolerance, bool& printInfo)
 	{
 		bool out = true;
 		vector<double> deviations;
-		angleDeviation = zDomainDouble(10000, -10000);
-		areaDeviation = zDomainDouble(10000, -10000);
+		angleDeviation = zDomainFloat(10000, -10000);
+		areaDeviation = zDomainFloat(10000, -10000);
 
 		for (zItGraphHalfEdge he_form(o_formGraph); !he_form.end(); he_form++)
 		{
@@ -675,24 +964,51 @@ namespace zSpace
 				if (angle_i < angleDeviation.min) angleDeviation.min = angle_i;
 				if (angle_i > angleDeviation.max) angleDeviation.max = angle_i;
 
-				//area
-				float area_i = f1_force.getPlanarFaceArea();
-				float target_area_i = force_targetAreas[(gotForce_1->second).first][(gotForce_1->second).second];
+				//if (angle_i > 90)f1_force.setColor(zColor(1, 0, 0, 1));
+				//else f1_force.setColor(zColor(0.5, 0.5, 0.5, 1));
 
-				if (abs(area_i - target_area_i) > areaTolerance)
-				{
-					out = false;
-				}
+				////area
+				//float area_i = f1_force.getPlanarFaceArea();
+				//float target_area_i = force_targetAreas[(gotForce_1->second).first][(gotForce_1->second).second];
 
-				if (area_i < areaDeviation.min) areaDeviation.min = area_i;
-				if (area_i > areaDeviation.max) areaDeviation.max = area_i;
+				//if (abs(area_i - target_area_i) > areaTolerance)
+				//{
+				//	out = false;
+				//}
+
+				//if (area_i < areaDeviation.min) areaDeviation.min = area_i;
+				//if (area_i > areaDeviation.max) areaDeviation.max = area_i;
 			}
+
+			zVector f2_force_Vec;
+			float f2_force_Area = 0;
+
+			float diffArea = 0;
+			std::unordered_map<int, zIntPair>::const_iterator gotForce_2 = formHalfedge_forceCellFace.find(he_form.getSym().getId());
+			if (gotForce_1 != formHalfedge_forceCellFace.end() && gotForce_2 != formHalfedge_forceCellFace.end())
+			{
+				//area
+				zItMeshFace f1_force(o_forceMeshes[(gotForce_1->second).first], (gotForce_1->second).second);
+				float area_1 = f1_force.getPlanarFaceArea();
+
+				zItMeshFace f2_force(o_forceMeshes[(gotForce_2->second).first], (gotForce_2->second).second);
+				float area_2 = f2_force.getPlanarFaceArea();
+
+				float target_area = force_targetAreas[(gotForce_1->second).first][(gotForce_1->second).second];
+
+				diffArea = abs(area_1 - area_2);	
+
+				//printf("\n %i %i %i %i | %1.4f %1.4f | %1.4f ", (gotForce_1->second).first, (gotForce_1->second).second, (gotForce_2->second).first, (gotForce_2->second).second, area_1, area_2, target_area);
+			}
+
+			if (diffArea < areaDeviation.min) areaDeviation.min = diffArea;
+			if (diffArea > areaDeviation.max) areaDeviation.max = diffArea;
 		}
 
 		if (printInfo)
 		{
 			printf("\n Angle tolerance : %1.4f minDeviation : %1.4f , maxDeviation: %1.4f ", angleTolerance, angleDeviation.min, angleDeviation.max);
-			printf("\n Angle tolerance : %1.4f minDeviation : %1.4f , maxDeviation: %1.4f \n", areaTolerance, areaDeviation.min, areaDeviation.max);
+			printf("\n Area tolerance : %1.4f minDeviation : %1.4f , maxDeviation: %1.4f \n", areaTolerance, areaDeviation.min, areaDeviation.max);
 
 		}
 
@@ -720,46 +1036,33 @@ namespace zSpace
 			heVec.normalize();
 
 			_hullPts.push_back((_vIt.getPosition() + heVec));
+
+			cout <<endl << _hullPts[_hullPts.size() - 1];
 		}
 
 		zFnMesh fnMesh(o_convexHullMeshes[_vIt.getId()]);
 		fnMesh.makeConvexHull(_hullPts);
 
-		while (fnMesh.numPolygons() > cHalfEdges.size())
-		{
-			zDoubleArray hedralAngles;
-			fnMesh.getEdgeDihedralAngles(hedralAngles);
+		/*while (fnMesh.numPolygons() > cHalfEdges.size())
+				{
+					zDoubleArray hedralAngles;
+					fnMesh.getEdgeDihedralAngles(hedralAngles);
 
-			vector<std::pair<double, int>> tmpPair;
+					vector<std::pair<double, int>> tmpPair;
 
-			for (int i = 0; i < hedralAngles.size(); i++)
-				tmpPair.push_back(make_pair(hedralAngles[i], i));
+					for (int i = 0; i < hedralAngles.size(); i++)
+						tmpPair.push_back(make_pair(hedralAngles[i], i));
 
-			std::sort(tmpPair.begin(), tmpPair.end());
+					std::sort(tmpPair.begin(), tmpPair.end());
 
-			zItMeshEdge e(o_convexHullMeshes[_vIt.getId()], tmpPair[0].second);
+					zItMeshEdge e(o_convexHullMeshes[_vIt.getId()], tmpPair[0].second);
 
-			fnMesh.deleteEdge(e, true);
-		}
+					fnMesh.deleteEdge(e, true);
+				}*/
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::colorDualFaceConnectivity()
-	{
-
-		for (auto itr = formHalfedge_forceCellFace.begin();	itr != formHalfedge_forceCellFace.end(); itr++)
-		{
-			//zItGraphHalfEdge he(o_formGraph, atoi(itr->first.c_str()));
-			zItGraphHalfEdge he(o_formGraph, itr->first);
-			zItMeshFace f(o_forceMeshes[(itr->second).first], (itr->second).second);
-
-			f.setColor(he.getEdge().getColor());			 
-		}
-		
-	}
-
-
-	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::colorGraphEdges()
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDiagrams_uniqueColor()
 	{
 		zFnGraph fnGraph(o_formGraph);
 
@@ -787,8 +1090,7 @@ namespace zSpace
 		float h_step = 360 / maxValence;
 
 		
-		// Matchings method
-		//based on https://www.youtube.com/watch?v=UN36EXS4w2I
+		// Matchings method based on https://www.youtube.com/watch?v=UN36EXS4w2I
 
 		for (int i = 0; i < maxValence; i++)
 		{
@@ -810,6 +1112,7 @@ namespace zSpace
 
 						zColor col(i * h_step, 1, 1);
 						cHEdges[j].getEdge().setColor(col);
+						cHEdges[j].getEdge().setWeight(1);
 
 						break;
 					}
@@ -837,51 +1140,235 @@ namespace zSpace
 			
 		}
 		
-		// multi color of vertex and applying to edge. 
+		for (auto itr = formHalfedge_forceCellFace.begin(); itr != formHalfedge_forceCellFace.end(); itr++)
+		{
+			zItGraphHalfEdge he(o_formGraph, itr->first);
+			zItMeshFace f(o_forceMeshes[(itr->second).first], (itr->second).second);
+
+			f.setColor(he.getEdge().getColor());
+		}
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDiagrams_forceColor(zDomainFloat weightDomain)
+	{
+
+		//compute edgeWeights
+
+		float minArea = 100000;
+		float maxArea = -100000;
+
+		int cellId = 0;
+		for (auto& cell : o_forceMeshes)
+		{
+			zFnMesh tmpFn(cell);
+			if (tmpFn.numVertices() == 0)
+			{
+				cellId++;
+				continue;
+			}
+
+			zDoubleArray fAreas;
+			tmpFn.getPlanarFaceAreas(fAreas);
+
+			for (auto &fArea: fAreas)
+			{		
+				if (fArea < minArea) minArea = fArea;
+				if (fArea > maxArea) maxArea = fArea;
+			}
+
+			cellId++;
+		}
+			
+
+		zDomainFloat areaDomain(minArea, maxArea);
+		zDomainColor colDomain(zColor(0.027, 0, 0.157, 1), zColor(0.784, 0, 0.157, 1));
+
+		for (zItGraphHalfEdge he_form(o_formGraph); !he_form.end(); he_form++)
+		{
+			int he_form_id = he_form.getId();
+			int he_form_sym_id = he_form.getSym().getId();
+
+			zVector he_form_Vec = he_form.getVector();
+			he_form_Vec.normalize();
+
+			zVector f1_force_Vec;
+			zVector f2_force_Vec;
+
+			float f1_force_Area = 0;
+			float f2_force_Area = 0;
+
+			std::unordered_map<int, zIntPair>::const_iterator gotForce_1 = formHalfedge_forceCellFace.find(he_form_id);
+			std::unordered_map<int, zIntPair>::const_iterator gotForce_2 = formHalfedge_forceCellFace.find(he_form_sym_id);
+
+			if (gotForce_1 != formHalfedge_forceCellFace.end() && gotForce_2 != formHalfedge_forceCellFace.end())
+			{
+				zItMeshFace f1_force(o_forceMeshes[(gotForce_1->second).first], (gotForce_1->second).second);
+				f1_force_Area = f1_force.getPlanarFaceArea();
+
+				zItMeshFace f2_force(o_forceMeshes[(gotForce_2->second).first], (gotForce_2->second).second);
+				f2_force_Area = f2_force.getPlanarFaceArea();
+
+				float fArea = (f1_force_Area + f2_force_Area) * 0.5;
+
+				float wt = coreUtils.ofMap((float)fArea, areaDomain, weightDomain);
+				zColor col = coreUtils.blendColor(fArea, areaDomain, colDomain, zRGB);
+
+				he_form.getEdge().setWeight(wt);
+				he_form.getEdge().setColor(col);
+
+				f1_force.setColor(col);
+				f2_force.setColor(col);
+
+			}
+			else
+			{
+				if (he_form.getVertex().checkValency(1) || he_form.getSym().getVertex().checkValency(1))
+				{
+					he_form.getEdge().setColor(zColor(0, 1, 0, 1));
+					he_form.getEdge().setWeight(1);
+				}
+				else
+				{
+					he_form.getEdge().setColor(zColor(0, 0, 0, 1));
+					he_form.getEdge().setWeight(1);
+				}
+								
+				if (gotForce_1 != formHalfedge_forceCellFace.end())
+				{
+					zItMeshFace f1_force(o_forceMeshes[(gotForce_1->second).first], (gotForce_1->second).second);
+					f1_force.setColor(zColor(0, 1, 0, 1));
+				}
+			}
 		
-		/*zIntArray v_colorIndex;
-		v_colorIndex.assign(fnGraph.numVertices(), -1);*/
+		}
+			
+	}
 
-		//for (int k =0; k < bsfVertices.size(); k++)
-		//{
-		//	/*zItGraphVertexArray cVertices;
-		//	bsfVertices[k].getConnectedVertices(cVertices);
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setDiagrams_deviationColor()
+	{		
+		zDomainColor colDomain(zColor(180, 1, 1), zColor(360, 1, 1));
 
-		//	int v_colorID = -1;
+		for (zItGraphHalfEdge he_form(o_formGraph); !he_form.end(); he_form++)
+		{
+			int he_form_id = he_form.getId();
 
-		//	for (int tmpID = maxValence - 1; tmpID >= 0; tmpID--)
-		//	{
-		//		bool chkRepeat = false;
+			zVector he_form_Vec = he_form.getVector();
+			he_form_Vec.normalize();
 
-		//		for (int j = 0; j < cVertices.size(); j++)
-		//		{
+			zVector he_form_sym_Vec = he_form.getSym().getVector();
+			he_form_sym_Vec.normalize();
+					
 
-		//			if (tmpID == v_colorIndex[cVertices[j].getId()])
-		//			{
-		//				chkRepeat = true;
-		//				break;
-		//			}
-		//		}
+			zVector f1_force_Vec;
+			zVector f2_force_Vec;
 
-		//		if (!chkRepeat)
-		//		{
-		//			v_colorID = tmpID;
-		//			break;
-		//		}
-		//	}
+			std::unordered_map<int, zIntPair>::const_iterator gotForce_1 = formHalfedge_forceCellFace.find(he_form_id);
+			std::unordered_map<int, zIntPair>::const_iterator gotForce_2 = formHalfedge_forceCellFace.find(he_form.getSym().getId());
 
-		//	if (v_colorID != -1)
-		//	{
-		//		v_colorIndex[bsfVertices[k].getId()] = v_colorID;
+			
+			if (gotForce_1 != formHalfedge_forceCellFace.end() && gotForce_2 != formHalfedge_forceCellFace.end())
+			{
+				zItMeshFace f1_force(o_forceMeshes[(gotForce_1->second).first], (gotForce_1->second).second);
+				f1_force_Vec = f1_force.getNormal();
+				f1_force_Vec.normalize();
 
-		//		zColor col(v_colorID * h_step, 1, 1);
-		//		bsfVertices[k].setColor(col);
-		//	}*/			
-		//	
-		//}
+				zItMeshFace f2_force(o_forceMeshes[(gotForce_2->second).first], (gotForce_2->second).second);
+				f2_force_Vec = f2_force.getNormal();
+				f2_force_Vec.normalize();
+
+				//angle
+				float angle_1 = f1_force_Vec.angle(he_form_Vec);
+				float angle_2 = f2_force_Vec.angle(he_form_sym_Vec);
+
+				float angle_i = (angle_1 > angle_2) ? angle_1 : angle_2;
+
+				zColor col = coreUtils.blendColor(angle_i, deviations[0], colDomain, zHSV);
+								
+				
+				if(angle_i < angleTol)  col = (zColor());
+				else if (angle_i > 90)  col = (zColor(1,0.65,0,1));
+				else he_form.getEdge().setColor(col);
+				
+				he_form.getEdge().setColor(col);
+				f1_force.setColor(col);
+				f2_force.setColor(col);
+
+				he_form.getEdge().setWeight(1);
+			}
+			else if (gotForce_1 != formHalfedge_forceCellFace.end())
+			{
+				zItMeshFace f1_force(o_forceMeshes[(gotForce_1->second).first], (gotForce_1->second).second);
+				f1_force_Vec = f1_force.getNormal();
+				f1_force_Vec.normalize();				
+
+				//angle
+				float angle_i = f1_force_Vec.angle(he_form_Vec);						
+
+				zColor col = coreUtils.blendColor(angle_i, deviations[0], colDomain, zHSV);
+
+				if (angle_i < angleTol)  col = (zColor());
+				else if (angle_i > 90)  col = (zColor(1, 0.65, 0, 1));
+				else he_form.getEdge().setColor(col);
+
+				he_form.getEdge().setColor(col);
+				f1_force.setColor(col);
+				
+				he_form.getEdge().setWeight(1);
+			}
+
+			else if (gotForce_2 != formHalfedge_forceCellFace.end())
+			{
+				zItMeshFace f2_force(o_forceMeshes[(gotForce_2->second).first], (gotForce_2->second).second);
+				f2_force_Vec = f2_force.getNormal();
+				f2_force_Vec.normalize();
+
+				//angle
+				float angle_i = f2_force_Vec.angle(he_form_sym_Vec);
+
+				zColor col = coreUtils.blendColor(angle_i, deviations[0], colDomain, zHSV);
+
+				if (angle_i < angleTol)  col = (zColor());
+				else if (angle_i > 90)  col = (zColor(1, 0.65, 0, 1));
+				else he_form.getEdge().setColor(col);
+
+				he_form.getEdge().setColor(col);
+				f2_force.setColor(col);
+
+				he_form.getEdge().setWeight(1);
+			}
+
+
+			he_form++;
+		}
+	
 
 		
-		//fnGraph.computeEdgeColorfromVertexColor();
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::exportHEMapToTXT(string path)
+	{
+		string outfilename = path;
+		outfilename += "/heMap.txt";
+		
+		ofstream myfile;
+		myfile.open(outfilename.c_str());
+
+		if (myfile.fail())
+		{
+			cout << " error in opening file  " << outfilename.c_str() << endl;
+			return;
+		}
+
+		int counter = 0;
+
+		for (auto itr = formHalfedge_forceCellFace.begin(); itr != formHalfedge_forceCellFace.end(); itr++)
+		{
+			myfile << "\n" << itr->first << "," << (itr->second).first << "," << (itr->second).second;
+		}			
+
+		myfile.close();
 
 	}
 
