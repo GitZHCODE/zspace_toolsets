@@ -50,39 +50,7 @@ namespace zSpace
 
 		fnMesh.getMatrices_trimesh(triMesh_V, triMesh_FTris);
 
-		//zPoint* vPositions = fnMesh.getRawVertexPositions();
-		//MatrixXd V(fnMesh.numVertices(), 3);
-
-		//// fill vertex matrix
-		//for (int i = 0; i < fnMesh.numVertices(); i++)
-		//{
-		//	V(i, 0) = vPositions[i].x;
-		//	V(i, 1) = vPositions[i].y;
-		//	V(i, 2) = vPositions[i].z;
-		//}
-
-		//triMesh_V = V;
-
-		//// fill triangle matrix
-		//MatrixXi FTris(fnMesh.numPolygons(), 3);
-
-		//int nTris = 0;
-		//for (zItMeshFace f(o_TriMesh); !f.end(); f++)
-		//{
-		//	int i = f.getId();
-
-		//	zIntArray fVerts;
-		//	f.getVertices(fVerts);
-
-		//	FTris(i, 0) = fVerts[0];
-		//	FTris(i, 1) = fVerts[1];
-		//	FTris(i, 2) = fVerts[2];
-		//}		
-
-		//triMesh_FTris = FTris;
-
-
-
+		
 	}
 
 	
@@ -198,8 +166,38 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsMeshParam::computeGeodesics_Heat(int _vertexID)
+	ZSPACE_TOOLSETS_INLINE void zTsMeshParam::compute_NRosy()
 	{
+		// Constrained faces id
+		Eigen::VectorXi b;
+
+		// Cosntrained faces representative vector
+		Eigen::MatrixXd bc;
+
+		// Degree of the N-RoSy field
+		int N = 4;
+
+		// Threshold faces with high anisotropy
+		b.resize(1);
+		b << 0;
+		bc.resize(1, 3);
+		bc << 1, 1, 1;
+
+		MatrixXd R;
+		VectorXd S;
+
+		igl::copyleft::comiso::nrosy(triMesh_V, triMesh_FTris, b, bc, VectorXi(), VectorXd(), MatrixXd(), N, 0.5, R, S);
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsMeshParam::computeGeodesics_Heat(zIntArray &_vertexIDs, zFloatArray& dScalars)
+	{
+		if (_vertexIDs.size() == 0)
+		{
+			cout << "Error: _vertexIDs size is zero." << endl;
+			return;
+		}
+
 		// Precomputation
 		igl::HeatGeodesicsData<double> data;
 		double t = std::pow(igl::avg_edge_length(triMesh_V, triMesh_FTris), 2);
@@ -213,7 +211,17 @@ namespace zSpace
 
 		Eigen::VectorXd D;
 				
-		igl::heat_geodesics_solve(data, (Eigen::VectorXi(1, 1) << _vertexID).finished(), D);
+		Eigen::VectorXi ids(_vertexIDs.size(), 1);
+		for (int i = 0; i < _vertexIDs.size(); i++) ids.row(i) << _vertexIDs[i];
+
+		igl::heat_geodesics_solve(data, ids, D);
+
+		// fix source scalar values
+		for (int i = 0; i < _vertexIDs.size(); i++) D(_vertexIDs[i]) = 0.0;
+
+		// output scalars
+		dScalars.clear();
+		dScalars = zFloatArray(D.data(), D.data() + D.rows() * D.cols());
 
 		// compute vertex color from Geodesic Distance
 		zFnMesh fnTriMesh(o_TriMesh);
@@ -231,6 +239,7 @@ namespace zSpace
 
 		
 	}
+
 
 }
 

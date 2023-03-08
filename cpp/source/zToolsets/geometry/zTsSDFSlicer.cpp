@@ -952,6 +952,11 @@ namespace zSpace
 		return &o_gradientTriMesh;
 	}
 
+	ZSPACE_INLINE zObjMeshScalarField* zTsSDFSlicer::getRawMeshScalarField()
+	{
+		return &o_field;
+	}
+
 	//---- COMPUTE METHODS
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computePrintBlock_Generic(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, bool compFrames, bool compSDF)

@@ -385,6 +385,13 @@ namespace zSpace
 		*/
 		zObjMesh* getRawGradientMesh();
 
+		/*! \brief This method gets pointer to the internal mesh scalar field  object.
+		*
+		*	\return				zObjMeshScalarField*					- pointer to internal mesh scalar field object.
+		*	\since version 0.0.4
+		*/
+		zObjMeshScalarField* getRawMeshScalarField();
+
 		//--------------------------
 		//---- COMPUTE METHODS GENERIC
 		//--------------------------

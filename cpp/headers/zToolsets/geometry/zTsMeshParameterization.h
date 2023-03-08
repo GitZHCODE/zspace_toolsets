@@ -42,6 +42,8 @@
 
 #include <igl/point_mesh_squared_distance.h>
 
+#include <igl/copyleft/comiso/nrosy.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -176,7 +178,13 @@ namespace zSpace
 		*/
 		void computeParam_LSCM();
 
-		void computeGeodesics_Heat(int _vertexID);
+		/*! \brief This method computes the least square conformal map (LSCM) of the input triangle mesh.
+		*
+		*	\since version 0.0.4
+		*/
+		void compute_NRosy();
+
+		void computeGeodesics_Heat(zIntArray &_vertexIDs, zFloatArray &dScalars);
 
 	};
 

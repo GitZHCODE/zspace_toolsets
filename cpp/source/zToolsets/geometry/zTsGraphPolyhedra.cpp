@@ -27,6 +27,11 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromFile(string _path, zFileTpye _type, bool _staticGeom)
 	{
+		zColor red(1, 0, 0, 1);
+		zColor green(0, 1, 0, 1);
+		zColor blue(0, 0, 1, 1);
+		zColor black(0, 0, 0, 1);
+
 		// create graph
 		zFnGraph fnGraph(o_formGraph);
 		fnGraph.clear();
@@ -40,8 +45,31 @@ namespace zSpace
 		o_forceMeshes.assign(fnGraph.numVertices(), zObjMesh());
 
 		// color vertices
+		
+		zFloatArray formVertexWeights;
+		zColorArray formVertexColor;
+
+		/*for (zItGraphVertex v(o_formGraph); !v.end(); v++)
+			if (v.getValence() > 1) v.setColor(zColor(0.0, 1.0, 0.0, 1.0));*/
+
 		for (zItGraphVertex v(o_formGraph); !v.end(); v++)
-			if (v.getValence() > 1) v.setColor(zColor(0.0, 1.0, 0.0, 1.0));
+		{
+			if (v.getValence() == 1) v.setColor(zColor(1.0, 0.0, 0.0, 1.0));
+
+			if (v.getColor() == blue)
+			{
+				formVertexWeights.push_back(1.0);
+				formVertexColor.push_back(blue);
+			}
+			else
+			{
+				formVertexWeights.push_back(0.0);
+				formVertexColor.push_back(red);
+			}
+		}
+
+		fnGraph.setVertexColors(formVertexColor);
+		setVertexWeights(zFormDiagram, formVertexWeights);
 
 		// color edges
 		//setDiagrams_uniqueColor();
@@ -376,7 +404,7 @@ namespace zSpace
 				cleanConvexHull(g_v);
 
 				// dual mesh from convex hull
-				//createForceMesh(g_v, tol);
+				createForceMesh(g_v, tol);
 
 				activeNodes++;
 			
