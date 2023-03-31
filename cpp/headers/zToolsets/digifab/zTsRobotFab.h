@@ -62,24 +62,18 @@ namespace zSpace
 		//--------------------------
 		//---- PUBLIC ATTRIBUTES
 		//--------------------------
-		
-		/*!	\brief form function set  */
+				
 
 		//--------------------------
 		//---- CONSTRUCTOR
 		//--------------------------
-		/*! \brief Default constructor.
-		*
-		*	\since version 0.0.2
-		*/
-		zTsRHWC();
-
-		zTsRHWC(zObjGraph& _jointGraphObj, vector<zObjMesh>& _jointMeshObjs);
+		using zTsRobot::zTsRobot;
 
 
 		//--------------------------
 		//---- DESTRUCTOR
 		//--------------------------
+				
 		/*! \brief Default destructor.
 		*
 		*	\since version 0.0.2
@@ -100,26 +94,21 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		zPointArray getFabBbox();
-
-		/*! \brief This method returns the fab mesh.
-		*
-		*	\since version 0.0.4
-		*/
-		vector<zObjMesh> getFabMesh();
+		
 
 		//--------------------------
 		//---- CREATE METHODS
 		//--------------------------
 
 		//--------------------------
-		//---- COMPUTE METHODS
+		//---- OVERRIDE METHODS
 		//--------------------------
 
-		/*! \brief This method computes the robot targets of input mesh array.
+		/*! \brief This method creates the targets from the fabrication mesh.
 		*
-		*	\since version 0.0.4
+		*	\since version 0.0.2
 		*/
-		void computeTargets() override;
+		void computeTargets();
 
 
 		//--------------------------

@@ -87,28 +87,7 @@ namespace zSpace
 			robotJointTransforms.push_back(zTransform(4, 4));
 			robotMesh_transforms.push_back(zTransform(4, 4));
 		}
-
-		for (int i = 0; i < DOF; i++) jointMeshObjs.push_back(nullptr);
-
-		jointGraphObj = nullptr;
-	}
-
-	ZSPACE_TOOLSETS_INLINE zTsRobot::zTsRobot(zObjGraph &_jointGraphObj, vector<zObjMesh> &_jointMeshObjs)
-	{
-		jointGraphObj = &_jointGraphObj;
-		fnGraphJoint = zFnGraph(_jointGraphObj);
-
-		jointMeshObjs.clear();
-		fnMeshJoints.clear();
-
-		for (int i = 0; i < _jointMeshObjs.size(); i++)
-		{
-			jointMeshObjs.push_back(&_jointMeshObjs[i]);
-			fnMeshJoints.push_back(_jointMeshObjs[i]);
-		}
-
-
-
+			
 	}
 
 	//---- DESTRUCTOR
@@ -175,7 +154,10 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector)
 	{
-		//fnMeshJoints.clear();
+		
+		o_jointMeshes.clear();		
+		o_jointMeshes.assign(8, zObjMesh());
+		
 
 		if (type == zJSON)
 		{
@@ -184,7 +166,9 @@ namespace zSpace
 			{
 				string path = directory;
 				path.append("/r_base.json");
-				fnMeshJoints[0].from(path, type, true);
+
+				zFnMesh fnMeshJoint(o_jointMeshes[i]);
+				fnMeshJoint.from(path, type, true);
 			}
 
 			// import joints
@@ -194,7 +178,9 @@ namespace zSpace
 				path.append("/r_");
 				path.append(to_string(i));
 				path.append(".json");
-				fnMeshJoints[i].from(path, type, true);
+
+				zFnMesh fnMeshJoint(o_jointMeshes[i]);
+				fnMeshJoint.from(path, type, true);
 			}
 
 			if (endeffector)
@@ -202,10 +188,14 @@ namespace zSpace
 				// import EE
 				string path = directory;
 				path.append("/r_EE.json");
-				fnMeshJoints[7].from(path, type, false);			
+
+				zFnMesh fnMeshJoint(o_jointMeshes[7]);
+				fnMeshJoint.from(path, type, false);			
 			}
 
 			setJointMeshColor(zVector(0, 0, 1));
+
+			setJointMeshTransform(false);
 
 		}
 
@@ -216,7 +206,9 @@ namespace zSpace
 			{
 				string path = directory;
 				path.append("/r_base.obj");
-				fnMeshJoints[0].from(path, type, true);
+
+				zFnMesh fnMeshJoint(o_jointMeshes[i]);
+				fnMeshJoint.from(path, type, true);
 			}
 
 			// import joints
@@ -226,7 +218,9 @@ namespace zSpace
 				path.append("/r_");
 				path.append(to_string(i));
 				path.append(".obj");
-				fnMeshJoints[i].from(path, type, true);
+				
+				zFnMesh fnMeshJoint(o_jointMeshes[i]);
+				fnMeshJoint.from(path, type, true);
 			}
 
 			if (endeffector)
@@ -234,10 +228,14 @@ namespace zSpace
 				//// import EE
 				string path = directory;
 				path.append("/r_ee.obj");
-				fnMeshJoints[7].from(path, type);				
+				
+				zFnMesh fnMeshJoint(o_jointMeshes[7]);
+				fnMeshJoint.from(path, type, false);
 			}
 
 			setJointMeshColor(zVector(0, 0, 1));
+
+			setJointMeshTransform(false);
 
 		}
 
@@ -258,7 +256,9 @@ namespace zSpace
 			{
 				string path = directory;
 				path.append("/r_base_local.json");
-				fnMeshJoints[0].to(path, type);
+
+				zFnMesh fnMeshJoint(o_jointMeshes[i]);
+				fnMeshJoint.to(path, type);
 			}
 
 			// export joints
@@ -269,10 +269,11 @@ namespace zSpace
 				path.append(to_string(i+1));
 				path.append("_local.json");
 
-				fnMeshJoints[i + 1].setTransform(local, false, true);
-				fnMeshJoints[i + 1].to(path, type);
+				zFnMesh fnMeshJoint(o_jointMeshes[i + 1]);
+				fnMeshJoint.setTransform(local, false, true);
+				fnMeshJoint.to(path, type);
 
-				fnMeshJoints[i + 1].setTransform(robotMesh_transforms[i], false, true);
+				fnMeshJoint.setTransform(robotMesh_transforms[i], false, true);
 
 				// export EE
 				if (i == DOF - 1)
@@ -280,10 +281,11 @@ namespace zSpace
 					string pathEE = directory;
 					pathEE.append("/r_EE_local.json");
 
-					fnMeshJoints[i + 2].setTransform(local, false, true);
-					fnMeshJoints[i + 2].to(pathEE, type);
+					zFnMesh fnMesh_EE(o_jointMeshes[i + 2]);
+					fnMesh_EE.setTransform(local, false, true);
+					fnMesh_EE.to(pathEE, type);
 
-					fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, true);
+					fnMesh_EE.setTransform(robotMesh_transforms[i], false, true);
 				}
 			}			
 
@@ -296,7 +298,9 @@ namespace zSpace
 			{
 				string path = directory;
 				path.append("/r_base_local.obj");
-				fnMeshJoints[i].to(path, type);
+
+				zFnMesh fnMeshJoint(o_jointMeshes[i]);
+				fnMeshJoint.to(path, type);
 			}
 
 			// export joints
@@ -307,10 +311,11 @@ namespace zSpace
 				path.append(to_string(i + 1));
 				path.append("_local.obj");
 
-				fnMeshJoints[i + 1].setTransform(local, false, true);
-				fnMeshJoints[i + 1].to(path, type);
+				zFnMesh fnMeshJoint(o_jointMeshes[i + 1]);
+				fnMeshJoint.setTransform(local, false, true);
+				fnMeshJoint.to(path, type);
 
-				fnMeshJoints[i + 1].setTransform(robotMesh_transforms[i], false, true);
+				fnMeshJoint.setTransform(robotMesh_transforms[i], false, true);
 
 				// export EE
 				if (i == DOF - 1)
@@ -318,10 +323,11 @@ namespace zSpace
 					string pathEE = directory;
 					pathEE.append("/r_EE_local.obj");
 
-					fnMeshJoints[i + 2].setTransform(local, false, true);
-					fnMeshJoints[i + 2].to(pathEE, type);
+					zFnMesh fnMesh_EE(o_jointMeshes[i + 2]);
+					fnMesh_EE.setTransform(local, false, true);
+					fnMesh_EE.to(pathEE, type);
 
-					fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, true);
+					fnMesh_EE.setTransform(robotMesh_transforms[i], false, true);
 				}
 			}
 
@@ -364,9 +370,9 @@ namespace zSpace
 		robotTargets.push_back(target);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::addTarget(zTransform& _transform)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::addTarget(zTransform& _target)
 	{
-		robotTargets.push_back(_transform);
+		robotTargets.push_back(_target);
 	}
 
 	//---- SET METHODS
@@ -382,7 +388,56 @@ namespace zSpace
 		robot_endEffector_matrix = EE.transpose();
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setFabricationWorkbase(zTransform& _workbase)
+	{
+		fabrication_workBase = _workbase;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setFabricationRobotHome(zTransform& _home)
+	{
+		fabrication_robotHome = _home;
+	}
+
 	//----KINMATICS METHODS
+
+	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTsRobot::getRawRobotMeshes(int& numMeshes)
+	{
+		zObjMeshPointerArray out;
+		numMeshes = 0;
+
+		numMeshes = o_jointMeshes.size();
+
+		if (numMeshes == 0)return out;
+
+		for (auto& mesh : o_jointMeshes)
+		{
+			out.push_back(&mesh);
+		}
+
+		return out;
+	}
+
+	ZSPACE_TOOLSETS_INLINE zObjGraph* zTsRobot::getRawRobotGraph()
+	{
+		return &o_jointGraph;
+	}
+
+	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTsRobot::getRawFabricationMeshes(int& numMeshes)
+	{
+		zObjMeshPointerArray out;
+		numMeshes = 0;
+
+		numMeshes = o_FabricationMeshes.size();
+
+		if (numMeshes == 0)return out;
+
+		for (auto& mesh : o_FabricationMeshes)
+		{
+			out.push_back(&mesh);
+		}
+
+		return out;
+	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeJoints()
 	{
@@ -505,16 +560,19 @@ namespace zSpace
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshDihedralEdges()
 	{
 		robot_jointMeshes_edgeAngle.clear();
+
 		for (int i = 0; i < DOF + 2 /*fnMeshJoints.size()*/; i++)
 		{
-
-			if (fnMeshJoints[i].numVertices() == 0) continue;
+			zFnMesh fnMeshJoint(o_jointMeshes[i]);
+			if (fnMeshJoint.numVertices() == 0) continue;
 
 			vector<double> dihedralAngles;
 
-			fnMeshJoints[i].getEdgeDihedralAngles(dihedralAngles);
+			fnMeshJoint.getEdgeDihedralAngles(dihedralAngles);
 
 			robot_jointMeshes_edgeAngle.push_back(dihedralAngles);
+
+			
 		}
 	}
 
@@ -522,10 +580,10 @@ namespace zSpace
 	{
 		for (int i = 0; i < DOF + 2 /*fnMeshJoints.size()*/; i++)
 		{
+			zFnMesh fnMeshJoint(o_jointMeshes[i]);
+			if (fnMeshJoint.numVertices() == 0) continue;
 
-			if (fnMeshJoints[i].numVertices() == 0) continue;
-
-			fnMeshJoints[i].setFaceColorOcclusion(lightVec, true);
+			fnMeshJoint.setFaceColorOcclusion(lightVec, true);
 		}
 
 		setJointMeshDihedralEdges();
@@ -533,21 +591,20 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshTransform(bool updatePositions)
 	{
-		//zFloat4 scale = { robot_scale , robot_scale , robot_scale , 1 };
+		if (o_jointMeshes.size() < DOF) return;
 
 		for (int i = 0; i < DOF; i++)
 		{
 			robotMesh_transforms[i] = robotJointTransforms[i].transpose();
-			//fnMeshJoints[i].setScale(scale);
 
-			fnMeshJoints[i + 1].setTransform(robotMesh_transforms[i], false, updatePositions);
-			//fnMeshJoints[i + 1].setScale(scale);
+			zFnMesh fnMeshJoint(o_jointMeshes[i + 1]);
+			fnMeshJoint.setTransform(robotMesh_transforms[i], false, updatePositions);
 
 			// update EE
 			if (i == DOF - 1)
 			{
-				fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, updatePositions);
-				//fnMeshJoints[i + 2].setScale(scale);
+				zFnMesh fnMeshEE(o_jointMeshes[i + 2]);
+				fnMeshEE.setTransform(robotMesh_transforms[i], false, updatePositions);
 			}
 		}
 	}
@@ -612,6 +669,55 @@ namespace zSpace
 		}
 	}
 
+	//---- FAB MESH METHODS
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
+	{
+		o_FabricationMeshes.clear();
+		fabMeshBbox.clear();
+
+		vector<string> fabFiles;
+
+		if (fileType == zJSON || fileType == zOBJ)
+		{
+			coreUtils.getFilesFromDirectory(fabFiles, directory, fileType);
+			int n_fabFiles = coreUtils.getNumfiles_Type(directory, fileType);
+			o_FabricationMeshes.assign(n_fabFiles, zObjMesh());
+
+			if (fileType == zJSON)
+			{
+
+				for (int i = 0; i < n_fabFiles; i++)
+				{
+					zFnMesh fnMesh(o_FabricationMeshes[i]);
+					fnMesh.from(fabFiles[i], zJSON, true);
+					fnMesh.setTransform(fabrication_workBase);
+				}
+
+			}
+
+			else if (fileType == zOBJ)
+			{
+
+				for (int i = 0; i < n_fabFiles; i++)
+				{
+					zFnMesh fnMesh(o_FabricationMeshes[i]);
+					fnMesh.from(fabFiles[i], zOBJ, true);
+					fnMesh.setTransform(fabrication_workBase);
+				}
+			}
+		}	
+
+		else throw std::invalid_argument(" error: invalid zFileTpye type");
+
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeTargets()
+	{
+
+	}
+
 	//----PROTECTED METHODS
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotJointGraph()
@@ -639,6 +745,7 @@ namespace zSpace
 			edgeConnects.push_back(i);
 		}
 
+		zFnGraph fnGraphJoint(o_jointGraph);
 		fnGraphJoint.create(positions, edgeConnects);
 
 	}
@@ -648,7 +755,7 @@ namespace zSpace
 		zVector p(zVector(0, 0, robotJointTransforms[0](2, 3)));
 
 
-		zItGraphVertex v(*jointGraphObj, 1);
+		zItGraphVertex v(o_jointGraph, 1);
 		v.setPosition(p);
 		v++;
 
@@ -728,6 +835,7 @@ namespace zSpace
 		robotJSON.jointRotations_offset = (j["jointRotations_offset"].get<vector<double>>());
 
 
+
 		for (int i = 0; i < DOF; i++)
 		{
 			zJointRotation jointRot;
@@ -738,8 +846,7 @@ namespace zSpace
 			jointRot.pulse = robotJSON.jointRotations_pulse[i];
 			jointRot.mask = robotJSON.jointRotations_mask[i];
 			jointRot.offset = robotJSON.jointRotations_offset[i];
-			jointRotations.push_back(jointRot);
-
+			jointRotations[i] = (jointRot);			
 
 			robotJointTransforms.push_back(zTransform());
 			robotMesh_transforms.push_back(zTransform());
@@ -1001,48 +1108,6 @@ namespace zSpace
 
 
 
-	//---- FAB MESH METHODS
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
-	{
-		fabMeshObjs.clear();
-		fabMeshBbox.clear();
 
-		vector<string> fabFiles;
-
-		if (fileType == zJSON)
-		{
-			coreUtils.getFilesFromDirectory(fabFiles, directory, zJSON);
-			int n_fabFiles = coreUtils.getNumfiles_Type(directory, zJSON);
-			fabMeshObjs.assign(n_fabFiles, zObjMesh());
-
-
-			for (int i = 0; i < n_fabFiles; i++)
-			{
-				zFnMesh fn(fabMeshObjs[i]);
-				fn.from(fabFiles[i], zJSON, true);
-				fn.setTransform(workBase);
-			}
-
-
-		}
-
-		else if (fileType == zOBJ)
-		{
-			coreUtils.getFilesFromDirectory(fabFiles, directory, zOBJ);
-			int n_fabFiles = coreUtils.getNumfiles_Type(directory, zOBJ);
-			fabMeshObjs.assign(n_fabFiles, zObjMesh());
-
-			for (int i = 0; i < n_fabFiles; i++)
-			{
-				zFnMesh fn(fabMeshObjs[i]);
-				fn.from(fabFiles[i], zOBJ, true);
-				fn.setTransform(workBase);
-			}
-		}
-
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
-
-
-	}
 
 }

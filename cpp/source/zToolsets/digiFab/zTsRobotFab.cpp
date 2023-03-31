@@ -17,49 +17,7 @@
 namespace zSpace
 {
 	//--zTsHWC Class
-	//---- CONSTRUCTOR
-
-	ZSPACE_INLINE zTsRHWC::zTsRHWC()
-		:zTsRobot()
-	{
-		robot_scale = 1.0;
-
-		for (int i = 0; i < DOF; i++)
-		{
-			zDHparameter DH;
-			DH.alpha = DH.d = DH.theta = DH.a = 0.0;
-			robot_DH.push_back(DH);
-
-			zJointRotation jointRot;
-			jointRot.home = jointRot.minimum = jointRot.maximum = jointRot.rotation = 0;
-			jointRot.pulse = jointRot.mask = jointRot.offset = 0.0;
-			jointRotations.push_back(jointRot);
-
-			robotJointTransforms.push_back(zTransform(4, 4));
-			robotMesh_transforms.push_back(zTransform(4, 4));
-		}
-
-		for (int i = 0; i < DOF; i++) jointMeshObjs.push_back(nullptr);
-
-		jointGraphObj = nullptr;
-	}
-
-	ZSPACE_INLINE zTsRHWC::zTsRHWC(zObjGraph& _jointGraphObj, vector<zObjMesh>& _jointMeshObjs) 
-		:zTsRobot(_jointGraphObj, _jointMeshObjs)
-	{
-		jointGraphObj = &_jointGraphObj;
-		fnGraphJoint = zFnGraph(_jointGraphObj);
-
-		jointMeshObjs.clear();
-		fnMeshJoints.clear();
-
-		for (int i = 0; i < _jointMeshObjs.size(); i++)
-		{
-			jointMeshObjs.push_back(&_jointMeshObjs[i]);
-			fnMeshJoints.push_back(_jointMeshObjs[i]);
-		}
-	}
-
+	
 	//---- DESTRUCTOR
 	ZSPACE_INLINE zTsRHWC::~zTsRHWC() {}
 
@@ -75,10 +33,6 @@ namespace zSpace
 		return fabMeshBbox;
 	}
 
-	ZSPACE_INLINE vector<zObjMesh> zTsRHWC::getFabMesh()
-	{
-		return fabMeshObjs;
-	}
 
 	//--- CREATE METHODS 	
 
@@ -88,10 +42,10 @@ namespace zSpace
 	ZSPACE_INLINE void zTsRHWC::computeTargets()
 	{
 
-		for (auto& cutMesh : fabMeshObjs)
+		for (auto& cutMesh : o_FabricationMeshes)
 		{
 			//add home pos
-			addTarget(robotHome);
+			addTarget(fabrication_robotHome);
 			//myRobot.addTarget(zVector(1.5, -0.25, 1), zVector(1, 0, 0), zVector(0, -1, 0), zVector(0, 0, -1));
 
 			zItMeshHalfEdge he(cutMesh, 0);
@@ -112,7 +66,7 @@ namespace zSpace
 			double dot = vec * check;
 			he = (dot < 0) ? he.getSym() : he;
 
-			cout << endl << "heID" << he.getId();
+			//cout << endl << "heID" << he.getId();
 
 			//all targets from a strip
 			do

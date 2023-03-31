@@ -195,6 +195,9 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobotFab.h">
+      <Filter>Header Files\DigiFab</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
@@ -313,6 +316,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMeshParameterization.cpp">
       <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\digiFab\zTsRobotFab.cpp">
+      <Filter>Source Files\DigiFab</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
