@@ -364,6 +364,11 @@ namespace zSpace
 		robotTargets.push_back(target);
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::addTarget(zTransform& _transform)
+	{
+		robotTargets.push_back(_transform);
+	}
+
 	//---- SET METHODS
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setTarget(zTransform &target)
@@ -528,15 +533,22 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshTransform(bool updatePositions)
 	{
+		//zFloat4 scale = { robot_scale , robot_scale , robot_scale , 1 };
 
 		for (int i = 0; i < DOF; i++)
 		{
 			robotMesh_transforms[i] = robotJointTransforms[i].transpose();
+			//fnMeshJoints[i].setScale(scale);
 
 			fnMeshJoints[i + 1].setTransform(robotMesh_transforms[i], false, updatePositions);
+			//fnMeshJoints[i + 1].setScale(scale);
 
 			// update EE
-			if (i == DOF - 1)fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, updatePositions);
+			if (i == DOF - 1)
+			{
+				fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, updatePositions);
+				//fnMeshJoints[i + 2].setScale(scale);
+			}
 		}
 	}
 
@@ -794,6 +806,40 @@ namespace zSpace
 
 			}
 
+			if (perlineData.size() == 16)
+			{
+				zTransform mat;
+				mat.setIdentity();
+
+				//x
+				mat(0, 0) = atof(perlineData[0].c_str());
+				mat(0, 1) = atof(perlineData[1].c_str());
+				mat(0, 2) = atof(perlineData[2].c_str());
+				mat(0, 3) = atof(perlineData[3].c_str());
+
+				////y
+				mat(1, 0) = atof(perlineData[4].c_str());
+				mat(1, 1) = atof(perlineData[5].c_str());
+				mat(1, 2) = atof(perlineData[6].c_str());
+				mat(1, 3) = atof(perlineData[7].c_str());
+
+				//z
+				mat(2, 0) = atof(perlineData[8].c_str());
+				mat(2, 1) = atof(perlineData[9].c_str());
+				mat(2, 2) = atof(perlineData[10].c_str());
+				mat(2, 3) = atof(perlineData[11].c_str());
+
+
+				//cen
+				mat(3, 0) = atof(perlineData[12].c_str());
+				mat(3, 1) = atof(perlineData[13].c_str());
+				mat(3, 2) = atof(perlineData[14].c_str());
+				mat(3, 3) = atof(perlineData[15].c_str());
+
+				robotTargets.push_back(mat);
+
+			}
+
 			lineCnt++;
 		}
 	}
@@ -952,4 +998,51 @@ namespace zSpace
 
 		printf("\nG-CODE Exported Succesfully\n ");
 	}
+
+
+
+	//---- FAB MESH METHODS
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
+	{
+		fabMeshObjs.clear();
+		fabMeshBbox.clear();
+
+		vector<string> fabFiles;
+
+		if (fileType == zJSON)
+		{
+			coreUtils.getFilesFromDirectory(fabFiles, directory, zJSON);
+			int n_fabFiles = coreUtils.getNumfiles_Type(directory, zJSON);
+			fabMeshObjs.assign(n_fabFiles, zObjMesh());
+
+
+			for (int i = 0; i < n_fabFiles; i++)
+			{
+				zFnMesh fn(fabMeshObjs[i]);
+				fn.from(fabFiles[i], zJSON, true);
+				fn.setTransform(workBase);
+			}
+
+
+		}
+
+		else if (fileType == zOBJ)
+		{
+			coreUtils.getFilesFromDirectory(fabFiles, directory, zOBJ);
+			int n_fabFiles = coreUtils.getNumfiles_Type(directory, zOBJ);
+			fabMeshObjs.assign(n_fabFiles, zObjMesh());
+
+			for (int i = 0; i < n_fabFiles; i++)
+			{
+				zFnMesh fn(fabMeshObjs[i]);
+				fn.from(fabFiles[i], zOBJ, true);
+				fn.setTransform(workBase);
+			}
+		}
+
+		else throw std::invalid_argument(" error: invalid zFileTpye type");
+
+
+	}
+
 }

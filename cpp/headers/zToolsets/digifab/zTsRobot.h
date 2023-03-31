@@ -15,9 +15,15 @@
 
 #pragma once
 #include <headers/base/zSpace_Toolsets.h>
-#include <headers/base/zSpace_Toolsets.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
+#include <headers/zInterface/functionsets/zFnParticle.h>
+#include<headers/zInterface/objects/zObjPointCloud.h>
+#include <headers/zInterface/functionsets/zFnPointCloud.h>
+
+
+
+
 
 #include <iostream>
 using namespace std;
@@ -58,6 +64,8 @@ namespace zSpace
 		double theta;
 
 	};
+
+
 
 	/** \addtogroup zToolsets
 	*	\brief Collection of toolsets for applications.
@@ -297,7 +305,17 @@ namespace zSpace
 
 		/*!	\brief contatiner of robot GCode  */
 		vector<zGCode> robot_gCode;
-	
+
+		//--------------------------
+		//---- FAB MESH
+		//--------------------------
+
+
+		/*!	\brief pointer container to joint mesh objects  */
+		vector<zObjMesh> fabMeshObjs;
+
+		/*!	\brief pointer container to joint mesh objects  */
+		zPointArray fabMeshBbox;
 
 	public:
 		//--------------------------
@@ -321,6 +339,13 @@ namespace zSpace
 
 		/*!	\brief contatiner of robot target transforms  */
 		vector<zTransform> robotTargets;
+
+		/*!	\brief contatiner of robot home target transforms  */
+		zTransform robotHome;
+
+		/*!	\brief contatiner of work base transformation  */
+		zTransform workBase;
+
 
 		//--------------------------
 		//---- CONSTRUCTOR
@@ -407,6 +432,13 @@ namespace zSpace
 		*/
 		void addTarget(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ);
 
+		/*! \brief This method create a new target from input position and rotations vectors.
+		*
+		*	\param [in]		_transform		- target as matrix4.
+		*	\since version 0.0.2
+		*/
+		void addTarget(zTransform& _transform);
+
 		//--------------------------
 		//---- SET METHODS
 		//--------------------------
@@ -492,6 +524,20 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		void gCode_to(string directoryPath, zRobotType type);
+
+		/*! \brief This method creates the fabrication mesh from the input file.
+		*
+		*	\param [in]		directory		- input file directory path.
+		*	\param [in]		type			- type of file to be imported.
+		*	\since version 0.0.2
+		*/
+		void createFabMeshesfromFile(string directory, zFileTpye fileType);
+
+		/*! \brief This method creates the targets from the fabrication mesh.
+		*
+		*	\since version 0.0.2
+		*/
+		virtual void computeTargets() = 0;
 
 
 	protected:
