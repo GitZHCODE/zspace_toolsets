@@ -373,13 +373,21 @@ namespace zSpace
 		void createRobotfromFile(string path, zFileTpye type);
 
 
-		/*! \brief This method creates the robot from the input file.
+		/*! \brief This method creates the robot meshes from the input directory.
 		*
 		*	\param [in]		directory		- input file directory path.
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
 		void createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector = false);
+
+		/*! \brief This method exports the robot meshes at local position to the the input directory.
+		*
+		*	\param [in]		directory		- input file directory path.
+		*	\param [in]		type			- type of file to be imported.
+		*	\since version 0.0.2
+		*/
+		void exportRobotJointMeshes_local(string directory, zFileTpye type);
 
 		/*! \brief This method creates the robot targets from the input file.
 		*

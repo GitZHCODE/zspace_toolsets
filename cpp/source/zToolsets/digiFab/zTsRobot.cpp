@@ -246,6 +246,91 @@ namespace zSpace
 
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::exportRobotJointMeshes_local(string directory, zFileTpye type)
+	{
+		zTransform local;
+		local.setIdentity();
+
+		if (type == zJSON)
+		{
+			// export Base
+			for (int i = 0; i < 1; i++)
+			{
+				string path = directory;
+				path.append("/r_base_local.json");
+				fnMeshJoints[0].to(path, type);
+			}
+
+			// export joints
+			for (int i = 0; i < DOF; i++)
+			{
+				string path = directory;
+				path.append("/r_");
+				path.append(to_string(i+1));
+				path.append("_local.json");
+
+				fnMeshJoints[i + 1].setTransform(local, false, true);
+				fnMeshJoints[i + 1].to(path, type);
+
+				fnMeshJoints[i + 1].setTransform(robotMesh_transforms[i], false, true);
+
+				// export EE
+				if (i == DOF - 1)
+				{
+					string pathEE = directory;
+					pathEE.append("/r_EE_local.json");
+
+					fnMeshJoints[i + 2].setTransform(local, false, true);
+					fnMeshJoints[i + 2].to(pathEE, type);
+
+					fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, true);
+				}
+			}			
+
+		}
+
+		else if (type == zOBJ)
+		{
+			// export Base
+			for (int i = 0; i < 1; i++)
+			{
+				string path = directory;
+				path.append("/r_base_local.obj");
+				fnMeshJoints[i].to(path, type);
+			}
+
+			// export joints
+			for (int i = 0; i < DOF; i++)
+			{
+				string path = directory;
+				path.append("/r_");
+				path.append(to_string(i + 1));
+				path.append("_local.obj");
+
+				fnMeshJoints[i + 1].setTransform(local, false, true);
+				fnMeshJoints[i + 1].to(path, type);
+
+				fnMeshJoints[i + 1].setTransform(robotMesh_transforms[i], false, true);
+
+				// export EE
+				if (i == DOF - 1)
+				{
+					string pathEE = directory;
+					pathEE.append("/r_EE_local.obj");
+
+					fnMeshJoints[i + 2].setTransform(local, false, true);
+					fnMeshJoints[i + 2].to(pathEE, type);
+
+					fnMeshJoints[i + 2].setTransform(robotMesh_transforms[i], false, true);
+				}
+			}
+
+		}
+
+		else throw std::invalid_argument(" error: invalid zFileTpye type");
+
+	}
+
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::createTargetsfromFile(string infilename, zFileTpye type)
 	{
 		if (type == zTXT)
