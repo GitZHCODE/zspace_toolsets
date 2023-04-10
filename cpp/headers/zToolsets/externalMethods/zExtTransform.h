@@ -10,8 +10,8 @@
 //// Author : Heba Eiz <heba.eiz@zaha-hadid.com>
 ////
 //
-//#ifndef ZSPACE_EXT_TS_PLANE_H
-//#define ZSPACE_EXT_TS_PLANE_H
+//#ifndef ZSPACE_EXT_TS_TRANSFORM_H
+//#define ZSPACE_EXT_TS_TRANSFORM_H
 //
 //
 //
@@ -36,31 +36,33 @@
 //
 //namespace zSpace
 //{
-//	struct zExtPlane
+//	struct zExtTransform
 //	{
-//		float x_X;
-//		float x_Y;
-//		float x_Z;
-//		float x_R;
+//		zTransform* _transform;
+//		float n00;
+//		float n01;
+//		float n02;
+//		float n03;
 //
-//		float y_X;
-//		float y_Y;
-//		float y_Z;	
-//		float y_R;	
+//		float n04;
+//		float n05;
+//		float n06;	
+//		float n07;	
 //
-//		float n_X;
-//		float n_Y;
-//		float n_Z;
-//		float n_R;
+//		float n08;
+//		float n09;
+//		float n10;
+//		float n11;
 //		
-//		float o_X;
-//		float o_Y;
-//		float o_Z;
-//		float o_R;
+//		float n12;
+//		float n13;
+//		float n14;
+//		float n15;
 //
-//		zExtPlane(zTransform plane);
+//		zExtTransform(zTransform* t, bool transpose = false);
 //
-//		void updateAttributes(zTransform plane);
+//		void updateAttributes(zTransform* transform, bool transpose = false);
+//		void updateAttributes(bool transpose = false);
 //	};
 //
 //}
@@ -71,7 +73,7 @@
 //#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 //// All defined OK so do nothing
 //#else
-//#include<source/zToolsets/externalMethods/zExtPlane.cpp>
+//#include<source/zToolsets/externalMethods/zExtTransform.cpp>
 //#endif
 //
 //#endif

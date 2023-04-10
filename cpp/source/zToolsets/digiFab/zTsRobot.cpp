@@ -88,6 +88,7 @@ namespace zSpace
 			robotMesh_transforms.push_back(zTransform(4, 4));
 		}
 			
+		robot_target_matrix.setIdentity();
 	}
 
 	//---- DESTRUCTOR
@@ -140,13 +141,9 @@ namespace zSpace
 		if (type == zJSON)
 		{
 			fromJSON(path);
-
 			createRobotJointGraph();
-
 			computeJoints();
-
 			forwardKinematics(zJointHome);
-
 			setJointMeshTransform(false);
 		}
 		else throw std::invalid_argument(" invalid file type.");
@@ -491,8 +488,11 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::inverseKinematics()
 	{
+
 		// compute target for joint 6
-		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
+		zTransform Target_J6;
+		//Target_J6.setIdentity();
+		Target_J6 = robot_target_matrix * robot_endEffector_matrix;
 
 		// CALCULATE WRIST CENTER
 		zVector wristC = zVector(Target_J6(0, 3), Target_J6(1, 3), Target_J6(2, 3));
@@ -711,6 +711,33 @@ namespace zSpace
 		else throw std::invalid_argument(" error: invalid zFileTpye type");
 
 
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setFabricationMeshes(zObjMeshArray& meshes)
+	{
+		o_FabricationMeshes.clear();
+		fabMeshBbox.clear();
+		o_FabricationMeshes = meshes;
+		int n = meshes.size();
+		for (int i = 0; i < n; i++)
+		{
+			zFnMesh fnMesh(o_FabricationMeshes[i]);
+			fnMesh.setTransform(fabrication_workBase);
+		}
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabricationMeshes(zObjMeshArray* meshes)
+	{
+		meshes = &o_FabricationMeshes;
+	}
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabricationWorkbase(zTransform* _workbase)
+	{
+		_workbase = &fabrication_workBase;
+	}
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabricationRobotHome(zTransform* _home)
+	{
+		_home = &fabrication_robotHome;
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeTargets()

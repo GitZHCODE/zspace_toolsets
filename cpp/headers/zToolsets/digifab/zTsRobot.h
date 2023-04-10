@@ -191,6 +191,7 @@ namespace zSpace
 		//---- DH ATTRIBUTES
 		//--------------------------
 
+	
 		zDHparameter linkDH;
 
 		//--------------------------
@@ -258,7 +259,7 @@ namespace zSpace
 
 	class ZSPACE_TOOLSETS zTsRobot
 	{
-	protected:
+	public:
 		
 		//--------------------------
 		//---- PROTECTED ATTRIBUTES
@@ -488,6 +489,28 @@ namespace zSpace
 		*/
 		zObjMeshPointerArray getRawFabricationMeshes(int& numMeshes);
 
+		/*! \brief This method get the fabrication mesh.
+		*
+		*	\param [in,out]		meshes		- output fabrication mesh array.
+		*	\since version 0.0.2
+		*/
+
+		void getFabricationMeshes(zObjMeshArray* meshes);
+
+		/*! \brief This method set the fabrication workbase matrix.
+		*
+		*	\param [in]		_workbase			- input workbase matrix.
+		*	\since version 0.0.2
+		*/
+		void getFabricationWorkbase(zTransform* _workbase);
+
+		/*! \brief This method set the fabrication robot home matrix.
+		*
+		*	\param [in]		_home			- input home matrix.
+		*	\since version 0.0.2
+		*/
+		void getFabricationRobotHome(zTransform* _home);
+
 		//--------------------------
 		//----KINMATICS METHODS
 		//--------------------------
@@ -567,6 +590,16 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		void createFabMeshesfromFile(string directory, zFileTpye fileType);
+
+		/*! \brief This method set the fabrication mesh from zObjMeshArray.
+		*
+		*	\param [in]		meshes		- input fabrication mesh array.
+		*	\since version 0.0.2
+		*/
+		
+		void setFabricationMeshes(zObjMeshArray& meshes);
+
+		
 
 		/*! \brief This method creates the targets from the fabrication mesh.
 		*

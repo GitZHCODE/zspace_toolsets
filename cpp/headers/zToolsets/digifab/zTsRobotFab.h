@@ -69,6 +69,8 @@ namespace zSpace
 		//--------------------------
 		using zTsRobot::zTsRobot;
 
+		zTsRHWC(zTsRobot& robot);
+
 
 		//--------------------------
 		//---- DESTRUCTOR
@@ -79,6 +81,7 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		~zTsRHWC();
+
 
 		//--------------------------
         //--- SET METHODS 

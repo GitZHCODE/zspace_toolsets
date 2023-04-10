@@ -177,9 +177,6 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtMesh.h">
       <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtMeshUtility.h">
-      <Filter>Header Files\ExternalMethods</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtPlane.h">
       <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
@@ -192,8 +189,14 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsPaneling.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsLouvre.h">
       <Filter>Header Files\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtRobot.h">
+      <Filter>Header Files\ExternalMethods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtTransform.h">
+      <Filter>Header Files\ExternalMethods</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobotFab.h">
       <Filter>Header Files\DigiFab</Filter>
@@ -302,9 +305,6 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtMesh.cpp">
       <Filter>Source Files\externalMethods</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtMeshUtility.cpp">
-      <Filter>Source Files\externalMethods</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtPlane.cpp">
       <Filter>Source Files\externalMethods</Filter>
     </ClCompile>
@@ -314,8 +314,14 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMeshParameterization.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsLouvre.cpp">
       <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtRobot.cpp">
+      <Filter>Source Files\externalMethods</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtTransform.cpp">
+      <Filter>Source Files\externalMethods</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\digiFab\zTsRobotFab.cpp">
       <Filter>Source Files\DigiFab</Filter>

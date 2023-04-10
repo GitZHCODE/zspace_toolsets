@@ -21,9 +21,14 @@ namespace zSpace
 	//---- DESTRUCTOR
 	ZSPACE_INLINE zTsRHWC::~zTsRHWC() {}
 
+
 	//--- SET METHODS
 
 	//--- GET METHODS 
+
+	ZSPACE_INLINE zTsRHWC::zTsRHWC(zTsRobot& robot) : zTsRobot(robot)
+	{
+	}
 
 	ZSPACE_INLINE zPointArray zTsRHWC::getFabBbox()
 	{
