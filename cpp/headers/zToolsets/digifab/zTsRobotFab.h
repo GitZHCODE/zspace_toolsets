@@ -34,6 +34,7 @@ using namespace std;
 
 namespace zSpace
 {
+
 	/** \addtogroup zToolsets
 	*	\brief Collection of toolsets for applications.
 	*  @{
@@ -89,12 +90,6 @@ namespace zSpace
 		//--- GET METHODS 
 		//--------------------------
 		
-		/*! \brief This method returns the fab mesh bounding box.
-		*
-		*	\since version 0.0.4
-		*/
-		zPointArray getFabBbox();
-		
 
 		//--------------------------
 		//---- CREATE METHODS
@@ -110,11 +105,25 @@ namespace zSpace
 		*/
 		void computeTargets();
 
+		void computeGcode();
+
+
 
 		//--------------------------
 		//---- PROTECTED UTILITY METHODS
 		//--------------------------
 	protected:
+
+		void computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip);
+
+		void checkTargetNormal(vector<zTransform>& targets_strip);
+
+		zTransform targetFromFrames(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ);
+
+		void addSafeTargets(vector<zTransform>& targets_strip, float multiplication);
+
+		vector<zTransform> computeSafeTargets(zTransform& target, float multiplication);
+
 	};
 }
 
