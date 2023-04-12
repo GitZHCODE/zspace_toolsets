@@ -173,6 +173,49 @@ namespace zSpace
 	/** @}*/
 
 	/** @}*/
+
+	struct zFabObj
+	{
+		vector<zObjMesh> fabMeshes;
+		zObjMesh bbox;
+
+		int id = -1;
+		double vel_work = 0.004;
+		double vel_travel = 0.1;
+		double zone = 0.002;
+		//vector<zTransform> targets;
+
+		zTransform world_base = zTransform::Identity();
+		zTransform fabrication_base = zTransform::Identity();
+		zTransform robot_home = zTransform::Identity();
+	};
+
+
+	/** \addtogroup zToolsets
+	*	\brief Collection of toolsets for applications.
+	*  @{
+	*/
+
+	/** \addtogroup zTsDigiFab
+	*	\brief toolsets for digital fabrication related utilities.
+	*  @{
+	*/
+
+	/** \addtogroup zInverseKinematics
+	*	\brief toolsets for inverse kinematics chain.
+	*  @{
+	*/
+
+	/*! \struct zFabObj
+	*	\brief A struct to store fabrication object related data.
+	*	\since version 0.0.2
+	*/
+
+	/** @}*/
+
+	/** @}*/
+
+	/** @}*/
 	class  ZSPACE_TOOLSETS zLink
 	{
 	public:
@@ -272,10 +315,10 @@ namespace zSpace
 		//--------------------------
 
 		/*!	\brief pointer container to joint mesh objects  */
-		vector<zObjMesh*> jointMeshObjs;
+		vector<zObjMesh> o_jointMeshes;
 
 		/*!	\brief pointer to joint graph object  */
-		zObjGraph *jointGraphObj;
+		zObjGraph o_jointGraph;
 
 		//--------------------------
 		//---- ATTRIBUTES
@@ -307,26 +350,16 @@ namespace zSpace
 		vector<zGCode> robot_gCode;
 
 		//--------------------------
-		//---- FAB MESH
+		//---- FABRICATION MESHES
 		//--------------------------
 
-
-		/*!	\brief pointer container to joint mesh objects  */
-		vector<zObjMesh> fabMeshObjs;
-
-		/*!	\brief pointer container to joint mesh objects  */
-		zPointArray fabMeshBbox;
+		/*!	\brief contatiner of fabrication object  */
+		zFabObj o_fabObj;
 
 	public:
 		//--------------------------
 		//---- PUBLIC ATTRIBUTES
 		//--------------------------		
-
-		/*!	\brief container of joint mesh function set  */
-		vector<zFnMesh> fnMeshJoints;
-
-		/*!	\brief joint graph function set  */
-		zFnGraph fnGraphJoint;
 
 		/*!	\brief contatiner of robot joint rotations  */
 		vector<zJointRotation> jointRotations;
@@ -340,11 +373,10 @@ namespace zSpace
 		/*!	\brief contatiner of robot target transforms  */
 		vector<zTransform> robotTargets;
 
-		/*!	\brief contatiner of robot home target transforms  */
-		zTransform robotHome;
+		/*!	\brief contatiner of robot target types  */
+		vector<int> robotTargetTypes;
 
-		/*!	\brief contatiner of work base transformation  */
-		zTransform workBase;
+
 
 
 		//--------------------------
@@ -357,13 +389,6 @@ namespace zSpace
 		*/
 		zTsRobot();
 
-		/*! \brief Overloaded constructor.
-		*
-		*	\param		[in]	_jointGraphObj			- input joint graph object.
-		*	\param		[in]	_jointMeshObjs			- input container of joint mesh objects.
-		*	\since version 0.0.2
-		*/
-		zTsRobot(zObjGraph &_jointGraphObj, vector<zObjMesh> &_jointMeshObjs);
 
 		//--------------------------
 		//---- DESTRUCTOR
@@ -398,13 +423,21 @@ namespace zSpace
 		void createRobotfromFile(string path, zFileTpye type);
 
 
-		/*! \brief This method creates the robot from the input file.
+		/*! \brief This method creates the robot meshes from the input directory.
 		*
 		*	\param [in]		directory		- input file directory path.
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
 		void createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector = false);
+
+		/*! \brief This method exports the robot meshes at local position to the the input directory.
+		*
+		*	\param [in]		directory		- input file directory path.
+		*	\param [in]		type			- type of file to be imported.
+		*	\since version 0.0.2
+		*/
+		void exportRobotJointMeshes_local(string directory, zFileTpye type);
 
 		/*! \brief This method creates the robot targets from the input file.
 		*
@@ -424,12 +457,19 @@ namespace zSpace
 		*/
 		void addTarget(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ);
 
-		/*! \brief This method create a new target from input position and rotations vectors.
+		/*! \brief This method create a new target from input transformation matrix.
 		*
-		*	\param [in]		_transform		- target as matrix4.
+		*	\param [in]		_target		- target as matrix4.
 		*	\since version 0.0.2
 		*/
-		void addTarget(zTransform& _transform);
+		void addTarget(zTransform& _target);
+
+		/*! \brief This method passes targets from input list of transformation matrix.
+		*
+		*	\param [in]		_targets	- targets as list of matrix4.
+		*	\since version 0.0.2
+		*/
+		void addTargets(vector<zTransform>& _targets);
 
 		//--------------------------
 		//---- SET METHODS
@@ -448,6 +488,48 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		void setEndEffector(zTransform &EE);
+
+		/*! \brief This method set the fabrication workbase matrix.
+		*
+		*	\param [in]		_workbase			- input workbase matrix.
+		*	\since version 0.0.2
+		*/
+		void setFabricationWorkbase(zTransform& _workbase);
+
+		/*! \brief This method set the fabrication robot home matrix.
+		*
+		*	\param [in]		_home			- input home matrix.
+		*	\since version 0.0.2
+		*/
+		void setFabricationRobotHome(zTransform& _home);
+
+
+		//--------------------------
+		//---- GET METHODS
+		//--------------------------
+
+		/*! \brief This method gets the raw robot meshes
+		*
+		*	\param		[out]	numMeshes				- output number of meshes.
+		*	\return				zObjMeshPointerArray	- pointer conatiner of meshes if they exist.
+		*	\since version 0.0.2
+		*/
+		zObjMeshPointerArray getRawRobotMeshes(int& numMeshes);
+
+		/*! \brief This method gets pointer to the internal joint graph object.
+		*
+		*	\return				zObjGraph*					- pointer to internal graph object.
+		*	\since version 0.0.4
+		*/
+		zObjGraph* getRawRobotGraph();
+
+		/*! \brief This method gets the raw fabrication meshes
+		*
+		*	\param		[out]	numMeshes				- output number of meshes.
+		*	\return				zObjMeshPointerArray	- pointer conatiner of meshes if they exist.
+		*	\since version 0.0.2
+		*/
+		zObjMeshPointerArray getRawFabricationMeshes(int& numMeshes);
 
 		//--------------------------
 		//----KINMATICS METHODS
@@ -517,6 +599,10 @@ namespace zSpace
 		*/
 		void gCode_to(string directoryPath, zRobotType type);
 
+		//--------------------------
+		//----FABRICATION MESH METHODS
+		//--------------------------
+
 		/*! \brief This method creates the fabrication mesh from the input file.
 		*
 		*	\param [in]		directory		- input file directory path.
@@ -525,11 +611,35 @@ namespace zSpace
 		*/
 		void createFabMeshesfromFile(string directory, zFileTpye fileType);
 
+		/*! \brief This method returns the joint transformation matrix for all targets.
+		*
+		*	\param [in]		directory		- input file directory path.
+		*	\param [in]		type			- type of file to be exported.
+		*	\param [in]		EE				- include EE transformation
+		*	\since version 0.0.2
+		*/
+		void jMatrix_to(string directoryPath, zFileTpye fileType);
+
+
 		/*! \brief This method creates the targets from the fabrication mesh.
 		*
 		*	\since version 0.0.2
 		*/
-		virtual void computeTargets() = 0;
+		void computeTargets() ;
+
+		/*! \brief This method computes the bounding box of fabrication mesh.
+		*
+		*	\since version 0.0.2
+		*/
+
+		void computeFabMeshBbox();
+
+		/*! \brief This method returns the fab mesh bounding box.
+		*
+		*	\since version 0.0.4
+		*/
+		void getFabBbox(zObjMesh& _fabMesh);
+
 
 
 	protected:
@@ -545,6 +655,13 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		void update_robotJointGraph();
+
+		/*! \brief This method transform fabrication meshes to fabrication work base.
+		*
+		*	\param [in]		_workbase			- input workbase matrix.
+		*	\since version 0.0.2
+		*/
+		void toWorkBase();
 
 		//--------------------------
 		//---- FACTORY METHODS
@@ -569,7 +686,7 @@ namespace zSpace
 		*	\param [in]		infilename			- input file name including the directory path and extension.
 		*	\since version 0.0.2
 		*/
-		void toABBGcode(string infilename);
+		void toABBGcode(string infilename, zRobotMoveType moveType);
 
 		/*! \brief This method exports robot gcode for a NACHI MZ07 robot.
 		*
