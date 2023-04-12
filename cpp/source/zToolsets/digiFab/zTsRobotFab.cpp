@@ -77,6 +77,8 @@ namespace zSpace
 
 	ZSPACE_INLINE void zTsRHWC::computeGcode()
 	{
+		robotTargetReachabilities.clear();
+
 		for (int i = 0; i < robotTargets.size(); i++)
 		{
 			zPoint pos = zVector(robotTargets[i](3, 0), robotTargets[i](3, 1), robotTargets[i](3, 2));
@@ -85,7 +87,17 @@ namespace zSpace
 
 			setTarget(robotTargets[i]);
 			inverseKinematics();
-			gCode_store(pos, vel, moveType, zEEOn);
+
+			if (inReach)
+			{
+				gCode_store(pos, vel, moveType, zEEOn);
+				robotTargetReachabilities.push_back(inReach);
+			}
+			else
+			{
+				robotTargetReachabilities.push_back(inReach);
+
+			}
 		}
 	}
 

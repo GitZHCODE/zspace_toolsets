@@ -405,6 +405,12 @@ namespace zSpace
 
 	//----KINMATICS METHODS
 
+	ZSPACE_TOOLSETS_INLINE vector<bool> zTsRobot::getTargetReachabilities()
+	{
+		return robotTargetReachabilities;
+	}
+
+
 	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTsRobot::getRawRobotMeshes(int& numMeshes)
 	{
 		zObjMeshPointerArray out;
@@ -496,6 +502,10 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::inverseKinematics()
 	{
+		inReach = true;
+		// temporary J rotations
+		vector<zJointRotation> temp_rotations = jointRotations;
+
 		// compute target for joint 6
 		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
 
@@ -531,10 +541,28 @@ namespace zSpace
 		double dq2 = atan2(Bars[2].linkDH.a, Bars[3].linkDH.d);
 		jointRotations[2].rotation = (((th2 + dq2) * RAD_TO_DEG) - 90 /*- home_rotations[2]*/) * 1;
 
+		//check reachability
+		for (int i = 0; i < DOF - 3; i++)
+		{
+			if (jointRotations[i].rotation < jointRotations[i].minimum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+			else if (jointRotations[i].rotation > jointRotations[i].maximum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+		}
 
 
 		// SET FORWARD
+
 		forwardKinematics();
+
 
 
 		// SOLVE LAST 3 ANGLES
@@ -551,6 +579,24 @@ namespace zSpace
 		jointRotations[3].rotation = (th3 * RAD_TO_DEG);
 		jointRotations[4].rotation = (th4 * RAD_TO_DEG);
 		jointRotations[5].rotation = (th5 * RAD_TO_DEG - 180);
+
+		//check reachability
+		for (int i = 3; i < DOF; i++)
+		{
+			if (jointRotations[i].rotation < jointRotations[i].minimum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+			else if (jointRotations[i].rotation > jointRotations[i].maximum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+		}
+
 
 		// SET FORWARD
 		forwardKinematics();

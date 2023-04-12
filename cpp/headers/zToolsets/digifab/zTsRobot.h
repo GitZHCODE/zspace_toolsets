@@ -376,6 +376,12 @@ namespace zSpace
 		/*!	\brief contatiner of robot target types  */
 		vector<int> robotTargetTypes;
 
+		/*!	\brief contatiner of robot target types  */
+		vector<bool> robotTargetReachabilities;
+
+		/*!	\brief contatiner of robot target reachability  */
+		bool inReach = true;
+
 
 
 
@@ -522,6 +528,13 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		zObjGraph* getRawRobotGraph();
+
+		/*! \brief This method gets the bool vector to the target reachabilities.
+		*
+		*	\return				vector<bool>				- true in reach/ false out of reach.
+		*	\since version 0.0.4
+		*/
+		vector<bool> getTargetReachabilities();
 
 		/*! \brief This method gets the raw fabrication meshes
 		*
