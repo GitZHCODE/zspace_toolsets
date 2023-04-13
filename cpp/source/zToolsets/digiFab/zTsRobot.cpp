@@ -379,6 +379,11 @@ namespace zSpace
 		robotTargets.push_back(_target);
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::addTargets(vector<zTransform>& _targets)
+	{
+		robotTargets.insert(robotTargets.end(), _targets.begin(),_targets.end());
+	}
+
 	//---- SET METHODS
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setBase(zTransform& base)
@@ -408,20 +413,21 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setFabricationWorkbase(zTransform& _workbase)
 	{
-		fabrication_workBase = _workbase;
+		o_fabObj.fabrication_base = _workbase;
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setFabricationRobotHome(zTransform& _home)
 	{
-		fabrication_robotHome = _home;
+		o_fabObj.robot_home = _home;
 	}
 
 	//----KINMATICS METHODS
 
-	ZSPACE_TOOLSETS_INLINE zTransform zTsRobot::getTarget()
+	ZSPACE_TOOLSETS_INLINE vector<bool> zTsRobot::getTargetReachabilities()
 	{
-		return robot_target_matrix;
+		return robotTargetReachabilities;
 	}
+
 
 	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTsRobot::getRawRobotMeshes(int& numMeshes)
 	{
@@ -450,11 +456,11 @@ namespace zSpace
 		zObjMeshPointerArray out;
 		numMeshes = 0;
 
-		numMeshes = o_FabricationMeshes.size();
+		numMeshes = o_fabObj.fabMeshes.size();
 
 		if (numMeshes == 0)return out;
 
-		for (auto& mesh : o_FabricationMeshes)
+		for (auto& mesh : o_fabObj.fabMeshes)
 		{
 			out.push_back(&mesh);
 		}
@@ -516,6 +522,10 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::inverseKinematics()
 	{
+		inReach = true;
+		// temporary J rotations
+		vector<zJointRotation> temp_rotations = jointRotations;
+
 		// compute target for joint 6
 		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
 
@@ -553,10 +563,28 @@ namespace zSpace
 		double dq2 = atan2(Bars[2].linkDH.a, Bars[3].linkDH.d);
 		jointRotations[2].rotation = (((th2 + dq2) * RAD_TO_DEG) - 90 /*- home_rotations[2]*/) * 1;
 
+		//check reachability
+		for (int i = 0; i < DOF - 3; i++)
+		{
+			if (jointRotations[i].rotation < jointRotations[i].minimum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+			else if (jointRotations[i].rotation > jointRotations[i].maximum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+		}
 
 
 		// SET FORWARD
+
 		forwardKinematics();
+
 
 
 		// SOLVE LAST 3 ANGLES
@@ -573,6 +601,24 @@ namespace zSpace
 		jointRotations[3].rotation = (th3 * RAD_TO_DEG);
 		jointRotations[4].rotation = (th4 * RAD_TO_DEG);
 		jointRotations[5].rotation = (th5 * RAD_TO_DEG - 180);
+
+		//check reachability
+		for (int i = 3; i < DOF; i++)
+		{
+			if (jointRotations[i].rotation < jointRotations[i].minimum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+			else if (jointRotations[i].rotation > jointRotations[i].maximum)
+			{
+				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				jointRotations[i].rotation = temp_rotations[i].rotation;
+				inReach = false;
+			}
+		}
+
 
 		// SET FORWARD
 		forwardKinematics();
@@ -685,7 +731,8 @@ namespace zSpace
 		inGCode.moveType = moveType;
 		inGCode.endEffectorControl = endEffectorControl;
 
-		zTransform TCP = robotJointTransforms[DOF - 1] * robot_endEffector_matrix;
+		//zTransform TCP = robotJointTransforms[DOF - 1] * robot_endEffector_matrix;
+		zTransform TCP = robotJointTransforms[DOF - 1];
 
 		inGCode.robotTCP_position = zVector(TCP(0, 3), TCP(1, 3), TCP(2, 3));
 		inGCode.target_position = target_position;
@@ -724,8 +771,8 @@ namespace zSpace
 		if (type == zRobotABB)
 		{
 			string filename = directoryPath;
-			filename.append("/ABB_GCode.prg");
-			toABBGcode(filename);
+			filename.append("/ABB_GCode.mod");
+			toABBGcode(filename, zMoveLinear);
 		}
 
 		if (type == zRobotNachi)
@@ -736,31 +783,93 @@ namespace zSpace
 		}
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::jMatrix_to(string directoryPath, zFileTpye fileType)
+	{
+		string filename = directoryPath;
+		if(fileType == zTXT)
+		filename.append("/jointMatrix.txt");
+		std::ofstream myfile(filename);
+
+		cout << endl;
+
+		for (int i = 0; i < robotTargets.size(); i++)
+		{
+			setTarget(robotTargets[i]);
+			inverseKinematics();
+			cout << "target" << i << ":" << endl << robotTargets[i] << endl;
+
+			for (int j = 0; j < DOF; j++)
+			{
+				Matrix4f out(robotMesh_transforms[j].data());
+
+				//myfile << *out.data() << ',';
+
+				for (int row = 0; row < out.rows(); row++) {
+					for (int col = 0; col < out.cols(); col++) {
+						myfile << out(row, col);
+							myfile << ",";
+					}
+					myfile << "\n";
+				}
+
+				cout << "joint" << j << ":" << endl << out << endl;
+				cout << "-----------------------" << endl;
+
+			}
+			
+		}
+		myfile.close();
+
+	}
+
+
 	//---- FAB MESH METHODS
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
 	{
-		o_FabricationMeshes.clear();
-		fabMeshBbox.clear();
-
 		vector<string> fabFiles;
 
 		if (fileType == zJSON || fileType == zOBJ)
 		{
 			coreUtils.getFilesFromDirectory(fabFiles, directory, fileType);
 			int n_fabFiles = coreUtils.getNumfiles_Type(directory, fileType);
-			o_FabricationMeshes.assign(n_fabFiles, zObjMesh());
+			o_fabObj.fabMeshes.assign(n_fabFiles, zObjMesh());
 
 			if (fileType == zJSON)
 			{
 
 				for (int i = 0; i < n_fabFiles; i++)
 				{
-					zFnMesh fnMesh(o_FabricationMeshes[i]);
+					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
 					fnMesh.from(fabFiles[i], zJSON, true);
-					fnMesh.setTransform(fabrication_workBase);
 				}
 
+				json j;
+				bool fileChk = coreUtils.readJSON(fabFiles[0], j);
+				if (!fileChk) return;
+				else 
+				{
+					auto worldBaseIt = j.find("WorldBase");
+					auto fabBaseIt = j.find("FabBase");
+
+					if (worldBaseIt != j.end() && fabBaseIt != j.end())
+					{
+						vector<float> worldBase = worldBaseIt->get<vector<float>>();
+						vector<float> fabBase = fabBaseIt->get<vector<float>>();
+
+						//vector<float> worldBase = j["WorldBase"].get<vector<float>>();
+						//vector<float> fabBase = j["FabBase"].get<vector<float>>();
+
+						for (int row = 0; row < 4; ++row)
+						{
+							for (int col = 0; col < 4; ++col)
+							{
+								o_fabObj.world_base(row, col) = worldBase[row * 4 + col];
+								o_fabObj.fabrication_base(row, col) = fabBase[row * 4 + col];
+							}
+						}
+					}
+				}
 			}
 
 			else if (fileType == zOBJ)
@@ -768,15 +877,15 @@ namespace zSpace
 
 				for (int i = 0; i < n_fabFiles; i++)
 				{
-					zFnMesh fnMesh(o_FabricationMeshes[i]);
+					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
 					fnMesh.from(fabFiles[i], zOBJ, true);
-					fnMesh.setTransform(fabrication_workBase);
 				}
 			}
 		}	
 
 		else throw std::invalid_argument(" error: invalid zFileTpye type");
 
+		computeFabMeshBbox();
 
 	}
 
@@ -784,6 +893,73 @@ namespace zSpace
 	{
 
 	}
+
+	ZSPACE_INLINE void zTsRobot::computeFabMeshBbox()
+	{
+		zFnMesh fnMeshBbox(o_fabObj.bbox);
+		fnMeshBbox.clear();
+
+		zObjPointCloud temp;
+		zFnPointCloud fnCloud(temp);
+		zPoint min, max;
+
+		for (auto& cutMesh : o_fabObj.fabMeshes)
+		{
+			zFnMesh fnMesh(cutMesh);
+			zPointArray vertices;
+			fnMesh.getVertexPositions(vertices);
+			fnCloud.addPositions(vertices);
+		}
+
+		fnCloud.getBounds(min, max);
+
+		zPointArray positions;
+		zIntArray pConnects, pCounts;
+
+		positions.assign(8, zPoint());
+		positions[0] = zPoint(min.x, min.y, min.z); positions[1] = zPoint(max.x, min.y, min.z);
+		positions[2] = zPoint(max.x, max.y, min.z); positions[3] = zPoint(min.x, max.y, min.z);
+		positions[4] = zPoint(min.x, min.y, max.z); positions[5] = zPoint(max.x, min.y, max.z);
+		positions[6] = zPoint(max.x, max.y, max.z); positions[7] = zPoint(min.x, max.y, max.z);
+
+		pConnects = { 0,1,5,4,1,2,6,5,2,3,7,6,3,0,4,7,0,1,2,3,4,5,6,7 };
+		pCounts = { 4,4,4,4,4,4 };
+		
+		fnMeshBbox.create(positions, pCounts, pConnects);
+	}
+
+	ZSPACE_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
+	{
+		_fabMesh = o_fabObj.bbox;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::toWorkBase()
+	{
+		//transform mesh
+		zTransform mat_toWorkBase = coreUtils.PlanetoPlane(o_fabObj.world_base, o_fabObj.fabrication_base);
+		
+		zTransformationMatrix from, to;
+		from.setTransform(o_fabObj.world_base);
+		to.setTransform(o_fabObj.fabrication_base);
+		zTransform transform = from.getToMatrix(to).transpose();
+
+		//cout << endl << "from:" << endl << from.asMatrix() << endl;
+		//cout << endl << "to:" << endl << to.asMatrix() << endl;
+		//cout << endl << "transform:" << endl << transform << endl;
+
+		for (auto& fabMesh : o_fabObj.fabMeshes)
+		{
+			zFnMesh fnFabMesh(fabMesh);
+			fnFabMesh.setTransform(transform);
+		}
+
+
+		//transform bbox
+		zFnMesh fnMeshBbox(o_fabObj.bbox);
+		fnMeshBbox.setTransform(transform);
+
+	}
+
 
 	//----PROTECTED METHODS
 
@@ -837,6 +1013,8 @@ namespace zSpace
 		}
 		
 	}
+
+
 
 	//---- PROTECTED FACTORY METHODS
 
@@ -1019,7 +1197,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::toABBGcode(string infilename)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::toABBGcode(string infilename, zRobotMoveType moveType)
 	{
 		printf(" ----------- writing \n ");
 
@@ -1044,7 +1222,37 @@ namespace zSpace
 
 		// constant variable for home position
 		myfile << "\n !Constant for the joint calibrate position \n ";
-		myfile << "\n CONST jointtarget calib_pos := [[0, 0, 0, 0, 0, 0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
+		//myfile << "\n CONST jointtarget calib_pos := [[0, 0, 0, 0, 90.0, -180.0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
+		myfile << "\n CONST jointtarget calib_pos := [[-25, 0, 0, 0, 90.0, 150], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
+
+
+		// EE data
+		// Convert the matrix to a quaternion
+		//zTransform TCP = robotJointTransforms[DOF - 1] * robot_endEffector_matrix;
+		//zTransform relative = TCP.transpose();
+
+		//cout << endl << "robot_endEffector_matrix" << endl << relative << endl;
+		Eigen::Affine3f ee_affine(robot_endEffector_matrix.transpose());
+		Eigen::Quaternionf ee_q(ee_affine.linear());
+
+		myfile << "\n PERS tooldata zHWC := [TRUE, [";
+		myfile << "[" +
+			//to_string(robot_endEffector_matrix.transpose()(3, 0) * 1000) + "," +
+			//to_string(robot_endEffector_matrix.transpose()(3, 1) * 1000) + "," +
+			//to_string(robot_endEffector_matrix.transpose()(3, 2) * 1000)
+			to_string(0) + "," +
+			to_string(0) + "," +
+			to_string(994)
+			+ "],";
+
+		myfile << "[1, 0, 0, 0]], [5, [0, 0, 1],";
+		myfile << "[" +
+			to_string(ee_q.coeffs().transpose().w()) + "," +
+			to_string(ee_q.coeffs().transpose().x()) + "," +
+			to_string(ee_q.coeffs().transpose().y()) + "," +
+			to_string(ee_q.coeffs().transpose().z())
+			+ "],0,0,0]]; \n";
+
 
 		// PROCEDURE Main
 		myfile << "\n PROC Main() \n ";
@@ -1075,34 +1283,82 @@ namespace zSpace
 
 		myfile << "\n ENDPROC \n ";
 
-		// PROCEDURE mv_Custom
-		myfile << "\n PROC mv_Custom() \n ";
-		myfile << "\n  CONST num count := " << robot_gCode.size() << ";";
-
-		myfile << "\n  CONST jointtarget poses {count} := ";
-		myfile << "\n [ ";
-
-		for (int i = 0; i < robot_gCode.size(); i++)
+		if (moveType == zMoveJoint)
 		{
+			// PROCEDURE mv_Custom
+			myfile << "\n PROC mv_Custom() \n ";
+			myfile << "\n  CONST num count := " << robot_gCode.size() << ";";
 
-			myfile << "\n  [[  ";
+			myfile << "\n  CONST jointtarget poses {count} := ";
+			myfile << "\n [ ";
 
-			for (int j = 0; j < DOF; j++)
+			for (int i = 0; i < robot_gCode.size(); i++)
 			{
-				myfile << to_string(robot_gCode[i].rotations[j].rotation + robot_gCode[i].rotations[j].offset);
-				if (j < DOF - 1) myfile << ", ";
+
+				myfile << "\n  [[  ";
+
+				for (int j = 0; j < DOF; j++)
+				{
+					myfile << to_string(robot_gCode[i].rotations[j].rotation + robot_gCode[i].rotations[j].offset);
+					if (j < DOF - 1) myfile << ", ";
+				}
+
+				myfile << "], [0, 9E9, 9E9, 9E9, 9E9, 9E9]] ";
+
+				if (i != robot_gCode.size() - 1) myfile << ",";
 			}
 
-			myfile << "], [0, 9E9, 9E9, 9E9, 9E9, 9E9]] ";
+			myfile << "\n ]; ";
 
-			if (i != robot_gCode.size() - 1) myfile << ",";
+			myfile << "\n FOR i FROM 1 TO count DO ";
+			myfile << "\n MoveAbsJ poses{i}, v100, z10, HWC\\WObj:=wobj0;";
+			myfile << "\n ENDFOR";
 		}
 
-		myfile << "\n ]; ";
+		else if (moveType == zMoveLinear)
+		{
+			// PROCEDURE mv_Custom
+			myfile << "\n PROC mv_Custom() \n ";
 
-		myfile << "\n FOR i FROM 1 TO count DO ";
-		myfile << "\n MoveAbsJ poses{i}, v100, z10, tool0;";
-		myfile << "\n ENDFOR";
+			// targets
+			myfile << "\n  CONST num count := " << robot_gCode.size() << ";";
+			myfile << "\n  CONST robtarget poses {count} := ";
+			myfile << "\n [ ";
+
+			for (int i = 0; i < robotTargets.size(); i++)
+			{
+
+				myfile << "\n  [[";
+
+				// Convert the matrix to a quaternion
+				Eigen::Affine3f t_affine(robotTargets[i]);
+				Eigen::Quaternionf t_q(t_affine.linear());
+
+				// Print the quaternion
+				  myfile << to_string(robotTargets[i](3, 0) * 1000) + "," +
+							to_string(robotTargets[i](3, 1) * 1000) + "," +
+							to_string(robotTargets[i](3, 2) * 1000);
+
+				myfile << "], [";
+
+				  myfile << to_string(t_q.coeffs().transpose().w()) + "," +
+							to_string(t_q.coeffs().transpose().x()) + "," +
+							to_string(t_q.coeffs().transpose().y()) + "," +
+							to_string(t_q.coeffs().transpose().z());
+					
+				myfile << "], [0, 0, 0, 0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]] ";
+
+				if (i != robot_gCode.size() - 1) myfile << ",";
+			}
+
+			myfile << "\n ]; ";
+
+			myfile << "\n FOR i FROM 1 TO count DO ";
+			myfile << "\n MoveL poses{i}, v100, z10, zHWC\\WObj:=wobj0;";
+
+			myfile << "\n ENDFOR";
+		}
+		
 
 		/*for (int i = 0; i < robot_gCode.size(); i++)
 		{
