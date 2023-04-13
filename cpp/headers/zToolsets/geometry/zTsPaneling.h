@@ -149,7 +149,7 @@ namespace zSpace
 	*	\param		[in]	x			- input x.
 	*	\since version 0.0.4
 	*/
-		void  computeType();
+		void  computeType(float planarityDeviation);
 
 		/*! \brief This method returns the curvature type of a panel.
 		*
@@ -309,7 +309,7 @@ namespace zSpace
 		*	\param		[in]	x			- input x.
 		*	\since version 0.0.4
 		*/
-		void computePanelType();
+		void computePanelType(float planarityDeviation);
 
 		//--------------------------
 		//---- EXPORT METHODS

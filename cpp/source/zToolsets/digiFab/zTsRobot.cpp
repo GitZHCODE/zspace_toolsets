@@ -86,8 +86,12 @@ namespace zSpace
 
 			robotJointTransforms.push_back(zTransform(4, 4));
 			robotMesh_transforms.push_back(zTransform(4, 4));
+
+			robotMesh_transforms_prev.push_back(zTransform(4, 4));
 		}
 			
+		robot_base_matrix.setIdentity();
+		robot_endEffector_matrix.setIdentity();
 	}
 
 	//---- DESTRUCTOR
@@ -377,9 +381,23 @@ namespace zSpace
 
 	//---- SET METHODS
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setBase(zTransform& base)
+	{
+		robot_base_matrix = base.transpose();			
+	}
+
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setTarget(zTransform &target)
 	{
 		robot_target_matrix = target.transpose();
+
+		// target in new basis of robot base
+		
+		zTransform C_inverse = robot_base_matrix.inverse();
+		zTransform targ_newbasis;
+		targ_newbasis.setIdentity();
+
+		targ_newbasis = C_inverse * robot_target_matrix;
+		robot_target_matrix = targ_newbasis;
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setEndEffector(zTransform &EE)
@@ -399,6 +417,11 @@ namespace zSpace
 	}
 
 	//----KINMATICS METHODS
+
+	ZSPACE_TOOLSETS_INLINE zTransform zTsRobot::getTarget()
+	{
+		return robot_target_matrix;
+	}
 
 	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTsRobot::getRawRobotMeshes(int& numMeshes)
 	{
@@ -458,7 +481,7 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::forwardKinematics(zRobotRotationType rotType)
 	{
-		zVector out;
+		zVector out;		
 
 		if (rotType != zJoint)
 		{
@@ -485,6 +508,8 @@ namespace zSpace
 		computeJoints();
 		out = zVector(robotJointTransforms[DOF - 1](0, 3), robotJointTransforms[DOF - 1](1, 3), robotJointTransforms[DOF - 1](2, 3));
 
+		robot_target_matrix = (robotJointTransforms[DOF - 1] * robot_endEffector_matrix.inverse()).transpose();
+
 		return out;
 
 	}
@@ -493,6 +518,8 @@ namespace zSpace
 	{
 		// compute target for joint 6
 		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
+
+		cout << "\n Target J6 \n " << Target_J6;
 
 		// CALCULATE WRIST CENTER
 		zVector wristC = zVector(Target_J6(0, 3), Target_J6(1, 3), Target_J6(2, 3));
@@ -591,22 +618,62 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setJointMeshTransform(bool updatePositions)
 	{
-		if (o_jointMeshes.size() < DOF) return;
+		if (o_jointMeshes.size() < DOF) return;	
+
+		zTransform groupTransform = robot_base_matrix.transpose();
+		zTransform temp;
+		temp.setIdentity();
 
 		for (int i = 0; i < DOF; i++)
 		{
 			robotMesh_transforms[i] = robotJointTransforms[i].transpose();
 
 			zFnMesh fnMeshJoint(o_jointMeshes[i + 1]);
+
+			if (updatePositions)
+			{
+				fnMeshJoint.setTransform(temp, false, true);
+				fnMeshJoint.setTransform(robotMesh_transforms_prev[i], false, false);
+			}
+			
+			
 			fnMeshJoint.setTransform(robotMesh_transforms[i], false, updatePositions);
+		
+			fnMeshJoint.setTransform(temp, false, false);
+			fnMeshJoint.setTransform(groupTransform, false, true);
 
 			// update EE
 			if (i == DOF - 1)
 			{
 				zFnMesh fnMeshEE(o_jointMeshes[i + 2]);
+
+				if (updatePositions)
+				{
+					fnMeshEE.setTransform(temp, false, true);
+					fnMeshEE.setTransform(robotMesh_transforms_prev[i], false, false);
+				}
+
 				fnMeshEE.setTransform(robotMesh_transforms[i], false, updatePositions);
+
+				fnMeshEE.setTransform(temp, false, false);
+				fnMeshEE.setTransform(groupTransform, false, true);
+
+			}
+
+			// update base
+			if (i == 0)
+			{
+				zFnMesh fnMeshBase(o_jointMeshes[i]);
+				fnMeshBase.setTransform(groupTransform, false, true);
 			}
 		}
+
+		// store into previous transform
+		for (int i = 0; i < DOF; i++)
+		{
+			robotMesh_transforms_prev[i] = robotMesh_transforms[i];
+		}
+		
 	}
 
 	//----GCODE METHODS
@@ -768,6 +835,7 @@ namespace zSpace
 
 			v.setPosition(pos);
 		}
+		
 	}
 
 	//---- PROTECTED FACTORY METHODS

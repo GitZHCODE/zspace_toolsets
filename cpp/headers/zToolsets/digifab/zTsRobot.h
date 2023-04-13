@@ -293,6 +293,9 @@ namespace zSpace
 		/*!	\brief contatiner of robot joint mesh transform  */
 		vector<zTransform> robotMesh_transforms;
 
+		/*!	\brief contatiner of previous robot joint mesh transform  */
+		vector<zTransform> robotMesh_transforms_prev;
+
 		/*!	\brief robot base matrix  */
 		zTransform robot_base_matrix;
 
@@ -433,28 +436,35 @@ namespace zSpace
 		//---- SET METHODS
 		//--------------------------
 
-		/*! \brief This method set the robot target matrix.
+		/*! \brief This method sets the robot base matrix.
+		*
+		*	\param [in]		base			- input base matrix.
+		*	\since version 0.0.2
+		*/
+		void setBase(zTransform& base);
+
+		/*! \brief This method sets the robot target matrix.
 		*
 		*	\param [in]		target			- input target matrix.	
 		*	\since version 0.0.2
 		*/
 		void setTarget(zTransform &target);
 
-		/*! \brief This method set the robot end effector matrix.
+		/*! \brief This method set sthe robot end effector matrix.
 		*
 		*	\param [in]		EE			- input endeffector matrix.
 		*	\since version 0.0.2
 		*/
 		void setEndEffector(zTransform &EE);
 
-		/*! \brief This method set the fabrication workbase matrix.
+		/*! \brief This method sets the fabrication workbase matrix.
 		*
 		*	\param [in]		_workbase			- input workbase matrix.
 		*	\since version 0.0.2
 		*/
 		void setFabricationWorkbase(zTransform& _workbase);
 
-		/*! \brief This method set the fabrication robot home matrix.
+		/*! \brief This method sets the fabrication robot home matrix.
 		*
 		*	\param [in]		_home			- input home matrix.
 		*	\since version 0.0.2
@@ -464,6 +474,13 @@ namespace zSpace
 		//--------------------------
 		//---- GET METHODS
 		//--------------------------
+
+		/*! \brief This method gets the robot target matrix.
+		*
+		*	\return			zTransform			- output target matrix.
+		*	\since version 0.0.2
+		*/
+		zTransform getTarget();
 
 		/*! \brief This method gets the raw robot meshes
 		*

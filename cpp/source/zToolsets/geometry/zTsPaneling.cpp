@@ -111,45 +111,45 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_INLINE void zPanel::computeType()
+	ZSPACE_INLINE void zPanel::computeType(float planarityDeviation)
 	{
 		//curvature compute types
 		//based on k1 & k2 value of center vertex
 		
-		if (isPanelPlanar())
+		if (isPanelPlanar(planarityDeviation))
 		{
 			panelType = zPlanar;
-			printf("\n %s", "zPlanar");
+			//printf("\n %s", "zPlanar");
 		}
-		else if (isPanelConcaveEllipsoid())
-		{
-			panelType = zConcaveEllipsoid;
-			printf("\n %s ", "zConcaveEllipsoid");
-		}
-		else if (isPanelConcaveCylinder())
-		{
-			panelType = zConcaveCylinder;
-			printf("\n %s ", "zConcaveCylinder");
-		}
-		else if (isPanelHyperboloid())
-		{
-			panelType = zHyperboloid;
-			printf("\n %s ", "zHyperboloid");
-		}
-		else if (isPanelConvexCylinder())
-		{
-			panelType = zConvexCylinder;
-			printf("\n %s ", "zConvexCylinder");
-		}
-		else if (isPanelConvexEllipsoid())
-		{
-			panelType = zConvexEllipsoid;
-			printf("\n %s ", "zConvexEllipsoid");
-		}
+		//else if (isPanelConcaveEllipsoid())
+		//{
+		//	panelType = zConcaveEllipsoid;
+		//	//printf("\n %s ", "zConcaveEllipsoid");
+		//}
+		//else if (isPanelConcaveCylinder())
+		//{
+		//	panelType = zConcaveCylinder;
+		//	//printf("\n %s ", "zConcaveCylinder");
+		//}
+		//else if (isPanelHyperboloid())
+		//{
+		//	panelType = zHyperboloid;
+		//	//printf("\n %s ", "zHyperboloid");
+		//}
+		//else if (isPanelConvexCylinder())
+		//{
+		//	panelType = zConvexCylinder;
+		//	//printf("\n %s ", "zConvexCylinder");
+		//}
+		//else if (isPanelConvexEllipsoid())
+		//{
+		//	panelType = zConvexEllipsoid;
+		//	//printf("\n %s ", "zConvexEllipsoid");
+		//}
 		else
 		{
 			panelType = zCustom;
-			printf("\n %s ", "zCustom");
+			//printf("\n %s ", "zCustom");
 		}
 	}
 
@@ -195,22 +195,22 @@ namespace zSpace
 
 		coreUtils.line_lineClosestPoints(cornersPts[0], cornersPts[2], cornersPts[1], cornersPts[3], uA, uB, pA, pB);
 
-		float dist = pA.distanceTo(pCenter);
+		float dist = pA.distanceTo(pB);
 		if (dist > tol) out = false;
 
 		//k1,k2 addition
-		for (zItMeshVertex v(o_panelMesh); !v.end(); v++)
-		{
-			if (!v.onBoundary())
-			{
-				int vID = v.getId();
+		//for (zItMeshVertex v(o_panelMesh); !v.end(); v++)
+		//{
+		//	if (!v.onBoundary())
+		//	{
+		//		int vID = v.getId();
 
-				if (curvature[vID].k1 > tolerance.min && curvature[vID].k2 > tolerance.min && curvature[vID].k1 < tolerance.max && curvature[vID].k2 < tolerance.max) out = true;
+		//		if (curvature[vID].k1 > tolerance.min && curvature[vID].k2 > tolerance.min && curvature[vID].k1 < tolerance.max && curvature[vID].k2 < tolerance.max) out = true;
 
-				printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
+		//		//printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
 
-			}
-		}
+		//	}
+		//}
 
 
 		return out;
@@ -227,7 +227,7 @@ namespace zSpace
 
 				if (curvature[vID].k1 < tolerance.min && curvature[vID].k2 < tolerance.min) out = true;
 
-				printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
+				//printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
 
 			}
 		}
@@ -250,7 +250,7 @@ namespace zSpace
 				/*if (curvature[vID].k1 < 0 && curvature[vID].k2 == 0) out = true;
 				else if (curvature[vID].k1 == 0 && curvature[vID].k2 < 0) out = true;*/
 
-				printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
+				//printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
 			}
 		}
 		return out;
@@ -268,7 +268,7 @@ namespace zSpace
 
 				if (curvature[vID].k1 > tolerance.max && curvature[vID].k2 < tolerance.min) out = true;
 				else if (curvature[vID].k1 < tolerance.min && curvature[vID].k2 > tolerance.max) out = true;
-				printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
+				//printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
 			}
 		}
 		return out;
@@ -287,7 +287,7 @@ namespace zSpace
 				if (curvature[vID].k1 > tolerance.max && (round(curvature[vID].k2) == 0 || round(curvature[vID].k2) == -0)) out = true;
 				else if (curvature[vID].k1< tolerance.max && curvature[vID].k1> tolerance.min && curvature[vID].k2 > tolerance.max) out = true;
 
-				printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
+				//printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
 
 			}
 		}
@@ -306,7 +306,7 @@ namespace zSpace
 
 				if (curvature[vID].k1 > tolerance.max && curvature[vID].k2 > 0) out = true;
 
-				printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
+				//printf("\nk1,k2| %1.4f %1.4f ", curvature[vID].k1, curvature[vID].k2);
 
 			}
 		}
@@ -622,14 +622,14 @@ namespace zSpace
 	}
 
 	//--- COMPUTE METHODS 
-	ZSPACE_INLINE void zTsPaneling::computePanelType()
+	ZSPACE_INLINE void zTsPaneling::computePanelType(float planarityDeviation)
 	{
 		printf("\n %s ", "computing panel type");
 		for (int i = 0; i < panels.size(); i++)
 		{
 			panels[i].computeCurvature();
 			printf("\n %s ", to_string(i));
-			panels[i].computeType();
+			panels[i].computeType(planarityDeviation);
 			panels[i].color_Type();
 		}
 	}
