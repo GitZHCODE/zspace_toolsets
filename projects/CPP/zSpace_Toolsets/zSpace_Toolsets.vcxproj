@@ -56,12 +56,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobotFab.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtGraph.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtKMeans.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtMesh.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtMeshUtility.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtPlane.h" />
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\externalMethods\zExtSDFSlicer.h" />
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsGraphPolyhedra.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -149,12 +143,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\digiFab\zTsRobotFab.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtGraph.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtKMeans.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtMesh.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtMeshUtility.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtPlane.cpp" />
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\externalMethods\zExtSDFSlicer.cpp" />
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsGraphPolyhedra.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
