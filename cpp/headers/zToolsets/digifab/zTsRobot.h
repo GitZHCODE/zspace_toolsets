@@ -642,7 +642,6 @@ namespace zSpace
 		*/
 		void createFabMeshesfromDir(string directory, zFileTpye fileType);
 
-		void createFabMeshesfromFilePath(string directory, zFileTpye fileType);
 		/*! \brief This method returns the joint transformation matrix for all targets.
 		*
 		*	\param [in]		directory		- input file directory path.
