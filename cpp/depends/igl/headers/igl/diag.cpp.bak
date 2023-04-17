@@ -11,7 +11,7 @@
 
 // Bug in unsupported/Eigen/SparseExtra needs iostream first
 #include <iostream>
-#include <Eigen_Unsupported/Eigen/SparseExtra>
+#include <unsupported/Eigen/SparseExtra>
 
 template <typename T>
 IGL_INLINE void igl::diag(

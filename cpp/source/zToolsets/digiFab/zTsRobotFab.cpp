@@ -20,8 +20,9 @@ namespace zSpace
 	
 
 	//---- DESTRUCTOR
-	ZSPACE_INLINE zTsRHWC::~zTsRHWC() {}
+	ZSPACE_TOOLSETS_INLINE zTsRHWC::~zTsRHWC() {}
 
+	zTsRHWC::zTsRHWC(zTsRobot& obj) : zTsRobot(obj) {}
 
 	//--- SET METHODS
 
@@ -35,7 +36,7 @@ namespace zSpace
 
 	//--- COMPUTE METHODS 
 
-	ZSPACE_INLINE void zTsRHWC::computeTargets()
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargets()
 	{
 		toWorkBase();
 		robotTargets.clear();
@@ -48,9 +49,11 @@ namespace zSpace
 		{
 			vector<zTransform> targets_strip;
 
+
 			computeTargetsOnStrip(cutMesh, targets_strip);
 
 			addSafeTargets(targets_strip, 1.2);
+
 			checkTargetNormal(targets_strip);
 
 			addTargets(targets_strip);
@@ -70,12 +73,13 @@ namespace zSpace
 
 		//add home pos
 		addTarget(o_fabObj.robot_home);
+
 		robotTargetTypes.push_back(0);
 
 		//o_fabObj.targets = robotTargets;
 	}
 
-	ZSPACE_INLINE void zTsRHWC::computeGcode()
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeGcode()
 	{
 		robotTargetReachabilities.clear();
 
@@ -104,6 +108,8 @@ namespace zSpace
 
 
 
+
+
 	//--- PRIVATE METHODS 
 
 
@@ -114,7 +120,7 @@ namespace zSpace
 	
 	//---- PROTECTED UTILITY METHODS
 
-	ZSPACE_INLINE void zTsRHWC::computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip)
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip)
 	{
 		zItMeshHalfEdge he(cutMesh, 0);
 		for (he.begin(); !he.end(); he++)

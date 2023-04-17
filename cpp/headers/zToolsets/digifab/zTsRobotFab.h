@@ -71,6 +71,7 @@ namespace zSpace
 		using zTsRobot::zTsRobot;
 
 
+		zTsRHWC(zTsRobot& obj);
 		//--------------------------
 		//---- DESTRUCTOR
 		//--------------------------

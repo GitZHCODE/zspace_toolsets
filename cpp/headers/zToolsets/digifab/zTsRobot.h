@@ -356,13 +356,14 @@ namespace zSpace
 		//---- FABRICATION MESHES
 		//--------------------------
 
-		/*!	\brief contatiner of fabrication object  */
-		zFabObj o_fabObj;
+		
 
 	public:
 		//--------------------------
 		//---- PUBLIC ATTRIBUTES
 		//--------------------------		
+		/*!	\brief contatiner of fabrication object  */
+		zFabObj o_fabObj;
 
 		/*!	\brief contatiner of robot joint rotations  */
 		vector<zJointRotation> jointRotations;
@@ -639,8 +640,9 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createFabMeshesfromFile(string directory, zFileTpye fileType);
+		void createFabMeshesfromDir(string directory, zFileTpye fileType);
 
+		void createFabMeshesfromFilePath(string directory, zFileTpye fileType);
 		/*! \brief This method returns the joint transformation matrix for all targets.
 		*
 		*	\param [in]		directory		- input file directory path.

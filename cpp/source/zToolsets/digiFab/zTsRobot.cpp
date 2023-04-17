@@ -144,13 +144,9 @@ namespace zSpace
 		if (type == zJSON)
 		{
 			fromJSON(path);
-
 			createRobotJointGraph();
-
 			computeJoints();
-
 			forwardKinematics(zJointHome);
-
 			setJointMeshTransform(false);
 		}
 		else throw std::invalid_argument(" invalid file type.");
@@ -825,7 +821,7 @@ namespace zSpace
 
 	//---- FAB MESH METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromDir(string directory, zFileTpye fileType)
 	{
 		vector<string> fabFiles;
 
@@ -889,12 +885,79 @@ namespace zSpace
 
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFilePath(string file)
+	{
+		vector<string> fabFiles;
+
+
+
+		if (fileType == zJSON || fileType == zOBJ)
+		{
+			coreUtils.getFilesFromDirectory(fabFiles, directory, fileType);
+			int n_fabFiles = coreUtils.getNumfiles_Type(directory, fileType);
+			o_fabObj.fabMeshes.assign(n_fabFiles, zObjMesh());
+
+			if (fileType == zJSON)
+			{
+
+				for (int i = 0; i < n_fabFiles; i++)
+				{
+					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
+					fnMesh.from(fabFiles[i], zJSON, true);
+				}
+
+				json j;
+				bool fileChk = coreUtils.readJSON(fabFiles[0], j);
+				if (!fileChk) return;
+				else
+				{
+					auto worldBaseIt = j.find("WorldBase");
+					auto fabBaseIt = j.find("FabBase");
+
+					if (worldBaseIt != j.end() && fabBaseIt != j.end())
+					{
+						vector<float> worldBase = worldBaseIt->get<vector<float>>();
+						vector<float> fabBase = fabBaseIt->get<vector<float>>();
+
+						//vector<float> worldBase = j["WorldBase"].get<vector<float>>();
+						//vector<float> fabBase = j["FabBase"].get<vector<float>>();
+
+						for (int row = 0; row < 4; ++row)
+						{
+							for (int col = 0; col < 4; ++col)
+							{
+								o_fabObj.world_base(row, col) = worldBase[row * 4 + col];
+								o_fabObj.fabrication_base(row, col) = fabBase[row * 4 + col];
+							}
+						}
+					}
+				}
+			}
+
+			else if (fileType == zOBJ)
+			{
+
+				for (int i = 0; i < n_fabFiles; i++)
+				{
+					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
+					fnMesh.from(fabFiles[i], zOBJ, true);
+				}
+			}
+		}
+
+		else throw std::invalid_argument(" error: invalid zFileTpye type");
+
+		computeFabMeshBbox();
+
+	}
+
+
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeTargets()
 	{
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::computeFabMeshBbox()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeFabMeshBbox()
 	{
 		zFnMesh fnMeshBbox(o_fabObj.bbox);
 		fnMeshBbox.clear();
@@ -928,9 +991,19 @@ namespace zSpace
 		fnMeshBbox.create(positions, pCounts, pConnects);
 	}
 
-	ZSPACE_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
 	{
 		_fabMesh = o_fabObj.bbox;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getWorkplane(zTransform& plane)
+	{
+		plane = o_fabObj.fabrication_base;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getBaseplane(zTransform& plane)
+	{
+		plane = o_fabObj.robot_home;
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::toWorkBase()
