@@ -38,24 +38,19 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargets()
 	{
+
 		toWorkBase();
 		robotTargets.clear();
-
 		//add home pos
 		addTarget(o_fabObj.robot_home);
 		robotTargetTypes.push_back(0);
-
 		for (auto& cutMesh : o_fabObj.fabMeshes)
 		{
 			vector<zTransform> targets_strip;
 
-
 			computeTargetsOnStrip(cutMesh, targets_strip);
-
 			addSafeTargets(targets_strip, 1.2);
-
 			checkTargetNormal(targets_strip);
-
 			addTargets(targets_strip);
 
 			// 1 - cut vel
@@ -149,6 +144,7 @@ namespace zSpace
 
 			frame_X.normalize();
 			frame_Y.normalize();
+			frame_Z= frame_X ^ frame_Y;
 			//addTarget(frame_O, frame_X, frame_Y, frame_Z);
 			targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
 

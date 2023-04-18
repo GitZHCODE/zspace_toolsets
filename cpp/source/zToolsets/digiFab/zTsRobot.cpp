@@ -525,7 +525,7 @@ namespace zSpace
 		// compute target for joint 6
 		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
 
-		cout << "\n Target J6 \n " << Target_J6;
+		//cout << "\n Target J6 \n " << Target_J6;
 
 		// CALCULATE WRIST CENTER
 		zVector wristC = zVector(Target_J6(0, 3), Target_J6(1, 3), Target_J6(2, 3));
@@ -564,13 +564,13 @@ namespace zSpace
 		{
 			if (jointRotations[i].rotation < jointRotations[i].minimum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MIN1 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
 			else if (jointRotations[i].rotation > jointRotations[i].maximum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MAX1 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
@@ -603,13 +603,13 @@ namespace zSpace
 		{
 			if (jointRotations[i].rotation < jointRotations[i].minimum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MIN2 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
 			else if (jointRotations[i].rotation > jointRotations[i].maximum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MAX2 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
@@ -842,6 +842,7 @@ namespace zSpace
 
 				json j;
 				bool fileChk = coreUtils.readJSON(fabFiles[0], j);
+
 				if (!fileChk) return;
 				else 
 				{
@@ -862,6 +863,7 @@ namespace zSpace
 							{
 								o_fabObj.world_base(row, col) = worldBase[row * 4 + col];
 								o_fabObj.fabrication_base(row, col) = fabBase[row * 4 + col];
+
 							}
 						}
 					}
@@ -870,9 +872,9 @@ namespace zSpace
 
 			else if (fileType == zOBJ)
 			{
-
 				for (int i = 0; i < n_fabFiles; i++)
 				{
+					cout << endl << fabFiles[i];
 					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
 					fnMesh.from(fabFiles[i], zOBJ, true);
 				}
