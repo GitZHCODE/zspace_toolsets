@@ -42,6 +42,7 @@ namespace zSpace
 		toWorkBase();
 		robotTargets.clear();
 		targetsPerpToMesh.clear();
+		OV_angles.clear();
 
 		OV_angles.clear();
 
@@ -50,7 +51,8 @@ namespace zSpace
 
 		//add home pos
 		addTarget(o_fabObj.robot_home);
-		targetsPerpToMesh.push_back(o_fabObj.robot_home);
+		robotTargetTypes.push_back(1);
+		OV_angles.push_back(0.0f);
 
 		robotTargetTypes.push_back(1);
 		OV_angles.push_back(0.0f);
@@ -65,23 +67,18 @@ namespace zSpace
 		for (auto& cutMesh : o_fabObj.fabMeshes)
 		{
 			vector<zTransform> targets_strip;
-			vector<zTransform> targets_stripPerp;
 			vector<float> ov_angle_strip;
-			vector<float> ov_angle_stripPerp;
 
 			computeTargetsOnStrip(cutMesh, targets_strip, ov_angle_strip);
 
-			computeTargetsOnStripPerpToMesh(cutMesh, targets_stripPerp, ov_angle_stripPerp);
+			addSafeTargets(targets_strip, ov_angle_strip,1.2);
+			checkTargetNormal(targets_strip);
 
 			addSafeTargets(targets_strip, targets_stripPerp, ov_angle_strip,  1.2, true);
 			addSafeTargets(targets_stripPerp, targets_strip, ov_angle_stripPerp,1.2, true);
 
 			//checkTargetNormal(targets_strip);
 			addTargets(targets_strip);
-			targetsPerpToMesh.insert(targetsPerpToMesh.end(), targets_stripPerp.begin(), targets_stripPerp.end());
-
-
-
 			OV_angles.insert(OV_angles.end(), ov_angle_strip.begin(), ov_angle_strip.end());
 
 
@@ -100,7 +97,8 @@ namespace zSpace
 
 		//add home pos
 		addTarget(o_fabObj.robot_home);
-		targetsPerpToMesh.push_back(o_fabObj.robot_home);
+		robotTargetTypes.push_back(1);
+		OV_angles.push_back(0.0f);
 
 		robotTargetTypes.push_back(1);
 		OV_angles.push_back(0.0f);
@@ -146,9 +144,15 @@ namespace zSpace
 
 			gCode_store(pos, vel, moveType, zEEOn);
 
-			robotTargetSpeeds.push_back(vel);
-			robotTargetReachabilities.push_back(inReach);
-			
+			if (inReach)
+			{
+				robotTargetReachabilities.push_back(inReach);
+			}
+			else
+			{
+				robotTargetReachabilities.push_back(inReach);
+
+			}
 		}
 	}
 
@@ -167,7 +171,7 @@ namespace zSpace
 	
 	//---- PROTECTED UTILITY METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip)
+	ZSPACE_INLINE void zTsRHWC::computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip)
 	{
 		zItMeshHalfEdge he(cutMesh, 0);
 		for (he.begin(); !he.end(); he++)
@@ -190,6 +194,7 @@ namespace zSpace
 			cout << "\n positions : " << he.getVertex().getPosition() << ", " << he.getStartVertex().getPosition();
 
 			zVector frame_X = frame_Y ^ frame_Z;
+			frame_Z = frame_X ^ frame_Y;
 			zVector frame_O = he.getCenter();
 			frame_Y.normalize();
 			frame_X.normalize();
@@ -198,13 +203,17 @@ namespace zSpace
 			frame_Z.normalize();
 
 
-			frame_Z = frame_X ^ frame_Y;
+			frame_X.normalize();
+			frame_Y.normalize();
+			frame_Z.normalize();
 			targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
 
 			//ov angle
 			vNormal = he.getVertex().getNormal();
 			angle = frame_Z.angle360(vNormal, frame_Y);
 			ov_angle_strip.push_back(angle);
+			//cout << endl << "vNormal" << vNormal << endl;
+			//cout << endl << "frame_Z" << frame_Z << endl;
 
 			he = he.getSym().getNext().getNext();
 
@@ -213,8 +222,6 @@ namespace zSpace
 		//last target on strip
 		zVector frame_Y = he.getVector();
 		zVector frame_X = frame_Y ^ frame_Z;
-		frame_X.normalize();
-		frame_Y.normalize();
 		frame_Z = frame_X ^ frame_Y;
 		zVector frame_O = he.getCenter();
 
@@ -319,19 +326,11 @@ namespace zSpace
 		zVector frame_X = frame_Y ^ faceNormal;
 		zVector frame_O = he.getCenter();
 		frame_Y.normalize();
-		frame_X.normalize();
-
-		frame_Z = frame_X ^ frame_Y;
 		frame_Z.normalize();
 
-
-		frame_Z = frame_X ^ frame_Y;
 		targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
-
-		//ov angle
 		vNormal = he.getVertex().getNormal();
-		angle = frame_Z.angle360(vNormal, frame_Y);
-		ov_angle_strip.push_back(angle);
+		ov_angle_strip.push_back(frame_Z.angle360(vNormal, frame_Y) * -1);
 
 	}
 
@@ -353,63 +352,26 @@ namespace zSpace
 			}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::addSafeTargets(vector<zTransform>& targets_strip, vector<zTransform>& targets_stripPerp,  vector<float>& ov_angle_strip, float multiplication, bool perp)
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::addSafeTargets(vector<zTransform>& targets_strip, vector<float>& ov_angle_strip, float multiplication)
 	{
 		int numTargets = targets_strip.size();
-		if (targets_strip[0](3, 2) > targets_strip[numTargets - 1](3, 2))
+		if (targets_strip[0](3, 3) > targets_strip[numTargets - 1](3, 3))
 		{
 			reverse(targets_strip.begin(), targets_strip.end());
 			reverse(ov_angle_strip.begin(), ov_angle_strip.end());
 		}
-		if (!perp)
-		{
-			vector<zTransform> safeTargets_first = computeSafeTargets(targets_strip[0], multiplication);
-			vector<zTransform> safeTargets_last = computeSafeTargets(targets_strip[numTargets - 1], multiplication);
 
-			reverse(safeTargets_first.begin(), safeTargets_first.end());
-			targets_strip.insert(targets_strip.begin(), safeTargets_first.begin(), safeTargets_first.end());
-			targets_strip.insert(targets_strip.end(), safeTargets_last.begin(), safeTargets_last.end());
+		vector<zTransform> safeTargets_first = computeSafeTargets(targets_strip[0], multiplication);
+		vector<zTransform> safeTargets_last = computeSafeTargets(targets_strip[numTargets - 1], multiplication);
 
-		}
-		else
-		{
-
-			vector<zTransform> safeTargets_first = computeSafeTargetsPerp(targets_strip[0], multiplication);
-			vector<zTransform> safeTargets_last = computeSafeTargetsPerp(targets_strip[numTargets - 1], multiplication);
-
-			reverse(safeTargets_first.begin(), safeTargets_first.end());
-			targets_strip.insert(targets_strip.begin(), safeTargets_first.begin(), safeTargets_first.end());
-			targets_strip.insert(targets_strip.end(), safeTargets_last.begin(), safeTargets_last.end());
-
-		}
-		
-		//targets_stripPerp.insert(targets_stripPerp.begin(), safeTargets_first.begin(), safeTargets_first.end());
-		//targets_stripPerp.insert(targets_stripPerp.end(), safeTargets_last.begin(), safeTargets_last.end());
+		reverse(safeTargets_first.begin(), safeTargets_first.end());
+		targets_strip.insert(targets_strip.begin(), safeTargets_first.begin(), safeTargets_first.end());
+		targets_strip.insert(targets_strip.end(), safeTargets_last.begin(), safeTargets_last.end());
 
 		ov_angle_strip.insert(ov_angle_strip.begin(), 0);
 		ov_angle_strip.insert(ov_angle_strip.begin(), 0);
 		ov_angle_strip.insert(ov_angle_strip.end(), 0);
 		ov_angle_strip.insert(ov_angle_strip.end(),0);
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::addSafeTargetsStart(vector<zTransform>& targets_strip, float multiplication, bool perp)
-	{
-		int numTargets = targets_strip.size();
-		if (!perp)
-		{
-			vector<zTransform> safeTargets_first = computeSafeTargets(targets_strip[0], multiplication);
-
-			reverse(safeTargets_first.begin(), safeTargets_first.end());
-			targets_strip.insert(targets_strip.begin(), safeTargets_first.begin(), safeTargets_first.end());
-		}
-		else
-		{
-			vector<zTransform> safeTargets_first = computeSafeTargetsPerp(targets_strip[0], multiplication);
-
-			reverse(safeTargets_first.begin(), safeTargets_first.end());
-			targets_strip.insert(targets_strip.begin(), safeTargets_first.begin(), safeTargets_first.end());
-		}
-
-		
 	}
 
 	ZSPACE_TOOLSETS_INLINE vector<zTransform> zTsRHWC::computeSafeTargets(zTransform& target, float multiplication)
