@@ -115,13 +115,13 @@ namespace zSpace
 		//--------------------------
 	protected:
 
-		void computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip);
+		void computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip);
 
 		void checkTargetNormal(vector<zTransform>& targets_strip);
 
 		zTransform targetFromFrames(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ);
 
-		void addSafeTargets(vector<zTransform>& targets_strip, float multiplication);
+		void addSafeTargets(vector<zTransform>& targets_strip, vector<float>& ov_angle_strip, float multiplication);
 
 		vector<zTransform> computeSafeTargets(zTransform& target, float multiplication);
 
