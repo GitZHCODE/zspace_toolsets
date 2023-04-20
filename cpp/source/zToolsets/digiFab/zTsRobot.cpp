@@ -144,13 +144,9 @@ namespace zSpace
 		if (type == zJSON)
 		{
 			fromJSON(path);
-
 			createRobotJointGraph();
-
 			computeJoints();
-
 			forwardKinematics(zJointHome);
-
 			setJointMeshTransform(false);
 		}
 		else throw std::invalid_argument(" invalid file type.");
@@ -573,13 +569,13 @@ namespace zSpace
 		{
 			if (jointRotations[i].rotation < jointRotations[i].minimum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MIN1 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
 			else if (jointRotations[i].rotation > jointRotations[i].maximum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MAX1 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
@@ -612,13 +608,13 @@ namespace zSpace
 		{
 			if (jointRotations[i].rotation < jointRotations[i].minimum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MIN2 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
 			else if (jointRotations[i].rotation > jointRotations[i].maximum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MAX2 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
@@ -830,7 +826,7 @@ namespace zSpace
 
 	//---- FAB MESH METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromDir(string directory, zFileTpye fileType)
 	{
 		vector<string> fabFiles;
 
@@ -851,6 +847,7 @@ namespace zSpace
 
 				json j;
 				bool fileChk = coreUtils.readJSON(fabFiles[0], j);
+
 				if (!fileChk) return;
 				else 
 				{
@@ -871,6 +868,7 @@ namespace zSpace
 							{
 								o_fabObj.world_base(row, col) = worldBase[row * 4 + col];
 								o_fabObj.fabrication_base(row, col) = fabBase[row * 4 + col];
+
 							}
 						}
 					}
@@ -879,9 +877,9 @@ namespace zSpace
 
 			else if (fileType == zOBJ)
 			{
-
 				for (int i = 0; i < n_fabFiles; i++)
 				{
+					cout << endl << fabFiles[i];
 					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
 					fnMesh.from(fabFiles[i], zOBJ, true);
 				}
@@ -894,12 +892,14 @@ namespace zSpace
 
 	}
 
+
+
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeTargets()
 	{
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::computeFabMeshBbox()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeFabMeshBbox()
 	{
 		zFnMesh fnMeshBbox(o_fabObj.bbox);
 		fnMeshBbox.clear();
@@ -933,7 +933,7 @@ namespace zSpace
 		fnMeshBbox.create(positions, pCounts, pConnects);
 	}
 
-	ZSPACE_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
 	{
 		_fabMesh = o_fabObj.bbox;
 	}

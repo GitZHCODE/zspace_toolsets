@@ -20,8 +20,9 @@ namespace zSpace
 	
 
 	//---- DESTRUCTOR
-	ZSPACE_INLINE zTsRHWC::~zTsRHWC() {}
+	ZSPACE_TOOLSETS_INLINE zTsRHWC::~zTsRHWC() {}
 
+	zTsRHWC::zTsRHWC(zTsRobot& obj) : zTsRobot(obj) {}
 
 	//--- SET METHODS
 
@@ -35,8 +36,9 @@ namespace zSpace
 
 	//--- COMPUTE METHODS 
 
-	ZSPACE_INLINE void zTsRHWC::computeTargets()
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargets()
 	{
+
 		toWorkBase();
 		robotTargets.clear();
 		OV_angles.clear();
@@ -55,7 +57,6 @@ namespace zSpace
 
 			addSafeTargets(targets_strip, ov_angle_strip,1.2);
 			checkTargetNormal(targets_strip);
-
 			addTargets(targets_strip);
 			OV_angles.insert(OV_angles.end(), ov_angle_strip.begin(), ov_angle_strip.end());
 
@@ -85,7 +86,7 @@ namespace zSpace
 		cout << endl;
 	}
 
-	ZSPACE_INLINE void zTsRHWC::computeGcode()
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeGcode()
 	{
 		robotTargetReachabilities.clear();
 
@@ -113,6 +114,8 @@ namespace zSpace
 			}
 		}
 	}
+
+
 
 
 
