@@ -301,6 +301,7 @@ namespace zSpace
 
 	class ZSPACE_TOOLSETS zTsRobot
 	{
+		#pragma region Fields
 	protected:
 		
 		//--------------------------
@@ -377,11 +378,21 @@ namespace zSpace
 		/*!	\brief contatiner of robot target transforms  */
 		vector<zTransform> robotTargets;
 
+		/*!\brief contatiner of robot target transforms */
+		vector<zTransform> targetsPerpToXYPlane;
+
+		/*!	\brief contatiner of robot target transforms  */
+		vector<zTransform> targetsPerpToMesh;
+
 		/*!	\brief contatiner of robot target types  */
 		vector<int> robotTargetTypes;
 
 		/*!	\brief contatiner of robot target types  */
 		vector<bool> robotTargetReachabilities;
+
+
+		/*!	\brief contatiner of robot target speeds  */
+		vector<float> robotTargetSpeeds;
 
 		/*!	\brief contatiner of robot target reachability  */
 		bool inReach = true;
@@ -389,7 +400,8 @@ namespace zSpace
 		/*!	\brief contatiner of Omniverse cutting plane angles  */
 		vector<float> OV_angles;
 
-
+#pragma endregion Fields
+		#pragma region CONSTRUCTOR
 		//--------------------------
 		//---- CONSTRUCTOR
 		//--------------------------
@@ -410,6 +422,7 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		~zTsRobot();
+#pragma endregion CONSTRUCTOR
 
 		//--------------------------
 		//---- CREATE METHODS
