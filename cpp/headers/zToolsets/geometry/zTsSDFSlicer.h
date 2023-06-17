@@ -277,7 +277,11 @@ namespace zSpace
 
 		void setTransforms(bool toLocal);
 
-
+		/*! \brief This method sets the section frames from the input container of planes.
+		*
+		*	\param		[in]	_sectionFrames			- input container of planes.
+		*	\since version 0.0.4
+		*/
 		void setFrames(vector<zPlane>& _sectionFrames);
 
 		//--------------------------
