@@ -477,24 +477,25 @@ namespace zSpace
 		//fnGradMesh.setFaceColor(zColor(), true);
 
 		zPoint* vPositions = fnGradMesh.getRawVertexPositions();
-		MatrixXd V(fnGradMesh.numVertices(), 3);
-
 		
+		MatrixXd V(fnGradMesh.numVertices(), 3);
+		MatrixXi FTris(fnGradMesh.numPolygons(), 4);
+
+		fnGradMesh.getMatrices_quadmesh(V, FTris);
 
 		// fill vertex matrix
-		for (int i = 0; i < fnGradMesh.numVertices(); i++)
+		/*for (int i = 0; i < fnGradMesh.numVertices(); i++)
 		{
 			V(i, 0) = vPositions[i].x;
 			V(i, 1) = vPositions[i].y;
 			V(i, 2) = vPositions[i].z;
-		}
+		}*/
 
 		gradientTriMesh_V = V;
 
-		// fill triangle matrix
-		MatrixXi FTris(fnGradMesh.numPolygons(), 3);
+		// fill triangle matrix		
 
-		int nTris = 0;
+		/*int nTris = 0;
 		for (zItMeshFace f(o_gradientTriMesh);!f.end(); f++)
 		{
 			int i = f.getId();
@@ -506,7 +507,7 @@ namespace zSpace
 			FTris(i, 0) = fVerts[0];
 			FTris(i, 1) = fVerts[1];
 			FTris(i, 2) = fVerts[2];			
-		}
+		}*/
 
 		/*zIntArray pCounts, pConnects;
 		fnGradMesh.getPolygonData(pConnects, pCounts);
@@ -655,6 +656,14 @@ namespace zSpace
 			fnCritical_max.setTransform(base_world, true, true);
 
 		}
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setFrames(vector<zPlane>& _sectionFrames)
+	{
+		sectionFrames.clear();
+		sectionFrames = _sectionFrames;
+
+		o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
 	}
 
 	//---- GET METHODS
@@ -964,13 +973,11 @@ namespace zSpace
 		printHeightDomain = _printHeightDomain;
 		
 
-		bool frameCHECKS = false;
-		bool geomCHECKS = true;
-		bool sdfCHECKS = true;
+		bool frameCHECKS = false;		
 
 		if (compFrames)
 		{
-			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
+			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.0001)
 			{
 				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
 
@@ -983,7 +990,8 @@ namespace zSpace
 				if (leftPlaneExists) computePrintBlockSections(true);
 				if (rightPlaneExists) computePrintBlockSections(false);
 
-				//frameCHECKS = checkPrintLayerHeights(sdfCHECKS, geomCHECKS);
+				float printLength;
+				frameCHECKS = checkPrintLayerHeights_Generic(printLength);
 				printf("\n");
 
 				if (frameCHECKS) break;
@@ -994,6 +1002,7 @@ namespace zSpace
 
 		if (compSDF)
 		{
+			o_contourGraphs.clear();
 			computeSDF_Generic(allSDFLayers, numSDFlayers, funcNum, numSmooth, printLayerWidth);
 		}
 
@@ -1076,7 +1085,7 @@ namespace zSpace
 		{
 			if (v.getColor() == magenta) magentaPositions.push_back(v.getPosition());			
 		}
-		computeClosestPointToGradientMesh(magentaPositions, faceIDs, closestPts);
+		if(magentaPositions.size() > 0)computeClosestPointToGradientMesh(magentaPositions, faceIDs, closestPts);
 
 		zTransform t = sectionFrames[graphId];
 		fnGraph.setTransform(t, true, false);
@@ -1114,12 +1123,12 @@ namespace zSpace
 			for (auto& s : polyField_offset_outer) s += offset_outer;
 		}
 
-		zScalarArray polyField_offset_inner;
+		/*zScalarArray polyField_offset_inner;
 		if (funcNum >= 2)
 		{
 			polyField_offset_inner = polyField;;
 			for (auto& s : polyField_offset_inner) s += 2;
-		}
+		}*/
 
 		zScalarArray patternField;
 		if (funcNum >= 2)
@@ -1132,8 +1141,8 @@ namespace zSpace
 		zScalarArray booleanField_0;
 		if (funcNum >= 3) fnField.boolean_union(polyField_offset_outer, patternField, booleanField_0, false);
 
-		zScalarArray booleanField_1;
-		if (funcNum >= 4) fnField.boolean_subtract(booleanField_0, polyField_offset_inner, booleanField_1, false);
+		//zScalarArray booleanField_1;
+		//if (funcNum >= 4) fnField.boolean_subtract(booleanField_0, polyField_offset_inner, booleanField_1, false);
 
 		// RESULT FIELDS
 		switch (funcNum)
@@ -1151,12 +1160,13 @@ namespace zSpace
 			break;
 
 		case 3:
+			if (numSmooth > 0) fnField.smoothField(booleanField_0, numSmooth);
 			fnField.setFieldValues(booleanField_0);
 			break;
 
-		case 4:
+		/*case 4:
 			if (numSmooth > 0) fnField.smoothField(booleanField_1, numSmooth);
-			fnField.setFieldValues(booleanField_1);
+			fnField.setFieldValues(booleanField_1);*/
 			break;
 		}
 
@@ -1165,6 +1175,7 @@ namespace zSpace
 		fnField.getIsocontour(o_contourGraphs[graphId], 0.0);
 
 		fnIsoGraph.setEdgeWeight(2);
+		fnIsoGraph.setEdgeColor(zColor(1, 1, 1, 1));
 		//if (numSmooth > 0) fnIsoGraph.averageVertices(numSmooth);
 
 		// transform back 
@@ -1181,10 +1192,30 @@ namespace zSpace
 		
 		zPoint cen = fnGraph.getCenter();
 		zPointArray magentaPositions;
+		zVectorArray vNorms;
 
 		for (zItGraphVertex v(o_sectionGraph); !v.end(); v++)
 		{
-			if (v.getColor() == magenta) magentaPositions.push_back(v.getPosition());
+			if (v.getColor() == magenta)
+			{
+				magentaPositions.push_back(v.getPosition());
+
+				zItGraphHalfEdgeArray cHEdges;
+				v.getConnectedHalfEdges(cHEdges);
+
+				zVector heVec_0 = cHEdges[0].getVector();
+				zVector heVec_1 = cHEdges[1].getVector();
+
+
+				zVector pNorm = heVec_0 ^ heVec_1;
+				pNorm.normalize();
+
+				float ang = heVec_0.angle360(heVec_1, pNorm);
+
+				zVector angBisector = heVec_0.rotateAboutAxis(pNorm, ang * -0.5);
+				vNorms.push_back(angBisector);
+			}
+
 		}
 
 		zPointArray gPositions;
@@ -1192,11 +1223,12 @@ namespace zSpace
 
 		for (int i = 0; i < magentaPositions.size(); i++)
 		{
-			zVector dir = magentaPositions[i] - cen;
+			//zVector dir = magentaPositions[i] - cen;
+			zVector dir = vNorms[i];
 			dir.normalize();
 
-			zPoint p0 = magentaPositions[i]  + dir * 1.0 * edgeLength;
-			zPoint p1 = magentaPositions[i] - dir * 3.5 * edgeLength;
+			zPoint p0 = magentaPositions[i]  + dir * 0.03 * edgeLength;
+			zPoint p1 = magentaPositions[i] /*- dir * 0.03 * edgeLength*/;
 
 			int numVerts = gPositions.size();
 
@@ -1207,13 +1239,422 @@ namespace zSpace
 			gPositions.push_back(p1);
 
 		}
-				
-		zFnGraph fnOutGraph(o_outGraph);
-		fnOutGraph.create(gPositions, gEdgeConnects);	
+			
+		if (gPositions.size() > 0)
+		{
+			zFnGraph fnOutGraph(o_outGraph);
+			fnOutGraph.create(gPositions, gEdgeConnects);
 
-		fnOutGraph.setEdgeColor(green);
+			fnOutGraph.setEdgeColor(green);
+		}
+		
 
 	}
+
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFSlicer::checkPrintLayerHeights_Generic(float& totalPrintLength)
+	{
+		float minLayerHeight = 10;
+		float maxLayerHeight = 0;
+		int minHeightGraphID = -1;
+		//bool 
+		checkOranges = true;
+		//bool 
+		checkMagentas = true;
+
+		zFnPointCloud fnCritical_min(criticalMinLayer_pts);
+		zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
+
+		fnCritical_min.clear();
+		fnCritical_max.clear();
+
+		int r0 = 0;
+		int r1 = floor(o_sectionGraphs.size() * 0.5) - 1;
+		int r2 = floor(o_sectionGraphs.size() * 0.5);
+		int r3 = (o_sectionGraphs.size()) - 1;
+		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
+
+		bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
+
+		int end = (leftPlaneExists && rightPlaneExists) ? floor(o_sectionGraphs.size() * 0.5) : o_sectionGraphs.size();
+
+		float printLength = 0;
+
+		// PRINT LAYERS
+		for (int j = 0; j < end; j++)
+		{
+			int kStart = (!deckBlock && !rightPlaneExists) ? 1 : 0;
+			int kEnd = (!deckBlock && !leftPlaneExists) ? 1 : 2;
+
+			for (int k = kStart; k < kEnd; k++)
+			{
+				int i = (k == 0) ? j : j + end;
+
+				if (!deckBlock) i = j;
+
+				if (i == r0) continue;
+
+				if (deckBlock && i == r2) continue;
+
+
+				zVector norm(sectionFrames[i](2, 0), sectionFrames[i](2, 1), sectionFrames[i](2, 2));
+				norm *= -1;
+				norm.normalize();
+
+				zVector prevNorm(sectionFrames[i - 1](2, 0), sectionFrames[i - 1](2, 1), sectionFrames[i - 1](2, 2));
+				zVector prevOrigin(sectionFrames[i - 1](3, 0), sectionFrames[i - 1](3, 1), sectionFrames[i - 1](3, 2));
+
+				float layerWidth = 0.025;
+
+				int orangeCounter = 0;
+				int magentaCounter = 0;
+
+				for (zItGraphVertex v(o_sectionGraphs[i]); !v.end(); v++)
+				{
+					zPoint p = v.getPosition();
+
+					if (v.getColor() == orange) orangeCounter++;
+					if (v.getColor() == magenta) magentaCounter++;
+
+					zPoint p1 = p + norm * 1.0;
+
+					zPoint intPt;
+					bool check = coreUtils.line_PlaneIntersection(p, p1, prevNorm, prevOrigin, intPt);
+
+					float layerHeight = intPt.distanceTo(p);
+					maxLayerHeight = (layerHeight > maxLayerHeight) ? layerHeight : maxLayerHeight;
+					minHeightGraphID = (layerHeight < minLayerHeight) ? i : minHeightGraphID;
+					minLayerHeight = (layerHeight < minLayerHeight) ? layerHeight : minLayerHeight;
+
+					if (layerHeight < printHeightDomain.min)fnCritical_min.addPosition(p);
+					if (layerHeight > printHeightDomain.max)fnCritical_max.addPosition(p);
+
+				}
+
+
+				for (zItGraphEdge e(o_sectionGraphs[i]); !e.end(); e++)
+				{
+					printLength += e.getLength();
+				}
+
+
+			}
+		}
+
+		fnCritical_min.setVertexColor(orange);
+		fnCritical_max.setVertexColor(magenta);
+
+
+		bool out = true;
+
+		if (out)
+		{
+			if (minLayerHeight < printHeightDomain.min) out = false;
+			if (minLayerHeight > printHeightDomain.max) out = false;
+
+			if (maxLayerHeight < printHeightDomain.min) out = false;
+			if (maxLayerHeight > printHeightDomain.max) out = false;
+		}
+
+		actualPrintHeightDomain.min = minLayerHeight;
+		actualPrintHeightDomain.max = maxLayerHeight;
+
+
+
+		totalPrintLength = printLength;
+
+		printf("\n block| %1.4f %1.4f| %1.1f | < min ht pts %i  | > max ht pts %i ", minLayerHeight, maxLayerHeight, printLength, fnCritical_min.numVertices(), fnCritical_max.numVertices());
+
+		return out;
+	}
+
+	ZSPACE_TOOLSETS_INLINE bool zTsSDFSlicer::exportJSON_Generic(string dir, string filename, float printLyerWidth)
+	{
+
+		string blockID_padded = coreUtils.getPaddedIndexString(blockId, 3);
+
+		// export block planes
+
+		string blockName = dir + "/block_" + blockID_padded + ".json";
+
+		json j;
+		vector<zFloatArray> planes;
+		for (int i = 0; i < 2; i++)
+		{
+			zFloatArray temp;
+			
+			temp.push_back(leftPlanes[i](2, 0));
+			temp.push_back(leftPlanes[i](2, 1));
+			temp.push_back(leftPlanes[i](2, 2));
+
+			temp.push_back(leftPlanes[i](3, 0));
+			temp.push_back(leftPlanes[i](3, 1));
+			temp.push_back(leftPlanes[i](3, 2));			
+
+			planes.push_back(temp);
+		}
+		
+		j["leftPlanes"] = planes;
+
+		ofstream myfile;
+		myfile.open(blockName.c_str());
+
+		if (myfile.fail())
+		{
+			cout << " error in opening file  " << blockName.c_str() << endl;
+			//return false;
+		}
+
+		//myfile.precision(16);
+		myfile << j.dump();
+		myfile.close();
+
+		// EXPORT graph
+
+		float minLayerHeight = 10;
+		float maxLayerHeight = 0;
+
+		int r0 = 0;
+		int r1 = floor(o_contourGraphs.size() * 0.5) - 1;
+		int r2 = floor(o_contourGraphs.size() * 0.5);
+		int r3 = (o_contourGraphs.size()) - 1;
+		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
+
+		bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
+
+		int end = (leftPlaneExists && rightPlaneExists) ? floor(o_contourGraphs.size() * 0.5) : o_contourGraphs.size();
+
+		float printLength = 0;
+
+		// PRINT LAYERS
+		for (int j = 0; j < end; j++)
+		{
+			int kStart = (!deckBlock && !rightPlaneExists) ? 1 : 0;
+			int kEnd = (!deckBlock && !leftPlaneExists) ? 1 : 2;
+
+			for (int k = kStart; k < kEnd; k++)
+			{
+				int i = (k == 0) ? j : j + end;
+
+				if (!deckBlock) i = j;
+
+				if (i == r0) continue;
+
+				if (deckBlock && i == r2) continue;
+
+				string graphID_padded = coreUtils.getPaddedIndexString(j, 3);
+
+				// trim graph export
+				zFnGraph fnTrimGraph(o_trimGraphs[i]);
+				if (fnTrimGraph.numVertices() == 0) continue;
+
+				string outName1 = dir;
+				outName1 += "/";
+				outName1 += "trim";
+				outName1 += "_";
+				outName1 += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";
+
+				fnTrimGraph.to(outName1, zJSON);
+
+
+				// graph export
+				zFnGraph fnIsoGraph(o_contourGraphs[i]);
+				if (fnIsoGraph.numVertices() == 0) continue;
+
+				string outName = dir;
+				outName += "/";
+				outName += filename;
+				outName += "_";
+				outName += blockID_padded + "_" + graphID_padded + "_" + to_string(k) + ".json";
+				fnIsoGraph.to(outName, zJSON);
+
+				// read existing data in the json 
+				json jSON;
+
+				ifstream in_myfile;
+				in_myfile.open(outName.c_str());
+
+				int lineCnt = 0;
+
+				if (in_myfile.fail())
+				{
+					cout << " error in opening file  " << outName.c_str() << endl;
+				}
+
+				in_myfile >> jSON;
+				in_myfile.close();
+
+				// CREATE JSON FILE
+				zUtilsJsonHE graphJSON;
+
+
+				graphJSON.vertexAttributes.clear();
+				graphJSON.vertexAttributes = (jSON["VertexAttributes"].get<vector<vector<double>>>());
+
+
+
+				// attribute export
+				zVector norm(sectionFrames[i](2, 0), sectionFrames[i](2, 1), sectionFrames[i](2, 2));
+				norm *= -1;
+				norm.normalize();
+
+				zVector prevNorm(sectionFrames[i - 1](2, 0), sectionFrames[i - 1](2, 1), sectionFrames[i - 1](2, 2));
+				zVector prevOrigin(sectionFrames[i - 1](3, 0), sectionFrames[i - 1](3, 1), sectionFrames[i - 1](3, 2));
+
+				for (zItGraphVertex v(o_contourGraphs[i]); !v.end(); v++)
+				{
+					vector<double> v_attrib = graphJSON.vertexAttributes[v.getId()];
+
+
+					zPoint p = v.getPosition();
+
+					zPoint p1 = p + norm * 1.0;
+
+					zPoint intPt;
+					bool check = coreUtils.line_PlaneIntersection(p, p1, prevNorm, prevOrigin, intPt);
+
+					float layerHeight = intPt.distanceTo(p);
+					maxLayerHeight = (layerHeight > maxLayerHeight) ? layerHeight : maxLayerHeight;
+					minLayerHeight = (layerHeight < minLayerHeight) ? layerHeight : minLayerHeight;
+
+
+					v_attrib.push_back(norm.x);
+					v_attrib.push_back(norm.y);
+					v_attrib.push_back(norm.z);
+
+					v_attrib.push_back(printLyerWidth);
+					v_attrib.push_back(layerHeight);
+
+					graphJSON.vertexAttributes[v.getId()] = v_attrib;
+
+				}
+
+				// vertex sequence
+				zIntArray vSequence;
+				zItGraphVertexArray vArray;
+
+				for (zItGraphVertex v(o_contourGraphs[i]); !v.end(); v++)
+				{
+					if (!v.checkValency(2))
+					{
+						vArray.push_back(v);
+					}
+				}
+
+				printf("\n %s - valence 2 verts  %i", graphID_padded.c_str(), vArray.size());
+
+				if (vArray.size() == 2)
+				{
+					zItGraphHalfEdge he = vArray[0].getHalfEdge();
+					vSequence.push_back(vArray[0].getId());
+
+					do
+					{
+
+						vSequence.push_back(he.getVertex().getId());
+
+						he = he.getNext();
+					} while (he.getVertex() != vArray[1]);
+
+					vSequence.push_back(vArray[1].getId());
+					vSequence.push_back(vArray[0].getId());
+
+				}
+
+				if (vArray.size() == 0)
+				{
+					zItGraphHalfEdge he(o_contourGraphs[i], 0);
+
+					zItGraphVertex startV = he.getStartVertex();
+					zItGraphHalfEdge startHe = he;
+					vSequence.push_back(he.getStartVertex().getId());
+
+					do
+					{
+						if (he.getVertex() == startV)
+						{
+							vSequence.push_back(he.getVertex().getId());
+						}
+						else
+						{
+							vSequence.push_back(he.getVertex().getId());
+						}
+
+						he = he.getNext();
+					} while (he != startHe);
+
+				}
+
+				// trim points
+
+				zPoint* contour_vPositions = fnIsoGraph.getRawVertexPositions();
+
+				vector<zDoubleArray> vFeature;
+
+				for (zItGraphVertex v(o_sectionGraphs[i]); !v.end(); v++)
+				{
+					if (v.getColor() == magenta)
+					{
+						zPoint p = (v.getPosition());
+
+						float d = 10000000;
+						zPoint closestPoint;
+						for (zItGraphEdge e(o_contourGraphs[i]); !e.end(); e++)
+						{
+							zIntArray eVerts;
+							e.getVertices(eVerts);
+
+							zPoint cP;
+							float testD = coreUtils.minDist_Edge_Point(p, contour_vPositions[eVerts[0]], contour_vPositions[eVerts[1]], cP);
+							
+							if (testD < d)
+							{
+								d = testD;
+								closestPoint = cP;
+							}
+						}
+
+						zDoubleArray temp = { closestPoint.x, closestPoint.y, closestPoint.z };
+						vFeature.push_back(temp);
+					}
+
+				}
+
+
+
+				// Json file 
+
+				jSON["VertexAttributes"] = graphJSON.vertexAttributes;
+				jSON["VertexSequence"] = vSequence;
+				jSON["VertexFeature"] = vFeature;
+
+				// EXPORT	
+				ofstream myfile;
+				myfile.open(outName.c_str());
+
+				if (myfile.fail())
+				{
+					cout << " error in opening file  " << outName.c_str() << endl;
+					return false;
+				}
+
+				//myfile.precision(16);
+				myfile << jSON.dump();
+				myfile.close();
+
+
+				// Print Length
+				for (zItGraphEdge e(o_contourGraphs[i]); !e.end(); e++)
+				{
+					printLength += e.getLength();
+				}
+
+
+			}
+		}
+
+		printf("\n block| %1.4f %1.4f| %1.1f ", minLayerHeight, maxLayerHeight, printLength);
+	}
+
 
 	//---- COMPUTE METHODS STRIATUS
 
@@ -1296,6 +1737,9 @@ namespace zSpace
 		}
 
 	}
+
+
+
 
 
 	ZSPACE_TOOLSETS_INLINE bool zTsSDFSlicer::onDeckBlock()
@@ -1917,7 +2361,7 @@ namespace zSpace
 			tempZ = Z;
 			tempZ.normalize();
 
-			Y = zVector(0, 1, 0);
+			Y = zVector(1, 1, 0);
 
 			weight = (float)(j + 1) / numLayers;
 
@@ -1939,7 +2383,7 @@ namespace zSpace
 
 			// add frame
 			//pFrame = setTransformFromVectors(O, X, Y, tempZ);
-			pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 1, 0));
+			pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(1, 1, 0));
 			sectionFrames.push_back(pFrame);
 
 			pOnCurve = O;
@@ -1992,7 +2436,7 @@ namespace zSpace
 			zPointArray positions;
 			zIntArray edgeConnects;
 			zColorArray vColors;
-			int pres = 3;
+			int pres = 9;
 			fn_sliceMesh.getIsoContour(scalars, 0.0, positions, edgeConnects, vColors, pres, pow(10, -1 *pres));
 
 			// create graphs
@@ -2368,7 +2812,7 @@ namespace zSpace
 
 				if (orangeCounter != 2)
 				{
-					printf("\n checkMagenta error Layer %i | %i ", i, orangeCounter);
+					printf("\n checkOrange error Layer %i | %i ", i, orangeCounter);
 
 					zFnGraph fnGraph(o_sectionGraphs[i]);
 					fnGraph.setEdgeColor(orange);
@@ -2394,7 +2838,7 @@ namespace zSpace
 			}
 		}
 
-		fnCritical_min.setVertexColor(magenta);		
+		fnCritical_min.setVertexColor(orange);		
 		fnCritical_max.setVertexColor(magenta);
 
 		
@@ -3326,13 +3770,15 @@ namespace zSpace
 
 		//zScalarArray scalars_temp, booleanField;
 		
-
+		//printf("\n gPositions %i faceIDs %i ", gPositions.size(), faceIDs.size());
 
 
 		zFnMesh fnGradMesh(o_gradientTriMesh);
 		zColorArray gradColors;
 		fnGradMesh.getFaceColors(gradColors);
 		zDomainFloat inDomain(0.0, 1.0);
+
+		zColor *vColors = fnGradMesh.getRawVertexColors();
 
 		//printf("\n numM %i ", gPositions.size());
 
@@ -3363,11 +3809,29 @@ namespace zSpace
 		scalars.clear();
 		zPoint* fieldMeshPositions = fnField.fnMesh.getRawVertexPositions();
 
+
 		zFloatArray offsets;
 		for (int j = 0; j < faceIDs.size(); j++)
 		{
+			//weight from face
 			float offset = computeWeightedGradientValue(faceIDs[j], closestPoints[j]);
 			offsets.push_back(offset);
+
+			// closest point of the face
+			//zItMeshFace f(o_gradientTriMesh, faceIDs[j]);
+			//
+			//zPointArray fVPositions;
+			//f.getVertexPositions(fVPositions);
+
+			//zIntArray fVerts;
+			//f.getVertices(fVerts);
+
+
+			//int vId = coreUtils.getClosest_PointCloud(closestPoints[j], fVPositions);
+			////printf("\n %i %1.2f ", fVerts[vId], vColors[fVerts[vId]].r);
+
+
+			//offsets.push_back(vColors[fVerts[vId]].r);
 		}
 
 
@@ -3385,6 +3849,7 @@ namespace zSpace
 				float inVal = offsets[j];
 
 				float offset = coreUtils.ofMap(inVal, inDomain, offsetDomain);
+				//printf("\n %1.2 %1.2f ", offset, offsets[j]);
 
 				r = r - offset;
 
