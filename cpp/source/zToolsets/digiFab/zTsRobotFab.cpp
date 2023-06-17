@@ -20,8 +20,9 @@ namespace zSpace
 	
 
 	//---- DESTRUCTOR
-	ZSPACE_INLINE zTsRHWC::~zTsRHWC() {}
+	ZSPACE_TOOLSETS_INLINE zTsRHWC::~zTsRHWC() {}
 
+	zTsRHWC::zTsRHWC(zTsRobot& obj) : zTsRobot(obj) {}
 
 	//--- SET METHODS
 
@@ -35,47 +36,57 @@ namespace zSpace
 
 	//--- COMPUTE METHODS 
 
-	ZSPACE_INLINE void zTsRHWC::computeTargets()
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargets()
 	{
+
 		toWorkBase();
 		robotTargets.clear();
+		OV_angles.clear();
 
 		//add home pos
 		addTarget(o_fabObj.robot_home);
-		robotTargetTypes.push_back(0);
+		robotTargetTypes.push_back(1);
+		OV_angles.push_back(0.0f);
 
 		for (auto& cutMesh : o_fabObj.fabMeshes)
 		{
 			vector<zTransform> targets_strip;
+			vector<float> ov_angle_strip;
 
-			computeTargetsOnStrip(cutMesh, targets_strip);
+			computeTargetsOnStrip(cutMesh, targets_strip, ov_angle_strip);
 
-			addSafeTargets(targets_strip, 1.2);
+			addSafeTargets(targets_strip, ov_angle_strip,1.2);
 			checkTargetNormal(targets_strip);
-
 			addTargets(targets_strip);
+			OV_angles.insert(OV_angles.end(), ov_angle_strip.begin(), ov_angle_strip.end());
 
-			// 1 - cut vel
-			// 0 - travel vel
+
+			// 0 - cut vel
+			// 1 - travel vel
 			robotTargetTypes.push_back(1);
 			robotTargetTypes.push_back(1);
 			for (int i = 0; i < targets_strip.size() - 4; i++)
 			{
 				robotTargetTypes.push_back(0);
 			}
-			robotTargetTypes.push_back(1);
+			robotTargetTypes.push_back(0);
 			robotTargetTypes.push_back(1);
 
 		}
 
 		//add home pos
 		addTarget(o_fabObj.robot_home);
-		robotTargetTypes.push_back(0);
+		robotTargetTypes.push_back(1);
+		OV_angles.push_back(0.0f);
 
 		//o_fabObj.targets = robotTargets;
+
+		cout << endl << "ov angles" << endl;
+		for (auto& a : OV_angles) cout << a << ",";
+		cout << endl;
 	}
 
-	ZSPACE_INLINE void zTsRHWC::computeGcode()
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeGcode()
 	{
 		robotTargetReachabilities.clear();
 
@@ -85,12 +96,15 @@ namespace zSpace
 			double vel = (robotTargetTypes[i] == 0) ? o_fabObj.vel_travel : o_fabObj.vel_work;
 			zRobotMoveType moveType = (robotTargetTypes[i] == 0) ? zMoveLinear : zMoveJoint;
 
+			//cout << endl << "target_"<<i << robotTargets [i]<<endl;
+
 			setTarget(robotTargets[i]);
 			inverseKinematics();
 
+			gCode_store(pos, vel, moveType, zEEOn);
+
 			if (inReach)
 			{
-				gCode_store(pos, vel, moveType, zEEOn);
 				robotTargetReachabilities.push_back(inReach);
 			}
 			else
@@ -100,6 +114,8 @@ namespace zSpace
 			}
 		}
 	}
+
+
 
 
 
@@ -114,39 +130,41 @@ namespace zSpace
 	
 	//---- PROTECTED UTILITY METHODS
 
-	ZSPACE_INLINE void zTsRHWC::computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip)
+	ZSPACE_INLINE void zTsRHWC::computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip)
 	{
 		zItMeshHalfEdge he(cutMesh, 0);
 		for (he.begin(); !he.end(); he++)
 		{
 			if (he.onBoundary() && he.getVertex().checkValency(2) && he.getSym().getVertex().checkValency(2))
+			{
 				break;
+			}
 		}
 
 		zVector frame_Z(0, 0, -1);
-
-		//check orientation
-		zVector check = he.getCenter() - zVector(0, 0, he.getCenter().z);
-		zVector vec = he.getVector() ^ frame_Z;
-		vec.normalize();
-		check.normalize();
-
-		//double dot = vec * check;
-		//he = (dot < 0) ? he.getSym() : he;
-
+		zVector vNormal(0, 0, 1);
+		double angle = 0;
 		//all targets from a strip
 		do
 		{
+			//target
 			zVector frame_Y = he.getVector();
 			zVector frame_X = frame_Y ^ frame_Z;
+			frame_Z = frame_X ^ frame_Y;
 			zVector frame_O = he.getCenter();
 
 			frame_X.normalize();
 			frame_Y.normalize();
-			//addTarget(frame_O, frame_X, frame_Y, frame_Z);
+			frame_Z.normalize();
 			targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
 
-			//he = (dot < 0) ? he.getNext().getNext().getSym() : he.getSym().getNext().getNext();
+			//ov angle
+			vNormal = he.getVertex().getNormal();
+			angle = frame_Z.angle360(vNormal, frame_Y);
+			ov_angle_strip.push_back(angle);
+			//cout << endl << "vNormal" << vNormal << endl;
+			//cout << endl << "frame_Z" << frame_Z << endl;
+
 			he = he.getSym().getNext().getNext();
 
 		} while (!he.getVertex().checkValency(2) && !he.getSym().getVertex().checkValency(2));
@@ -154,12 +172,17 @@ namespace zSpace
 		//last target on strip
 		zVector frame_Y = he.getVector();
 		zVector frame_X = frame_Y ^ frame_Z;
+		frame_Z = frame_X ^ frame_Y;
 		zVector frame_O = he.getCenter();
 
 		frame_X.normalize();
 		frame_Y.normalize();
-		//addTarget(frame_O, frame_X, frame_Y, frame_Z);
+		frame_Z.normalize();
+
 		targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
+		vNormal = he.getVertex().getNormal();
+		ov_angle_strip.push_back(frame_Z.angle360(vNormal, frame_Y) * -1);
+
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRHWC::checkTargetNormal(vector<zTransform>& targets_strip)
@@ -180,11 +203,14 @@ namespace zSpace
 			}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::addSafeTargets(vector<zTransform>& targets_strip, float multiplication)
+	ZSPACE_TOOLSETS_INLINE void zTsRHWC::addSafeTargets(vector<zTransform>& targets_strip, vector<float>& ov_angle_strip, float multiplication)
 	{
 		int numTargets = targets_strip.size();
-		if(targets_strip[0](3,3) > targets_strip[numTargets - 1](3,3))
+		if (targets_strip[0](3, 3) > targets_strip[numTargets - 1](3, 3))
+		{
 			reverse(targets_strip.begin(), targets_strip.end());
+			reverse(ov_angle_strip.begin(), ov_angle_strip.end());
+		}
 
 		vector<zTransform> safeTargets_first = computeSafeTargets(targets_strip[0], multiplication);
 		vector<zTransform> safeTargets_last = computeSafeTargets(targets_strip[numTargets - 1], multiplication);
@@ -192,6 +218,11 @@ namespace zSpace
 		reverse(safeTargets_first.begin(), safeTargets_first.end());
 		targets_strip.insert(targets_strip.begin(), safeTargets_first.begin(), safeTargets_first.end());
 		targets_strip.insert(targets_strip.end(), safeTargets_last.begin(), safeTargets_last.end());
+
+		ov_angle_strip.insert(ov_angle_strip.begin(), 0);
+		ov_angle_strip.insert(ov_angle_strip.begin(), 0);
+		ov_angle_strip.insert(ov_angle_strip.end(), 0);
+		ov_angle_strip.insert(ov_angle_strip.end(),0);
 	}
 
 	ZSPACE_TOOLSETS_INLINE vector<zTransform> zTsRHWC::computeSafeTargets(zTransform& target, float multiplication)

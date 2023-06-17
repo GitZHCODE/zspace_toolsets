@@ -144,13 +144,9 @@ namespace zSpace
 		if (type == zJSON)
 		{
 			fromJSON(path);
-
 			createRobotJointGraph();
-
 			computeJoints();
-
 			forwardKinematics(zJointHome);
-
 			setJointMeshTransform(false);
 		}
 		else throw std::invalid_argument(" invalid file type.");
@@ -402,7 +398,12 @@ namespace zSpace
 		targ_newbasis.setIdentity();
 
 		targ_newbasis = C_inverse * robot_target_matrix;
+
 		robot_target_matrix = targ_newbasis;
+		//cout << endl << "targetM" << robot_target_matrix<<endl;
+
+
+
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::setEndEffector(zTransform &EE)
@@ -529,7 +530,7 @@ namespace zSpace
 		// compute target for joint 6
 		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
 
-		cout << "\n Target J6 \n " << Target_J6;
+		//cout << "\n Target J6 \n " << Target_J6;
 
 		// CALCULATE WRIST CENTER
 		zVector wristC = zVector(Target_J6(0, 3), Target_J6(1, 3), Target_J6(2, 3));
@@ -568,13 +569,13 @@ namespace zSpace
 		{
 			if (jointRotations[i].rotation < jointRotations[i].minimum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MIN1 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
 			else if (jointRotations[i].rotation > jointRotations[i].maximum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MAX1 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
@@ -607,13 +608,13 @@ namespace zSpace
 		{
 			if (jointRotations[i].rotation < jointRotations[i].minimum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MIN2 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
 			else if (jointRotations[i].rotation > jointRotations[i].maximum)
 			{
-				cout << endl << "OUT OF REACH ON JOINT_" << to_string(i + 1) << ":" << endl;
+				cout << endl << "OUT OF REACH MAX2 ON JOINT_" << to_string(i + 1) << ":" << endl;
 				jointRotations[i].rotation = temp_rotations[i].rotation;
 				inReach = false;
 			}
@@ -825,7 +826,7 @@ namespace zSpace
 
 	//---- FAB MESH METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromFile(string directory, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromDir(string directory, zFileTpye fileType)
 	{
 		vector<string> fabFiles;
 
@@ -846,6 +847,7 @@ namespace zSpace
 
 				json j;
 				bool fileChk = coreUtils.readJSON(fabFiles[0], j);
+
 				if (!fileChk) return;
 				else 
 				{
@@ -866,6 +868,7 @@ namespace zSpace
 							{
 								o_fabObj.world_base(row, col) = worldBase[row * 4 + col];
 								o_fabObj.fabrication_base(row, col) = fabBase[row * 4 + col];
+
 							}
 						}
 					}
@@ -874,9 +877,9 @@ namespace zSpace
 
 			else if (fileType == zOBJ)
 			{
-
 				for (int i = 0; i < n_fabFiles; i++)
 				{
+					cout << endl << fabFiles[i];
 					zFnMesh fnMesh(o_fabObj.fabMeshes[i]);
 					fnMesh.from(fabFiles[i], zOBJ, true);
 				}
@@ -889,12 +892,14 @@ namespace zSpace
 
 	}
 
+
+
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeTargets()
 	{
 
 	}
 
-	ZSPACE_INLINE void zTsRobot::computeFabMeshBbox()
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::computeFabMeshBbox()
 	{
 		zFnMesh fnMeshBbox(o_fabObj.bbox);
 		fnMeshBbox.clear();
@@ -928,7 +933,7 @@ namespace zSpace
 		fnMeshBbox.create(positions, pCounts, pConnects);
 	}
 
-	ZSPACE_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabBbox(zObjMesh& _fabMesh)
 	{
 		_fabMesh = o_fabObj.bbox;
 	}
@@ -1197,6 +1202,7 @@ namespace zSpace
 		}
 	}
 
+
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::toABBGcode(string infilename, zRobotMoveType moveType)
 	{
 		printf(" ----------- writing \n ");
@@ -1222,24 +1228,15 @@ namespace zSpace
 
 		// constant variable for home position
 		myfile << "\n !Constant for the joint calibrate position \n ";
-		//myfile << "\n CONST jointtarget calib_pos := [[0, 0, 0, 0, 90.0, -180.0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
-		myfile << "\n CONST jointtarget calib_pos := [[-25, 0, 0, 0, 90.0, 150], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
+		myfile << "\n CONST jointtarget calib_pos := [[-25, 15, 0, 0, 90.0, 180], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
 
 
 		// EE data
-		// Convert the matrix to a quaternion
-		//zTransform TCP = robotJointTransforms[DOF - 1] * robot_endEffector_matrix;
-		//zTransform relative = TCP.transpose();
-
-		//cout << endl << "robot_endEffector_matrix" << endl << relative << endl;
 		Eigen::Affine3f ee_affine(robot_endEffector_matrix.transpose());
 		Eigen::Quaternionf ee_q(ee_affine.linear());
 
 		myfile << "\n PERS tooldata zHWC := [TRUE, [";
 		myfile << "[" +
-			//to_string(robot_endEffector_matrix.transpose()(3, 0) * 1000) + "," +
-			//to_string(robot_endEffector_matrix.transpose()(3, 1) * 1000) + "," +
-			//to_string(robot_endEffector_matrix.transpose()(3, 2) * 1000)
 			to_string(0) + "," +
 			to_string(0) + "," +
 			to_string(994)
@@ -1253,8 +1250,7 @@ namespace zSpace
 			to_string(ee_q.coeffs().transpose().z())
 			+ "],0,0,0]]; \n";
 
-
-		// PROCEDURE Main
+			// PROCEDURE Main
 		myfile << "\n PROC Main() \n ";
 		myfile << "\n Init; \n ";
 
@@ -1279,7 +1275,7 @@ namespace zSpace
 		// PROCEDURE mv_Calib
 		myfile << "\n PROC mv_Calib() \n ";
 
-		myfile << "\n MoveAbsJ calib_pos,v100,z10,tool0; \n ";
+		//myfile << "\n MoveAbsJ calib_pos,v100,z10,tool0; \n ";
 
 		myfile << "\n ENDPROC \n ";
 
@@ -1335,17 +1331,17 @@ namespace zSpace
 				Eigen::Quaternionf t_q(t_affine.linear());
 
 				// Print the quaternion
-				  myfile << to_string(robotTargets[i](3, 0) * 1000) + "," +
-							to_string(robotTargets[i](3, 1) * 1000) + "," +
-							to_string(robotTargets[i](3, 2) * 1000);
+				myfile << to_string(robotTargets[i](3, 0) * 1000) + "," +
+					to_string(robotTargets[i](3, 1) * 1000) + "," +
+					to_string(robotTargets[i](3, 2) * 1000);
 
 				myfile << "], [";
 
-				  myfile << to_string(t_q.coeffs().transpose().w()) + "," +
-							to_string(t_q.coeffs().transpose().x()) + "," +
-							to_string(t_q.coeffs().transpose().y()) + "," +
-							to_string(t_q.coeffs().transpose().z());
-					
+				myfile << to_string(t_q.coeffs().transpose().w()) + "," +
+					to_string(t_q.coeffs().transpose().x()) + "," +
+					to_string(t_q.coeffs().transpose().y()) + "," +
+					to_string(t_q.coeffs().transpose().z());
+
 				myfile << "], [0, 0, 0, 0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]] ";
 
 				if (i != robot_gCode.size() - 1) myfile << ",";
@@ -1353,12 +1349,24 @@ namespace zSpace
 
 			myfile << "\n ]; ";
 
+			myfile << "\n  CONST speeddata vels {count} := ";
+			myfile << "\n [ ";
+
+			for (int i = 0; i < robotTargets.size(); i++)
+			{
+				string vel = (robotTargetTypes[i] == 0) ? "v100" : "v1000";
+				myfile << "\n ";
+				myfile << vel;
+				if (i != robot_gCode.size() - 1) myfile << ",";
+			}
+			myfile << "\n ]; ";
+
 			myfile << "\n FOR i FROM 1 TO count DO ";
-			myfile << "\n MoveL poses{i}, v100, z10, zHWC\\WObj:=wobj0;";
+			myfile << "\n MoveL poses{i}, vels{i}, z1, zHWC\\WObj:=wobj0;";
 
 			myfile << "\n ENDFOR";
 		}
-		
+
 
 		/*for (int i = 0; i < robot_gCode.size(); i++)
 		{
@@ -1378,6 +1386,190 @@ namespace zSpace
 		//close file
 		myfile.close();
 	}
+
+
+	//ZSPACE_TOOLSETS_INLINE void zTsRobot::toABBGcode(string infilename, zRobotMoveType moveType)
+	//{
+	//	printf(" ----------- writing \n ");
+
+	//	ofstream myfile;
+	//	myfile.open(infilename.c_str());
+
+	//	if (myfile.fail())
+	//	{
+	//		cout << " error in opening file  " << infilename.c_str() << endl;
+	//		return;
+	//	}
+
+	//	//myfile << " \n ! GCode for ABB ROBOT \n " << endl;
+	//	//myfile << " \n !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! \n " << endl;
+
+	//	// start MODULE
+	//	myfile << "\n MODULE Module1 \n";
+
+	//	// boolean variables
+	//	myfile << "\n !Flag, end the program \n";
+	//	myfile << " \n VAR bool bProgEnd; \n ";
+
+	//	// constant variable for home position
+	//	myfile << "\n !Constant for the joint calibrate position \n ";
+	//	//myfile << "\n CONST jointtarget calib_pos := [[0, 0, 0, 0, 90.0, -180.0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
+	//	myfile << "\n CONST jointtarget calib_pos := [[-25, 0, 0, 0, 90.0, 150], [0, 9E9, 9E9, 9E9, 9E9, 9E9]]; \n";
+
+
+	//	// EE data
+	//	// Convert the matrix to a quaternion
+	//	//zTransform TCP = robotJointTransforms[DOF - 1] * robot_endEffector_matrix;
+	//	//zTransform relative = TCP.transpose();
+
+	//	//cout << endl << "robot_endEffector_matrix" << endl << relative << endl;
+	//	/*
+	//	Eigen::Affine3f ee_affine(robot_endEffector_matrix.transpose());
+	//	Eigen::Quaternionf ee_q(ee_affine.linear());
+
+	//	myfile << "\n PERS tooldata zHWC := [TRUE, [";
+	//	myfile << "[" +
+	//		//to_string(robot_endEffector_matrix.transpose()(3, 0) * 1000) + "," +
+	//		//to_string(robot_endEffector_matrix.transpose()(3, 1) * 1000) + "," +
+	//		//to_string(robot_endEffector_matrix.transpose()(3, 2) * 1000)
+	//		to_string(0) + "," +
+	//		to_string(0) + "," +
+	//		to_string(994)
+	//		+ "],";
+
+	//	myfile << "[1, 0, 0, 0]], [5, [0, 0, 1],";
+	//	myfile << "[" +
+	//		to_string(ee_q.coeffs().transpose().w()) + "," +
+	//		to_string(ee_q.coeffs().transpose().x()) + "," +
+	//		to_string(ee_q.coeffs().transpose().y()) + "," +
+	//		to_string(ee_q.coeffs().transpose().z())
+	//		+ "],0,0,0]]; \n";
+	//		*/
+
+	//	// PROCEDURE Main
+	//	myfile << "\n PROC Main() \n ";
+	//	myfile << "\n Init; \n ";
+
+	//	myfile << "\n mv_Calib; \n ";
+
+	//	// write custom gcode
+	//	myfile << "\n mv_Custom; \n ";
+	//	// complete custom gcode
+
+	//	myfile << "\n mv_Calib; \n ";
+	//	myfile << "\n ENDPROC \n ";
+
+	//	// PROCEDURE init
+	//	myfile << "\n PROC Init() \n ";
+
+	//	// define varaiale initial value if any
+	//	myfile << "\n !Defined setting of the variables \n";
+	//	myfile << "\n bProgEnd := FALSE; \n ";
+
+	//	myfile << "\n ENDPROC \n ";
+
+	//	// PROCEDURE mv_Calib
+	//	myfile << "\n PROC mv_Calib() \n ";
+
+	//	myfile << "\n MoveAbsJ calib_pos,v100,z10,tool0; \n ";
+
+	//	myfile << "\n ENDPROC \n ";
+
+	//	if (moveType == zMoveJoint)
+	//	{
+	//		// PROCEDURE mv_Custom
+	//		myfile << "\n PROC mv_Custom() \n ";
+	//		myfile << "\n  CONST num count := " << robot_gCode.size() << ";";
+
+	//		myfile << "\n  CONST jointtarget poses {count} := ";
+	//		myfile << "\n [ ";
+
+	//		for (int i = 0; i < robot_gCode.size(); i++)
+	//		{
+
+	//			myfile << "\n  [[  ";
+
+	//			for (int j = 0; j < DOF; j++)
+	//			{
+	//				myfile << to_string(robot_gCode[i].rotations[j].rotation + robot_gCode[i].rotations[j].offset);
+	//				if (j < DOF - 1) myfile << ", ";
+	//			}
+
+	//			myfile << "], [0, 9E9, 9E9, 9E9, 9E9, 9E9]] ";
+
+	//			if (i != robot_gCode.size() - 1) myfile << ",";
+	//		}
+
+	//		myfile << "\n ]; ";
+
+	//		myfile << "\n FOR i FROM 1 TO count DO ";
+	//		myfile << "\n MoveAbsJ poses{i}, v100, z10, HWC\\WObj:=wobj0;";
+	//		myfile << "\n ENDFOR";
+	//	}
+
+	//	else if (moveType == zMoveLinear)
+	//	{
+	//		// PROCEDURE mv_Custom
+	//		myfile << "\n PROC mv_Custom() \n ";
+
+	//		// targets
+	//		myfile << "\n  CONST num count := " << robot_gCode.size() << ";";
+	//		myfile << "\n  CONST robtarget poses {count} := ";
+	//		myfile << "\n [ ";
+
+	//		for (int i = 0; i < robotTargets.size(); i++)
+	//		{
+
+	//			myfile << "\n  [[";
+
+	//			// Convert the matrix to a quaternion
+	//			Eigen::Affine3f t_affine(robotTargets[i]);
+	//			Eigen::Quaternionf t_q(t_affine.linear());
+
+	//			// Print the quaternion
+	//			  myfile << to_string(robotTargets[i](3, 0) * 1000) + "," +
+	//						to_string(robotTargets[i](3, 1) * 1000) + "," +
+	//						to_string(robotTargets[i](3, 2) * 1000);
+
+	//			myfile << "], [";
+
+	//			  myfile << to_string(t_q.coeffs().transpose().w()) + "," +
+	//						to_string(t_q.coeffs().transpose().x()) + "," +
+	//						to_string(t_q.coeffs().transpose().y()) + "," +
+	//						to_string(t_q.coeffs().transpose().z());
+	//				
+	//			myfile << "], [0, 0, 0, 0], [0, 9E9, 9E9, 9E9, 9E9, 9E9]] ";
+
+	//			if (i != robot_gCode.size() - 1) myfile << ",";
+	//		}
+
+	//		myfile << "\n ]; ";
+
+	//		myfile << "\n FOR i FROM 1 TO count DO ";
+	//		myfile << "\n MoveL poses{i}, v100, z10, zHWC\\WObj:=wobj0;";
+
+	//		myfile << "\n ENDFOR";
+	//	}
+	//	
+
+	//	/*for (int i = 0; i < robot_gCode.size(); i++)
+	//	{
+	//		myfile << "\n";
+
+	//		if(robot_gCode[i].moveType == zRobot_Move_joint) myfile << "MoveAbsJ ";
+	//		if(robot_gCode[i].moveType == zRobot_Move_linear) myfile << "MoveL ";
+
+	//		myfile<< "p" << i << ", v" << to_string((int)robot_gCode[i].vel) << ", z10, tool0; \n";
+	//	}*/
+
+	//	myfile << "\n ENDPROC \n ";
+
+	//	//End MODULE
+	//	myfile << "\n ENDMODULE \n";
+
+	//	//close file
+	//	myfile.close();
+	//}
 
 	ZSPACE_TOOLSETS_INLINE void zTsRobot::toNACHI_MZ07Gcode(string infilename)
 	{
