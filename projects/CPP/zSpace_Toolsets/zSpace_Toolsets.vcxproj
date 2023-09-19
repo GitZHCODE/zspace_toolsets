@@ -363,7 +363,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath); </IncludePath>
     <TargetExt>$(TargetExt)</TargetExt>
-    <OutDir>$(SolutionDir)cpp\compiled\lib</OutDir>
+    <OutDir>$(SolutionDir)cpp\compiled\$(configuration)</OutDir>
     <TargetName>zSpace_Toolsets</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Unreal|x64'">
@@ -373,13 +373,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath); </IncludePath>
-    <OutDir>$(SolutionDir)cpp\compiled\dll</OutDir>
+    <OutDir>$(SolutionDir)cpp\compiled\$(configuration)</OutDir>
     <TargetExt>$(TargetExt)</TargetExt>
     <TargetName>zSpace_Toolsets</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_DLL_OV|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath); </IncludePath>
-    <OutDir>$(SolutionDir)cpp\compiled\dll</OutDir>
+    <OutDir>$(SolutionDir)cpp\compiled\$(configuration)</OutDir>
     <TargetExt>$(TargetExt)</TargetExt>
     <TargetName>zSpace_Toolsets</TargetName>
   </PropertyGroup>
