@@ -5,22 +5,22 @@
     <RhinoDir>C:\Program Files\Rhino 6 SDK</RhinoDir>
     <MayaDir>C:\Program Files\Autodesk\Maya2017</MayaDir>
     <CudaCommonDir>C:\ProgramData\NVIDIA Corporation\CUDA Samples\v10.2\common\inc</CudaCommonDir>
-    <zSpaceCoreLibDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\zSpaceCore</zSpaceCoreLibDir>
-    <zspacecoreDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_core</zspacecoreDir>
-    <zspaceDeployDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_alice\ALICE_PLATFORM\src\zspace</zspaceDeployDir>
-    <aliceEXEDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_alice\ALICE_PLATFORM\x64\Release\EXE</aliceEXEDir>
-    <iglIncludeDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\igl\headers</iglIncludeDir>
-    <iglBuildDir>C:\Users\heba.eiz\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\igl\build</iglBuildDir>
+    <zSpaceCoreLibDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\zSpaceCore</zSpaceCoreLibDir>
+    <zspacecoreDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_core</zspacecoreDir>
+    <zspaceDeployDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_alice\ALICE_PLATFORM\src\zspace</zspaceDeployDir>
+    <aliceEXEDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_alice\ALICE_PLATFORM\x64\Release\EXE</aliceEXEDir>
+    <iglIncludeDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\igl\headers</iglIncludeDir>
+    <iglBuildDir>C:\Users\vishu.b\source\repos\GitZHCODE\zspace_toolsets\cpp\depends\igl\build</iglBuildDir>
     <rhinoViewer>\\zaha-hadid.com\Data\Projects\1453_CODE\1453___research\res_heba\repos\Rh-Inside-Viewer-SB\depends\zToolset</rhinoViewer>
   </PropertyGroup>
   <PropertyGroup />
   <ItemDefinitionGroup>
     <PostBuildEvent>
-      <Command>CALL "$(SolutionDir)scripts\"zspace_libdeploy.bat "$(outDir)" "$(zspaceDeployDir)\lib"
-CALL "$(SolutionDir)scripts\"zspace_dlldeploy.bat "$(outDir)" "$(aliceEXEDir)"
+      <Command>CALL "$(SolutionDir)scripts\"zspace_libdeploy.bat "$(outDir)" "$(zspaceDeployDir)\lib\$(configuration)"
+REM CALL "$(SolutionDir)scripts\"zspace_dlldeploy.bat "$(outDir)" "$(aliceEXEDir)"
 CALL "$(SolutionDir)scripts\"zspace_includedeploy.bat "$(SolutionDir)\cpp\headers" "$(zspaceDeployDir)\headers"
 REM CALL "$(SolutionDir)scripts\"zspace_includedeploy.bat "$(SolutionDir)\cpp\depends" "$(zspaceDeployDir)\depends"
-CALL "$(SolutionDir)scripts\"zspace_dlldeploy.bat "$(outDir)" "$(rhinoViewer)"</Command>
+REM CALL "$(SolutionDir)scripts\"zspace_dlldeploy.bat "$(outDir)" "$(rhinoViewer)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

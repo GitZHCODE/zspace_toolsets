@@ -1152,6 +1152,7 @@ namespace zSpace
 			break;
 
 		case 1:
+			if (numSmooth > 0) fnField.smoothField(polyField_offset_outer, numSmooth);
 			fnField.setFieldValues(polyField_offset_outer);
 			break;
 
@@ -1583,6 +1584,8 @@ namespace zSpace
 					} while (he != startHe);
 
 				}
+
+				printf(" - vSequence verts  %i", vSequence.size());
 
 				// trim points
 
