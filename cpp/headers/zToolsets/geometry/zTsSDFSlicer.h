@@ -277,6 +277,13 @@ namespace zSpace
 
 		void setTransforms(bool toLocal);
 
+		/*! \brief This method sets the section frames from the input container of planes.
+		*
+		*	\param		[in]	_sectionFrames			- input container of planes.
+		*	\since version 0.0.4
+		*/
+		void setFrames(vector<zPlane>& _sectionFrames);
+
 		//--------------------------
 		//---- GET METHODS
 		//--------------------------
@@ -418,6 +425,16 @@ namespace zSpace
 		void computeBlockSDF_Generic(int funcNum, int numSmooth, int graphId, float printWidth, zDomainFloat &p_heightDomain, zDomainFloat &p_offsetDomain);
 
 		void computePrintBlock_Generic_TrimGraphs(zObjGraph& o_sectionGraph, zObjGraph& o_outGraph, float edgeLength);
+
+		 /*! \brief This method checks the layer heights of the block
+		*
+		*	\param		[out]	totalPrintLength						- output total print length.
+		*	\since version 0.0.4
+		*/
+		bool checkPrintLayerHeights_Generic(float& totalPrintLength);
+
+		bool exportJSON_Generic(string dir, string filename, float printLyerWidth);
+
 
 		//--------------------------
 		//---- COMPUTE METHODS STRIATUS

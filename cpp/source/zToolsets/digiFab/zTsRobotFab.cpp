@@ -41,28 +41,12 @@ namespace zSpace
 
 		toWorkBase();
 		robotTargets.clear();
-		targetsPerpToMesh.clear();
 		OV_angles.clear();
-
-		OV_angles.clear();
-
-		zFloatArray ovTemp;
-		ovTemp.clear();
 
 		//add home pos
 		addTarget(o_fabObj.robot_home);
 		robotTargetTypes.push_back(1);
 		OV_angles.push_back(0.0f);
-
-		robotTargetTypes.push_back(1);
-		OV_angles.push_back(0.0f);
-		OV_angles.push_back(0.0f);
-		
-		ovTemp.push_back(0.0f);
-		ovTemp.push_back(0.0f);
-
-		addSafeTargetsStart(robotTargets,1.2, true);
-		addSafeTargetsStart(targetsPerpToMesh,1.2, true);
 
 		for (auto& cutMesh : o_fabObj.fabMeshes)
 		{
@@ -73,11 +57,6 @@ namespace zSpace
 
 			addSafeTargets(targets_strip, ov_angle_strip,1.2);
 			checkTargetNormal(targets_strip);
-
-			addSafeTargets(targets_strip, targets_stripPerp, ov_angle_strip,  1.2, true);
-			addSafeTargets(targets_stripPerp, targets_strip, ov_angle_stripPerp,1.2, true);
-
-			//checkTargetNormal(targets_strip);
 			addTargets(targets_strip);
 			OV_angles.insert(OV_angles.end(), ov_angle_strip.begin(), ov_angle_strip.end());
 
@@ -100,25 +79,6 @@ namespace zSpace
 		robotTargetTypes.push_back(1);
 		OV_angles.push_back(0.0f);
 
-		robotTargetTypes.push_back(1);
-		OV_angles.push_back(0.0f);
-
-		cout << endl <<"targets: " << robotTargets.size();
-		cout << endl << "cutter: " << targetsPerpToMesh.size();
-
-		for (int i = 0; i < robotTargets.size(); i++)
-		{
-
-			targetsPerpToMesh[i](3, 0) = robotTargets[i](3, 0);
-			targetsPerpToMesh[i](3, 1) = robotTargets[i](3, 1);
-			targetsPerpToMesh[i](3, 2) = robotTargets[i](3, 2);
-
-			cout << endl << "\n index:" << i;
-			cout << endl << "targets" << endl << robotTargets[i];
-			cout << endl << "cutter" << endl << targetsPerpToMesh[i];
-
-		}
-
 		//o_fabObj.targets = robotTargets;
 
 		cout << endl << "ov angles" << endl;
@@ -129,12 +89,11 @@ namespace zSpace
 	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeGcode()
 	{
 		robotTargetReachabilities.clear();
-		robotTargetSpeeds.clear();
 
 		for (int i = 0; i < robotTargets.size(); i++)
 		{
 			zPoint pos = zVector(robotTargets[i](3, 0), robotTargets[i](3, 1), robotTargets[i](3, 2));
-			float vel = (robotTargetTypes[i] == 0) ? o_fabObj.vel_travel : o_fabObj.vel_work;
+			double vel = (robotTargetTypes[i] == 0) ? o_fabObj.vel_travel : o_fabObj.vel_work;
 			zRobotMoveType moveType = (robotTargetTypes[i] == 0) ? zMoveLinear : zMoveJoint;
 
 			//cout << endl << "target_"<<i << robotTargets [i]<<endl;
@@ -190,18 +149,9 @@ namespace zSpace
 		{
 			//target
 			zVector frame_Y = he.getVector();
-
-			cout << "\n positions : " << he.getVertex().getPosition() << ", " << he.getStartVertex().getPosition();
-
 			zVector frame_X = frame_Y ^ frame_Z;
 			frame_Z = frame_X ^ frame_Y;
 			zVector frame_O = he.getCenter();
-			frame_Y.normalize();
-			frame_X.normalize();
-
-			frame_Z = frame_X ^ frame_Y;
-			frame_Z.normalize();
-
 
 			frame_X.normalize();
 			frame_Y.normalize();
@@ -226,105 +176,6 @@ namespace zSpace
 		zVector frame_O = he.getCenter();
 
 		frame_X.normalize();
-		frame_Y.normalize();
-		frame_Z.normalize();
-
-		targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
-		vNormal = he.getVertex().getNormal();
-		ov_angle_strip.push_back(frame_Z.angle360(vNormal, frame_Y) * -1);
-
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::computeTargetsOnStripPerpToMesh(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip)
-	{
-		zItMeshHalfEdge he(cutMesh, 0);
-		for (he.begin(); !he.end(); he++)
-		{
-			if (he.onBoundary() && he.getVertex().checkValency(2) && he.getSym().getVertex().checkValency(2))
-			{
-				break;
-			}
-		}
-
-		zVector frame_Z(0, 0, -1);
-		zVector vNormal(0, 0, 1);
-		double angle = 0;
-		zVector faceNormal(0, 0, 0);
-
-		zItMeshFaceArray tempFhe;
-		he.getFaces(tempFhe);
-		faceNormal = zVector(0, 0, 0);
-		for (zItMeshFace& f : tempFhe)
-		{
-			faceNormal += f.getNormal();
-		}
-		zVector worldX(1, 0, 0);
-		zVector worldY(0, 0, 1);
-		zVector f2d = faceNormal;
-		f2d.normalize();
-		f2d.z = 0;
-		float ang = f2d.angle(worldX);
-		if (f2d * worldX > 0)
-		{
-
-		}
-		//all targets from a strip
-		do
-		{
-			//target
-			zVector frame_Y = he.getVector();
-			zItMeshFaceArray fhe;
-			he.getFaces(fhe);
-			faceNormal = zVector(0, 0, 0);
-			for (zItMeshFace& f : fhe)
-			{
-				faceNormal += f.getNormal();
-			}
-
-			faceNormal /= fhe.size();
-			faceNormal.normalize();
-			faceNormal *= -1;
-			//cout << "\n positions : " << he.getVertex().getPosition() << ", " << he.getStartVertex().getPosition();
-
-			zVector frame_X = frame_Y ^ faceNormal;
-			zVector frame_O = he.getCenter();
-			frame_Y.normalize();
-			frame_X.normalize();
-
-			frame_Z = frame_X ^ frame_Y;
-			frame_Z.normalize();
-
-
-			frame_Z = frame_X ^ frame_Y;
-			targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
-
-			//ov angle
-			vNormal = he.getVertex().getNormal();
-			angle = frame_Z.angle360(vNormal, frame_Y);
-			ov_angle_strip.push_back(angle);
-
-			he = he.getSym().getNext().getNext();
-
-		} while (!he.getVertex().checkValency(2) && !he.getSym().getVertex().checkValency(2));
-
-		//last target on strip
-
-
-		zVector frame_Y = he.getVector();
-		zItMeshFaceArray fhe;
-		he.getFaces(fhe);
-		faceNormal = zVector(0, 0, 0);
-		for (zItMeshFace& f : fhe)
-		{
-			faceNormal += f.getNormal();
-		}
-
-		faceNormal /= fhe.size();
-		faceNormal.normalize();
-		faceNormal *= -1;
-		//cout << "\n positions : " << he.getVertex().getPosition() << ", " << he.getStartVertex().getPosition();
-
-		zVector frame_X = frame_Y ^ faceNormal;
-		zVector frame_O = he.getCenter();
 		frame_Y.normalize();
 		frame_Z.normalize();
 
@@ -420,52 +271,6 @@ namespace zSpace
 		return safeTargets;
 	}
 
-	ZSPACE_TOOLSETS_INLINE vector<zTransform> zTsRHWC::computeSafeTargetsPerp(zTransform& target, float multiplication)
-	{
-		vector<zTransform> safeTargets;
-		safeTargets.assign(2, zTransform());
-
-		zPoint startPlanePoint = zVector(target(3, 0), target(3, 1), target(3, 2));
-		zPoint startPlaneNormal = zVector(target(2, 0), target(2, 1), target(2, 2));
-
-		zPointArray vertices;
-		zFnMesh temp(o_fabObj.bbox);
-		temp.getVertexPositions(vertices);
-		zPoint center(o_fabObj.fabrication_base(3, 0), o_fabObj.fabrication_base(3, 1), o_fabObj.fabrication_base(3, 2));
-		double check = startPlaneNormal * (startPlanePoint - center);
-
-		float dot_max = -1.0f;
-		int id;
-		for (int i = 0; i < vertices.size(); i++)
-		{
-			zVector vec = vertices[i] - startPlanePoint;
-			float dot = startPlaneNormal * vec;
-			if (dot > dot_max)
-			{
-				dot_max = dot;
-				id = i;
-			}
-		}
-		zPoint move = vertices[id];
-		double dist = coreUtils.minDist_Point_Plane(move, startPlanePoint, startPlaneNormal);
-
-		zPoint pos = startPlanePoint + startPlaneNormal * dist * multiplication;
-
-		//below safe target
-		safeTargets[0] = target;
-		safeTargets[0](3, 0) = pos.x;
-		safeTargets[0](3, 1) = pos.y;
-		safeTargets[0](3, 2) = pos.z;
-
-		//above safe target
-		safeTargets[1] = safeTargets[0];
-		safeTargets[1](3, 0) = pos.x;
-		safeTargets[1](3, 1) = pos.y;
-		safeTargets[1](3, 2) = o_fabObj.robot_home(3, 2);
-
-		return safeTargets;
-	}
-
 
 	ZSPACE_TOOLSETS_INLINE zTransform zTsRHWC::targetFromFrames(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ)
 	{
@@ -491,70 +296,6 @@ namespace zSpace
 
 		return target;
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::FramesFromTarget(zTransform& target, zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ)
-	{
-		//zTransform target;
-
-		target.setIdentity();
-
-		_rotationX.x = target(0, 0);
-		 _rotationX.y = target(0, 1);
-		 _rotationX.z = target(0, 2);
-		 _rotationY.x = target(1, 0);
-		 _rotationY.y = target(1, 1);
-		 _rotationY.z = target(1, 2);
-		 _rotationZ.x = target(2, 0);
-		 _rotationZ.y = target(2, 1);
-		 _rotationZ.z = target(2, 2);
-		 _position.x = target(3, 0);
-		 _position.y = target(3, 1);
-		 _position.z = target(3, 2);
-
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsRHWC::getOVAngle(zTransform& target, float& angle, zObjMesh& cutMesh)
-	{
-		zItMeshHalfEdge he(cutMesh, 0);
-		for (he.begin(); !he.end(); he++)
-		{
-			if (he.onBoundary() && he.getVertex().checkValency(2) && he.getSym().getVertex().checkValency(2))
-			{
-				break;
-			}
-		}
-
-		zVector frame_Z(0, 0, -1);
-		zVector vNormal(0, 0, 1);
-		angle = 0;
-		//all targets from a strip
-		//do
-		//{
-			////target
-			zVector frame_Y = he.getVector();
-			zVector frame_X = frame_Y ^ frame_Z;
-			frame_Z = frame_X ^ frame_Y;
-			zVector frame_O = he.getCenter();
 
 
-			//frame_X.normalize();
-			//frame_Y.normalize();
-			//frame_Z.normalize();
-			//targets_strip.push_back(targetFromFrames(frame_O, frame_X, frame_Y, frame_Z));
-			
-			FramesFromTarget(target, frame_O, frame_X, frame_Y, frame_Z);
-
-
-			//ov angle
-			vNormal = he.getVertex().getNormal();
-			angle = frame_Z.angle360(vNormal, frame_Y);
-			
-			
-			//ov_angle_strip.push_back(angle);
-			//cout << endl << "vNormal" << vNormal << endl;
-			//cout << endl << "frame_Z" << frame_Z << endl;
-
-			//he = he.getSym().getNext().getNext();
-
-		//} while (!he.getVertex().checkValency(2) && !he.getSym().getVertex().checkValency(2));
-
-	}
 }

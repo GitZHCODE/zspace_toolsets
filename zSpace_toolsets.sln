@@ -13,6 +13,7 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_DLL|x64 = Debug_DLL|x64
 		Debug|x64 = Debug|x64
+		Release_DLL_OV|x64 = Release_DLL_OV|x64
 		Release_DLL|x64 = Release_DLL|x64
 		Release_Make|x64 = Release_Make|x64
 		Release_Unreal|x64 = Release_Unreal|x64
@@ -23,6 +24,8 @@ Global
 		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Debug_DLL|x64.Build.0 = Debug_DLL|x64
 		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Debug|x64.ActiveCfg = Debug|x64
 		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Debug|x64.Build.0 = Debug|x64
+		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Release_DLL_OV|x64.ActiveCfg = Release_DLL_OV|x64
+		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Release_DLL_OV|x64.Build.0 = Release_DLL_OV|x64
 		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Release_DLL|x64.ActiveCfg = Release_DLL|x64
 		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Release_DLL|x64.Build.0 = Release_DLL|x64
 		{AC6C11FF-1F49-4025-87EC-F25C219971F4}.Release_Make|x64.ActiveCfg = Release_Make|x64
