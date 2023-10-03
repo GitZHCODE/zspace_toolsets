@@ -27,19 +27,19 @@
 
 #include <headers/zInterface/functionsets/zFnMeshField.h>
 
-#include <igl/avg_edge_length.h>
-#include <igl/cotmatrix.h>
-#include <igl/invert_diag.h>
-#include <igl/massmatrix.h>
-#include <igl/parula.h>
-#include <igl/per_corner_normals.h>
-#include <igl/per_face_normals.h>
-#include <igl/per_vertex_normals.h>
-#include <igl/principal_curvature.h>
-#include <igl/gaussian_curvature.h>
-#include <igl/read_triangle_mesh.h>
-
-#include <igl/point_mesh_squared_distance.h>
+//#include <igl/avg_edge_length.h>
+//#include <igl/cotmatrix.h>
+//#include <igl/invert_diag.h>
+//#include <igl/massmatrix.h>
+//#include <igl/parula.h>
+//#include <igl/per_corner_normals.h>
+//#include <igl/per_face_normals.h>
+//#include <igl/per_vertex_normals.h>
+//#include <igl/principal_curvature.h>
+//#include <igl/gaussian_curvature.h>
+//#include <igl/read_triangle_mesh.h>
+//
+//#include <igl/point_mesh_squared_distance.h>
 
 
 
