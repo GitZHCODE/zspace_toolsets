@@ -3505,40 +3505,40 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeClosestPointToGradientMesh(zPointArray& inPoints, zIntArray& faceIDs, zPointArray& closestPoints)
 	{
-		MatrixXd P(inPoints.size(), 3);
-		for (int i = 0; i < inPoints.size(); i++)
-		{
-			P(i, 0) = inPoints[i].x;
-			P(i, 1) = inPoints[i].y;
-			P(i, 2) = inPoints[i].z;
-		}
-		
+		//MatrixXd P(inPoints.size(), 3);
+		//for (int i = 0; i < inPoints.size(); i++)
+		//{
+		//	P(i, 0) = inPoints[i].x;
+		//	P(i, 1) = inPoints[i].y;
+		//	P(i, 2) = inPoints[i].z;
+		//}
+		//
 
-		VectorXd sqrD;
-		VectorXi I;
-		MatrixXd C;
-		igl::point_mesh_squared_distance(P, gradientTriMesh_V, gradientTriMesh_FTris, sqrD, I, C);
+		//VectorXd sqrD;
+		//VectorXi I;
+		//MatrixXd C;
+		//igl::point_mesh_squared_distance(P, gradientTriMesh_V, gradientTriMesh_FTris, sqrD, I, C);
 
-		faceIDs.clear();
-		closestPoints.clear();
+		//faceIDs.clear();
+		//closestPoints.clear();
 
-		faceIDs.assign(inPoints.size(), int());
-		closestPoints.assign(inPoints.size(), zPoint());
-		
-		//cout << endl << endl;
+		//faceIDs.assign(inPoints.size(), int());
+		//closestPoints.assign(inPoints.size(), zPoint());
+		//
+		////cout << endl << endl;
 
-		for (int i = 0; i< inPoints.size(); i++)
-		{
-			faceIDs[i] = I(i);
+		//for (int i = 0; i< inPoints.size(); i++)
+		//{
+		//	faceIDs[i] = I(i);
 
-			closestPoints[i].x = C(i, 0);
-			closestPoints[i].y = C(i, 1);
-			closestPoints[i].z = C(i, 2);		
+		//	closestPoints[i].x = C(i, 0);
+		//	closestPoints[i].y = C(i, 1);
+		//	closestPoints[i].z = C(i, 2);		
 
-			//cout << endl << inPoints[i] << ", " << closestPoints[i] << ", " << faceIDs[i];
-		}
+		//	//cout << endl << inPoints[i] << ", " << closestPoints[i] << ", " << faceIDs[i];
+		//}
 
-		
+		//
 
 				
 	}
