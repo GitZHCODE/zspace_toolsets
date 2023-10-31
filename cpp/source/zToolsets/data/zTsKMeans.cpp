@@ -16,7 +16,7 @@
 namespace zSpace
 {
 
-	
+
 	//---- CONSTRUCTOR
 
 	ZSPACE_TOOLSETS_INLINE zTsKMeans::zTsKMeans()
@@ -25,7 +25,7 @@ namespace zSpace
 		numIterations = 100;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zTsKMeans::zTsKMeans(MatrixXf &_dataPoints)
+	ZSPACE_TOOLSETS_INLINE zTsKMeans::zTsKMeans(MatrixXf& _dataPoints)
 	{
 		dataPoints = _dataPoints;
 
@@ -34,12 +34,19 @@ namespace zSpace
 		numIterations = 100;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zTsKMeans::zTsKMeans(MatrixXf &_dataPoints, int &_numClusters, int &_numIterations)
+	ZSPACE_TOOLSETS_INLINE zTsKMeans::zTsKMeans(MatrixXf& _dataPoints, int& _numClusters, int& _numIterations)
 	{
 		dataPoints = _dataPoints;
 
 		numClusters = _numClusters;
 		numIterations = _numIterations;
+	}
+	ZSPACE_TOOLSETS_INLINE zTsKMeans::zTsKMeans(MatrixXf& _dataPoints, int& _numClusters, int& _numIterations, zFloatArray& dimsTolerances)
+	{
+		dataPoints = _dataPoints;
+		numClusters = _numClusters;
+		numIterations = _numIterations;
+		tolerances = dimsTolerances;
 	}
 
 	//---- DESTRUCTOR
@@ -48,19 +55,23 @@ namespace zSpace
 
 	//----  SET METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsKMeans::setNumClusters(int &_numClusters)
+	ZSPACE_TOOLSETS_INLINE void zTsKMeans::setNumClusters(int& _numClusters)
 	{
 		numClusters = _numClusters;
 	}
-
-	ZSPACE_TOOLSETS_INLINE void zTsKMeans::setNumIterations(int &_numIterations)
+	ZSPACE_TOOLSETS_INLINE void zTsKMeans::setNumIterations(int& _numIterations)
 	{
 		numIterations = _numIterations;
 	}
 
-	//---- CLUSTERING METHODS
-	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClusters(int& actualNumClusters, MatrixXf manualInitMeans)
+	void zTsKMeans::setTolerances(vector<float> tolerances)
 	{
+	}
+
+	//---- CLUSTERING METHODS
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClusters(int& actualNumClusters, MatrixXf manualInitMeans, float tolerance)
+	{
+		numClusters = manualInitMeans.rows();
 		int numRows = dataPoints.rows();
 		int numCols = dataPoints.cols();
 
@@ -74,7 +85,7 @@ namespace zSpace
 
 		// Initialise means
 		MatrixXf tempMeans = manualInitMeans;
-		
+
 		// Initialise container to store cluster index per data point
 		//vector<int> clusterIDS;
 		for (int i = 0; i < numRows; i++)
@@ -85,6 +96,7 @@ namespace zSpace
 
 		// Initialise container to store item indicies per cluster
 		vector<vector<int>> tempClusters;
+
 		for (int i = 0; i < numClusters; i++)
 		{
 			vector<int> temp;
@@ -107,7 +119,7 @@ namespace zSpace
 			{
 				MatrixXf data = dataPoints.row(j);
 
-				int clusterID = getClusterIndex(data, tempMeans);
+				int clusterID = getClusterIndex(data, tempMeans, tolerance);
 
 
 				// check if data point changed cluster
@@ -189,14 +201,15 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClusters(int &actualNumClusters, initialisationMethod initMethod, int seed1, int seed2)
+
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClusters(int& actualNumClusters, initialisationMethod initMethod, int seed1, int seed2, float tolerance)
 	{
 		int numRows = dataPoints.rows();
 		int numCols = dataPoints.cols();
 
 		// get min max value of the datapoints
 		int minIndex;
-		
+
 		float minVal = dataPoints.minCoeff();
 
 		int maxIndex;
@@ -212,9 +225,9 @@ namespace zSpace
 
 		case initialisationMethod::kmeansPlusPlus:
 			tempMeans = intialiseMeansPlusPlus(minVal, maxVal, seed1, seed2);
-			break;		
+			break;
 		}
-		
+
 
 		// Initialise container to store cluster index per data point
 		//vector<int> clusterIDS;
@@ -244,12 +257,43 @@ namespace zSpace
 			exit = true;
 			//exit = false;
 
+
 			for (int j = 0; j < numRows; j++)
 			{
 				MatrixXf data = dataPoints.row(j);
 
-				int clusterID = getClusterIndex(data, tempMeans);
+				int clusterID = getClusterIndex(data, tempMeans, tolerance);
+				//cout << "numRows:" << numRows << endl;
+				//cout << "tempMeans.rows():" << tempMeans.rows() << endl;
 
+				if (clusterID == -1)
+				{
+					//MatrixXf newMatrix(tempMeans.rows() + 1, dataPoints.cols());
+					////newMatrix.block(0, 0, tempMeans.rows(), tempMeans.cols()) = tempMeans;
+
+					//for (int l = 0; l < tempMeans.rows(); l++)
+					//{
+					//	newMatrix.row(l) = tempMeans.row(l);
+					//}
+					//newMatrix.row(tempMeans.rows()) = data;
+
+					//tempMeans = MatrixXf(newMatrix.rows(), dataPoints.cols());
+					//tempMeans = newMatrix;
+
+					//clusterID = getClusterIndex(data, tempMeans, tolerance);
+
+					//numClusters++;
+
+					tempMeans.conservativeResize(tempMeans.rows() + 1, tempMeans.cols());
+					tempMeans.row(tempMeans.rows() - 1) = data;
+
+					clusterID = tempMeans.rows() - 1;/*getClusterIndex(data, tempMeans, tolerance);*/
+
+
+					tempClusters.push_back(vector<int>());
+
+					numClusters++;
+				}
 
 				// check if data point changed cluster
 				if (clusterID != clusterIDS[j]) exit = false;
@@ -259,6 +303,8 @@ namespace zSpace
 
 
 				// update clusters
+				//cout << "clusterID:" << clusterID << endl;
+
 				tempClusters[clusterID].push_back(j);
 
 
@@ -272,10 +318,12 @@ namespace zSpace
 				for (int l = 0; l < tempClusters[j].size(); l++)
 				{
 					int dataId = tempClusters[j][l];
+					//cout << "dataId:" << dataId << endl;
+
 					MatrixXf data = dataPoints.row(dataId);
 
 					updateMean(data, mean, l + 1);
-				}		
+				}
 
 				tempMeans.row(j) = mean;
 			}
@@ -324,15 +372,349 @@ namespace zSpace
 				id++;
 			}
 		}
+
+		clusterIDS = mapUniqueClusterIDs(clusterIDS);
+
 		//calculateDistortion();
 		//calculateIntertia();
 		return numIters;
 
 	}
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClustersWithTolerance(int& actualNumClusters, initialisationMethod initMethod, int maxClusters, int seed1, int seed2)
+	{
+		int numRows = dataPoints.rows();
+		int numCols = dataPoints.cols();
+
+		// get min max value of the datapoints
+		float minVal = dataPoints.minCoeff();
+		float maxVal = dataPoints.maxCoeff();
+
+		// Initialise means
+		MatrixXf tempMeans;
+		switch (initMethod)
+		{
+		case initialisationMethod::random:
+			tempMeans = intialiseMeansRandom(minVal, maxVal, seed1);
+			break;
+
+		case initialisationMethod::kmeansPlusPlus:
+			tempMeans = intialiseMeansPlusPlus(minVal, maxVal, seed1, seed2);
+			break;
+		}
+
+
+		// Initialize container to store cluster index per data point
+		for (int i = 0; i < numRows; i++)
+		{
+			clusterIDS.push_back(0);
+		}
+
+
+		// Initialize container to store item indicies per cluster
+		vector<vector<int>> tempClusters;
+		for (int i = 0; i < numClusters; i++)
+		{
+			vector<int> temp;
+			tempClusters.push_back(temp);
+		}
+
+
+		// compute means
+
+		int numIters = 0;
+		bool exit = false;
+
+		int maxClustersAdded = 0;
+		for (int i = 0; i < numIterations; i++)
+		{
+			numIters = i;
+
+			exit = true;
+			//exit = false;
+
+
+			for (int j = 0; j < numRows; j++)
+			{
+				MatrixXf data = dataPoints.row(j);
+				int clusterID = numClusters < maxClusters ? getClusterIndexWithTolerance(data, tempMeans) : getClusterIndexWithTolerance(data, tempMeans, false);
+				if (clusterID == -1)
+				{
+
+					printf("\n create new cluster %i", numClusters + 1);
+					tempMeans.conservativeResize(tempMeans.rows() + 1, tempMeans.cols());
+					tempMeans.row(tempMeans.rows() - 1) = data;
+
+					clusterID = tempMeans.rows() - 1;/*getClusterIndex(data, tempMeans, tolerance);*/
+
+
+					tempClusters.push_back(vector<int>());
+
+					numClusters++;
+				}
+
+
+
+				// check if data point changed cluster
+				if (clusterID != clusterIDS[j]) exit = false;
+
+				clusterIDS[j] = clusterID;
+
+
+
+				// update clusters
+				//cout << "clusterID:" << clusterID << endl;
+
+				tempClusters[clusterID].push_back(j);
+
+
+			}
+
+			// update mean			
+			for (int j = 0; j < numClusters; j++)
+			{
+				MatrixXf  mean = tempMeans.row(j);
+
+				for (int l = 0; l < tempClusters[j].size(); l++)
+				{
+					int dataId = tempClusters[j][l];
+					//cout << "dataId:" << dataId << endl;
+
+					MatrixXf data = dataPoints.row(dataId);
+
+					updateMean(data, mean, l + 1);
+				}
+
+				tempMeans.row(j) = mean;
+			}
+
+
+
+			if (exit) break;
+			else
+			{
+				// clear clusters
+				for (int j = 0; j < numClusters; j++)
+				{
+					tempClusters[j].clear();
+				}
+			}
+
+
+		}
+
+
+		// remove cluster with zero elements
+		actualNumClusters = numClusters;
+		clusters.clear();
+
+		for (int i = 0; i < numClusters; i++)
+		{
+			if (tempClusters[i].size() != 0)
+			{
+				clusters.push_back(tempClusters[i]);
+			}
+			else actualNumClusters--;
+
+		}
+
+		means = MatrixXf(actualNumClusters, tempMeans.cols());
+		int id = 0;
+		for (int i = 0; i < tempMeans.rows(); i++)
+		{
+			if (tempClusters[i].size() != 0)
+			{
+				for (int j = 0; j < tempMeans.cols(); j++)
+				{
+					means(id, j) = tempMeans(i, j);
+				}
+
+				id++;
+			}
+		}
+
+		clusterIDS = mapUniqueClusterIDs(clusterIDS);
+
+		//calculateDistortion();
+		//calculateIntertia();
+		return numIters;
+	}
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClustersWithTolerance_2nd(int& actualNumClusters, int maxClusters, int seed1, int seed2)
+	{
+		int numRows = dataPoints.rows();
+		int numCols = dataPoints.cols();
+
+		// get min max value of the datapoints
+		float minVal = dataPoints.minCoeff();
+		float maxVal = dataPoints.maxCoeff();
+
+		// Initialise means
+		MatrixXf tempMeans = means;
+
+
+
+		// Initialize container to store cluster index per data point
+		for (int i = 0; i < numRows; i++)
+		{
+			clusterIDS.push_back(0);
+		}
+
+
+		// Initialize container to store item indicies per cluster
+		vector<vector<int>> tempClusters;
+		for (int i = 0; i < numClusters; i++)
+		{
+			vector<int> temp;
+			tempClusters.push_back(temp);
+		}
+
+
+		// compute means
+
+		int numIters = 0;
+		bool exit = false;
+
+		int maxClustersAdded = 0;
+		for (int i = 0; i < numIterations; i++)
+		{
+			numIters = i;
+
+			exit = true;
+			//exit = false;
+
+
+			for (int j = 0; j < numRows; j++)
+			{
+				MatrixXf data = dataPoints.row(j);
+				int clusterID = numClusters < maxClusters ? getClusterIndexWithTolerance(data, tempMeans) : getClusterIndexWithTolerance(data, tempMeans, false);
+				if (clusterID == -1)
+				{
+
+					printf("\n create new cluster %i", numClusters + 1);
+					tempMeans.conservativeResize(tempMeans.rows() + 1, tempMeans.cols());
+					tempMeans.row(tempMeans.rows() - 1) = data;
+
+					clusterID = tempMeans.rows() - 1;/*getClusterIndex(data, tempMeans, tolerance);*/
+
+
+					tempClusters.push_back(vector<int>());
+
+					numClusters++;
+				}
+
+
+
+				// check if data point changed cluster
+				if (clusterID != clusterIDS[j]) exit = false;
+
+				clusterIDS[j] = clusterID;
+
+
+
+				// update clusters
+				//cout << "clusterID:" << clusterID << endl;
+
+				tempClusters[clusterID].push_back(j);
+
+
+			}
+
+			// update mean			
+			for (int j = 0; j < numClusters; j++)
+			{
+				MatrixXf  mean = tempMeans.row(j);
+
+				for (int l = 0; l < tempClusters[j].size(); l++)
+				{
+					int dataId = tempClusters[j][l];
+					//cout << "dataId:" << dataId << endl;
+
+					MatrixXf data = dataPoints.row(dataId);
+
+					updateMean(data, mean, l + 1);
+				}
+
+				tempMeans.row(j) = mean;
+			}
+
+
+
+			if (exit) break;
+			else
+			{
+				// clear clusters
+				for (int j = 0; j < numClusters; j++)
+				{
+					tempClusters[j].clear();
+				}
+			}
+
+
+		}
+
+
+		// remove cluster with zero elements
+		actualNumClusters = numClusters;
+		clusters.clear();
+
+		for (int i = 0; i < numClusters; i++)
+		{
+			if (tempClusters[i].size() != 0)
+			{
+				clusters.push_back(tempClusters[i]);
+			}
+			else actualNumClusters--;
+
+		}
+
+		means = MatrixXf(actualNumClusters, tempMeans.cols());
+		int id = 0;
+		for (int i = 0; i < tempMeans.rows(); i++)
+		{
+			if (tempClusters[i].size() != 0)
+			{
+				for (int j = 0; j < tempMeans.cols(); j++)
+				{
+					means(id, j) = tempMeans(i, j);
+				}
+
+				id++;
+			}
+		}
+
+		clusterIDS = mapUniqueClusterIDs(clusterIDS);
+
+		//calculateDistortion();
+		//calculateIntertia();
+		return numIters;
+	}
+
+	int zTsKMeans::runKMeansClusters(int maxClusters, int& actualNumClusters, zFloatArray tolerance())
+	{
+		return 0;
+	}
 
 	//---- PROTECTED METHODS
 
-	ZSPACE_TOOLSETS_INLINE MatrixXf zTsKMeans::intialiseMeansRandom(float &minVal, float &maxVal, int seed)
+	ZSPACE_TOOLSETS_INLINE vector<int> zTsKMeans::mapUniqueClusterIDs(const std::vector<int>& v)
+	{
+		std::map<int, std::size_t> m;
+		for (auto e : v)
+		{
+			m[e];
+		}
+		int index = 0;
+		for (auto& [key, value] : m)
+		{
+			value = index++;
+		}
+		std::vector<int> res;
+		for (auto e : v)
+		{
+			res.push_back(m[e]);
+		}
+		return res;
+	}
+	ZSPACE_TOOLSETS_INLINE MatrixXf zTsKMeans::intialiseMeansRandom(float& minVal, float& maxVal, int seed)
 	{
 		printf("\n init random 0");
 		MatrixXf out(numClusters, dataPoints.cols());
@@ -388,7 +770,7 @@ namespace zSpace
 
 		//create a list to contain all the distances to the centroid we found so far
 		MatrixXf pDist(dataPoints.rows(), numClusters);
-		
+
 		for (int k = 1; k < numClusters; k++)
 		{
 			//find the distance with the previous cluster index (to avoid calculating the same distance with the same centroids multiple times to find the smallest)
@@ -400,7 +782,7 @@ namespace zSpace
 				c.row(0) = out.row(k - 1);
 				float d = coreUtils.getEuclideanDistance(p, c);
 				pDist(r, k - 1) = d;
-			}			
+			}
 
 			//create a list with the smallest distance for each datapoint
 			vector<float> pSmallestDist;
@@ -423,7 +805,7 @@ namespace zSpace
 
 			}
 
-			int newMeanIndex = pSmallestIndex[probabilitySelection(pSmallestDist, seed2+k)];
+			int newMeanIndex = pSmallestIndex[probabilitySelection(pSmallestDist, seed2 + k)];
 			out.row(k) = dataPoints.row(newMeanIndex);
 
 			//for (int r = 0; r < dataPoints.rows(); r++) //for each data point
@@ -443,7 +825,7 @@ namespace zSpace
 			//	}
 			//}
 			//out.row(k) = dataPoints.row(pointIndex);
-			
+
 		}
 		return out;
 	}
@@ -451,9 +833,9 @@ namespace zSpace
 	ZSPACE_TOOLSETS_INLINE double zTsKMeans::calculateDistortion()
 	{
 		double sum = 0;
-		for (int r = 0; r < means.rows(); r++) 
+		for (int r = 0; r < means.rows(); r++)
 		{
-			for (int j = r+1; j < means.rows(); j++)
+			for (int j = r + 1; j < means.rows(); j++)
 			{
 				MatrixXf p(1, means.cols());
 				p.row(0) = means.row(r);
@@ -544,22 +926,22 @@ namespace zSpace
 					ai += pointsDistances(i, k);
 				}
 				ai = ai / (clusters[id].size() - 1);
-				
+
 				vector<pair<float, int>> distClusterPair;
 				for (int m = 0; m < pointsDistances.cols(); m++)
 				{
 					distClusterPair.push_back(make_pair(pointsDistances(i, m), clusterIDS[m])); //pair.first = distance to m, pair.second = which clusterId m belongs to
 				}
-			
+
 				std::sort(distClusterPair.begin(), distClusterPair.end());
 
-				int datapointId = 0; 
+				int datapointId = 0;
 
 				while (distClusterPair[datapointId].second == id && datapointId < distClusterPair.size())
 				{
 					datapointId++;
 				}
-				
+
 				printf("\n datapointId %i", datapointId);
 				int closestClusterId = clusterIDS[datapointId];
 				/*while (clusters[closestClusterId].size() == 00 && datapointId < distClusterPair.size())
@@ -574,7 +956,7 @@ namespace zSpace
 				double bi = 0; //measure of the average dissimilarity to the closest cluster which is not it’s cluster 
 				for (int j = 0; j < clusters[closestClusterId].size(); j++)
 				{
-					printf("\n j %i clusters[closestClusterId][j] %i",j, clusters[closestClusterId][j]);
+					printf("\n j %i clusters[closestClusterId][j] %i", j, clusters[closestClusterId][j]);
 
 					int k = clusters[closestClusterId][j];
 					bi += pointsDistances(i, k);
@@ -597,7 +979,7 @@ namespace zSpace
 		return SilhouetteScore;
 	}
 
-	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getClusterIndex(MatrixXf &data, MatrixXf &means)
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getClusterIndex(MatrixXf& data, MatrixXf& means, float tolerance)
 	{
 		double minDist = 10000000;
 		int out = -1;
@@ -608,7 +990,7 @@ namespace zSpace
 
 			double dist = coreUtils.getEuclideanDistance(data, mean);
 
-			if (dist < minDist)
+			if (dist < minDist && dist < tolerance)
 			{
 				minDist = dist;
 				out = i;
@@ -617,8 +999,84 @@ namespace zSpace
 
 		return out;
 	}
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getClusterIndexWithTolerance(MatrixXf& data, MatrixXf& means, bool checkTolerance)
+	{
+		double minDist = DBL_MAX;
+		int out = -1;
 
-	ZSPACE_TOOLSETS_INLINE void zTsKMeans::updateMean(MatrixXf &data, MatrixXf &mean, int clusterSize)
+		for (int i = 0; i < means.rows(); i++)
+		{
+			MatrixXf mean = means.row(i);
+
+
+			//find the distance in each dimension separately (the values should NOT be normalized)
+			bool allDimsInTolerance = true;
+			if (checkTolerance)
+			{
+				for (int j = 0; j < mean.cols(); j++)
+				{
+					float distInDim = std::abs(mean(0, j) - data(0, j));
+					if (distInDim > tolerances[j])
+					{
+						allDimsInTolerance = false;
+						//printf("\n out of tolerance dimension %i : %.3f | %.3f ", j, distInDim, tolerances[j]);
+						//printf("\n mean %.3f |  %.3f ", mean(0, j), data(0, j));
+						break;
+					}
+				}
+			}
+
+
+			double dist = coreUtils.getEuclideanDistance(data, mean);
+			if (dist < minDist && allDimsInTolerance)
+			{
+				minDist = dist;
+				out = i;
+			}
+		}
+		//printf("\n clusterID %i ", out);
+		return out;
+	}
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getClusterIndex(MatrixXf& data, MatrixXf& means)
+	{
+		double minDist = DBL_MAX;
+		int out = -1;
+
+		for (int i = 0; i < means.rows(); i++)
+		{
+			MatrixXf mean = means.row(i);
+
+
+			//find the distance in each dimension separately (the values should NOT be normalized)
+			bool allDimsInTolerance = true;
+			if (tolerances.size() == mean.cols())
+			{
+				for (int j = 0; j < mean.cols(); j++)
+				{
+					float distInDim = abs(mean(0, j) - data(0, j));
+					if (distInDim > tolerances[j])
+					{
+						allDimsInTolerance = false;
+						//printf("\n out of tolerance dimension %i : %.3f | %.3f ", j, distInDim, tolerances[j]);
+						//printf("\n mean %.3f |  %.3f ", mean(0, j), data(0, j));
+						break;
+					}
+				}
+			}
+
+
+			double dist = coreUtils.getEuclideanDistance(data, mean);
+			if (dist < minDist && allDimsInTolerance)
+			{
+				minDist = dist;
+				out = i;
+			}
+		}
+		//printf("\n clusterID %i ", out);
+		return out;
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsKMeans::updateMean(MatrixXf& data, MatrixXf& mean, int clusterSize)
 	{
 		for (int i = 0; i < mean.cols(); i++)
 		{
@@ -650,7 +1108,7 @@ namespace zSpace
 			if (cumulativeProb > random) return pair[i].second;
 		}
 
-		return pair[n-1].second;
+		return pair[n - 1].second;
 	}
 
 	//ZSPACE_TOOLSETS_INLINE void zTsKMeans::createEvaluationGraph(vector<float, float> pairs, string xTitle, string yTitle)
@@ -658,7 +1116,7 @@ namespace zSpace
 	//	//draw axis 
 	//}
 
-	ZSPACE_TOOLSETS_INLINE int zTsKMeans::findOptimalK_Elbow(initialisationMethod initMethod, bool distortionMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair)
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::findOptimalK_Elbow(initialisationMethod initMethod, bool distortionMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair, float tolerance)
 	{
 		KScorePair.clear();
 		//vector<int> ks;
@@ -672,7 +1130,7 @@ namespace zSpace
 		{
 			int numCluster = k;
 			setNumClusters(k);
-			getKMeansClusters(numCluster, initMethod, seed1, seed2);
+			getKMeansClusters(numCluster, initMethod, seed1, seed2, tolerance);
 			float score = distortionMethod ? calculateDistortion() : calculateIntertia();
 
 			KScorePair.push_back(make_pair(k, score));
@@ -700,7 +1158,7 @@ namespace zSpace
 
 		return optimalCount;
 	}
-	ZSPACE_TOOLSETS_INLINE int zTsKMeans::findOptimalK_Silhouette(initialisationMethod initMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair)
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::findOptimalK_Silhouette(initialisationMethod initMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair, float tolerance)
 	{
 		KScorePair.clear();
 		float* mesh;
@@ -722,7 +1180,7 @@ namespace zSpace
 			int numCluster = k;
 			setNumClusters(k);
 
-			getKMeansClusters(numCluster, initMethod, seed1, seed2);
+			getKMeansClusters(numCluster, initMethod, seed1, seed2, tolerance);
 
 			float score = calculateSilhouette();
 
@@ -730,12 +1188,12 @@ namespace zSpace
 
 			KScorePair.push_back(make_pair(k, score));
 
-			
+
 		}
 
 		std::sort(scoreKpair.begin(), scoreKpair.end());
 
-		optimalCount = scoreKpair[scoreKpair.size()-1].second;
+		optimalCount = scoreKpair[scoreKpair.size() - 1].second;
 		/*printf("\n optimalCount = %i ", optimalCount);
 
 		for (int i = 0; i < KScorePair.size(); i++)
