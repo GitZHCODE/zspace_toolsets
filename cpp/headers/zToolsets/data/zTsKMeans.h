@@ -93,6 +93,9 @@ namespace zSpace
 
 		/*!	\brief  container of cluster id for each item*/
 		vector<int> clusterIDS;
+		
+		/*!	\brief  container of tolerance for each dimension - if the difference between the item and the mean in that dimensions exceeds the tolerance in that dimension, create new cluster*/
+		vector<float> tolerances;
 	
 		enum initialisationMethod
 		{
@@ -128,6 +131,16 @@ namespace zSpace
 		*/
 		zTsKMeans(MatrixXf &_dataPoints, int &_numClusters, int &_numIterations);
 
+		/*! \brief Overloaded constructor.
+		*
+		*	\param		[in]	_dataPoints				- input matrix data.
+		*	\param		[in]	_numClusters		- input snumber of clusters.
+		*	\param		[in]	_numIterations		- input number of iterations.
+		*	\param		[in]	dimsTolerances		- the tolerance for each dimension.
+		*	\since version 0.0.2
+		*/
+		zTsKMeans(MatrixXf& _dataPoints, int& _numClusters, int& _numIterations, zFloatArray& dimsTolerances);
+
 		//--------------------------
 		//---- DESTRUCTOR
 		//--------------------------
@@ -156,6 +169,13 @@ namespace zSpace
 		*/
 		void setNumIterations(int &_numIterations);
 
+		/*! \brief This method sets the number of iterations.
+		*
+		*	\param		[in]	_numIterations		- input number of iterations.
+		*	\since version 0.0.2
+		*/
+		void setTolerances(vector<float> tolerances);
+
 		//--------------------------
 		//---- CLUSTERING METHODS
 		//--------------------------
@@ -165,15 +185,21 @@ namespace zSpace
 		*	\param	[out]	actualNumClusters		- actual number of clusters after removing clusters of size 0.
 		*	\return			int						- number of iterations the algorithm ran.
 		*/
-		int getKMeansClusters(int& actualNumClusters, initialisationMethod initMethod, int seed1, int seed2);
-		int getKMeansClusters(int& actualNumClusters, MatrixXf manualInitMeans);
+		int getKMeansClusters(int& actualNumClusters, initialisationMethod initMethod, int seed1, int seed2, float tolerance);
+		int getKMeansClusters(int& actualNumClusters, MatrixXf manualInitMeans, float tolerance = FLT_MAX);
+
+		int getKMeansClustersWithTolerance(int& actualNumClusters, initialisationMethod initMethod, int maxClusters, int seed1, int seed2 = 1);
+		int getKMeansClustersWithTolerance_2nd(int& actualNumClusters, int maxClusters, int seed1, int seed2 = 1);
+
+		int runKMeansClusters(int maxClusters, int& actualNumClusters, zFloatArray tolerance());
+
 
 		/*
 		reference from https://www.geeksforgeeks.org/elbow-method-for-optimal-value-of-k-in-kmeans/
 		*/
 
-		int findOptimalK_Elbow(initialisationMethod initMethod, bool distortionMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair);
-		int findOptimalK_Silhouette(initialisationMethod initMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair);
+		int findOptimalK_Elbow(initialisationMethod initMethod, bool distortionMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair, float tolerance);
+		int findOptimalK_Silhouette(initialisationMethod initMethod, int min, int max, int increment, int seed1, int seed2, vector<pair<int, float>>& KScorePair, float tolerance);
 
 		/*
 		! \brief This method computes Distortion Score of the input. It is calculated as the average of the squared distances from the cluster centers of the respective clusters. Typically, the Euclidean distance metric is used.
@@ -189,11 +215,15 @@ namespace zSpace
 		int probabilitySelection(vector<float> list, int seed);
 
 		void createEvaluationGraph(vector<float, float> pairs, string xTitle, string yTitle);
+		
+		
 		//--------------------------
 		//---- PROTECTED METHODS
 		//--------------------------
 	protected:
 			
+		vector<int> mapUniqueClusterIDs(const std::vector<int>& v);
+
 		/*! \brief This method initialises the means based on the minimum and maximum value in the data points.
 		*
 		*	\param	[out]	minVal			- input minimum value in the data.
@@ -219,7 +249,16 @@ namespace zSpace
 		*	\param	[in]	data			- input row matrix of data.
 		*	\return			int				- index of cluster.
 		*/
-		int getClusterIndex(MatrixXf &data, MatrixXf &means);
+		int getClusterIndex(MatrixXf& data, MatrixXf& means, float tolerance);
+
+		/*! \brief This method computes the cluster index based on the least euclidean distance between input data point and mean values considering the tolerance value of each dimension.
+		*
+		*	\param	[in]	data			- input row matrix of data.
+		*	\param	[in]	mean			- input row matrix of means.
+		*	\return			int				- index of cluster.
+		*/
+		int getClusterIndexWithTolerance(MatrixXf& data, MatrixXf& means, bool checkTolerance = true);
+		int getClusterIndex(MatrixXf& data, MatrixXf& means);
 
 		/*! \brief This method updates the mean value of the cluster based on the input data point and cluster size.
 		*
