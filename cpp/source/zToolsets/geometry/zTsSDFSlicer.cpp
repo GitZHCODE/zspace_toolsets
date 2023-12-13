@@ -214,13 +214,12 @@ namespace zSpace
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::setFromJSON(string path, int blockStride, int braceStride)
 	{
 		//printf("\n setFromJSON: %i", 0);
+
 		json j;
-		bool fileChk = coreUtils.readJSON(path, j);
+		zFnMesh fnMesh(o_GuideMesh);		
+		bool fileChk = fnMesh.json_read(path, j);
 
-		if (!fileChk) return;
-
-
-		zFnMesh fnMesh(o_GuideMesh);
+		if (!fileChk) return;	
 		fnMesh.from(path, zJSON);
 
 		printf("\n setFromJSON: %i", 1);
@@ -322,14 +321,12 @@ namespace zSpace
 
 
 		json j;
+		zFnMesh fnMesh(o_GuideMesh);
 		string path = (checkDeck) ? fileDeck : fileBalustrade;
-		bool fileChk = coreUtils.readJSON(path, j);
+		bool fileChk = fnMesh.json_read(path, j);
 
 		if (!fileChk) return;
 
-
-
-		zFnMesh fnMesh(o_GuideMesh);
 		fnMesh.clear();
 		fnMesh.from(path, zJSON);
 
@@ -1761,6 +1758,8 @@ namespace zSpace
 		//compute start half edge
 		zItMeshHalfEdge heStart = getStartHalfEdge(o_Mesh, startVID, endVID);
 
+		//printf("\n hestart %i %i ", heStart.getStartVertex().getId(), heStart.getVertex().getId());
+
 		zItMeshHalfEdge heStart_bottom = heStart;
 		heStart_bottom = heStart_bottom.getPrev().getSym().getPrev();
 		heStart_bottom = heStart_bottom.getPrev().getSym().getPrev();
@@ -2323,7 +2322,7 @@ namespace zSpace
 		Y.normalize();
 
 		//zTransform pFrame = setTransformFromVectors(O, X, Y, tempZ);
-		zTransform pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(0, 1, 0));
+		zTransform pFrame = coreUtils.getTransformFromOrigin_Normal(O, tempZ, zVector(1, 1, 0));
 		sectionFrames.push_back(pFrame);
 
 		pOnCurve = O;
@@ -3131,7 +3130,8 @@ namespace zSpace
 		zFnGraph fnIsoGraph(o_contourGraphs[graphId]);
 		fnField.getIsocontour(o_contourGraphs[graphId], 0.0, PRECISION, distanceTolerance);
 
-		fnIsoGraph.setEdgeWeight(2);
+		fnIsoGraph.setEdgeWeight(2);		
+		
 
 		// transform back 
 		
@@ -3254,8 +3254,9 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE bool zTsSDFSlicer::exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth)
 	{
+		zFnMesh fn;
 		json j;
-		bool fileChk = coreUtils.readJSON(pathCurrent, j);
+		bool fileChk = fn.json_read(pathCurrent, j);
 
 		if (!fileChk) return false;
 
@@ -3606,6 +3607,7 @@ namespace zSpace
 		for (zItMeshHalfEdge& he : cHEdges)
 		{			
 			zVector heVec = he.getVector();
+			heVec.normalize();
 
 			if (1 - (heVec * dir) < val)
 			{
@@ -3901,10 +3903,10 @@ namespace zSpace
 					float newELen = newE.length();
 					newE.normalize();
 
-				float dist = outer_printWidth + offset;
-				newELen -= dist;
+					float dist = outer_printWidth + offset;
+					newELen -= dist;
 
-				p1 = p0 + newE * newELen;
+					p1 = p0 + newE * newELen;
 
 
 				}
@@ -3914,8 +3916,8 @@ namespace zSpace
 					float newELen = newE.length();
 					newE.normalize();
 
-				float dist = outer_printWidth + offset;
-				newELen -= dist;
+					float dist = outer_printWidth + offset;
+					newELen -= dist;
 
 					p0 = p1 + newE * newELen;
 				}

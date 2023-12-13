@@ -50,6 +50,8 @@ namespace zSpace
 
 		fnMesh.getMatrices_trimesh(triMesh_V, triMesh_FTris);
 
+		//fnMesh.getMatrices_quadmesh(triMesh_V, triMesh_FTris);
+
 		
 	}
 
@@ -186,7 +188,7 @@ namespace zSpace
 		MatrixXd R;
 		VectorXd S;
 
-		igl::copyleft::comiso::nrosy(triMesh_V, triMesh_FTris, b, bc, VectorXi(), VectorXd(), MatrixXd(), N, 0.5, R, S);
+		//igl::copyleft::comiso::nrosy(triMesh_V, triMesh_FTris, b, bc, VectorXi(), VectorXd(), MatrixXd(), N, 0.5, R, S);
 
 	}
 
@@ -217,11 +219,24 @@ namespace zSpace
 		igl::heat_geodesics_solve(data, ids, D);
 
 		// fix source scalar values
-		for (int i = 0; i < _vertexIDs.size(); i++) D(_vertexIDs[i]) = 0.0;
+		//for (int i = 0; i < _vertexIDs.size(); i++) D(_vertexIDs[i]) = 0.0;
 
 		// output scalars
 		dScalars.clear();
 		dScalars = zFloatArray(D.data(), D.data() + D.rows() * D.cols());
+
+		float minScalar = coreUtils.zMin(dScalars);
+		float maxScalar = coreUtils.zMax(dScalars);
+
+		printf("\n minMax %1.2f %1.2f ", minScalar, maxScalar);
+
+		/*if (minScalar > 0 || minScalar < 0)
+		{
+			for (auto& s : dScalars)
+			{
+				s = (minScalar > 0) ? s - minScalar : s + (minScalar * -1);
+			}
+		}*/
 
 		// compute vertex color from Geodesic Distance
 		zFnMesh fnTriMesh(o_TriMesh);
@@ -238,6 +253,55 @@ namespace zSpace
 		fnTriMesh.computeFaceColorfromVertexColor();
 
 		
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsMeshParam::computeGeodesics_Exact(zIntArray& _vertexIDs, zFloatArray& dScalars)
+	{
+
+		if (_vertexIDs.size() == 0)
+		{
+			cout << "Error: _vertexIDs size is zero." << endl;
+			return;
+		}
+
+		Eigen::VectorXd D;
+
+		//Eigen::VectorXi ids(_vertexIDs.size(), 1);
+		//for (int i = 0; i < _vertexIDs.size(); i++) ids.row(i) << _vertexIDs[i];
+
+		Eigen::VectorXi VS, FS, VT, FT;
+		// The selected vertex is the source
+		VS.resize(_vertexIDs.size());
+		for (int i = 0; i < _vertexIDs.size(); i++) VS.row(i) << _vertexIDs[i];
+		// All vertices are the targets
+		VT.setLinSpaced(triMesh_V.rows(), 0, triMesh_V.rows() - 1);
+		Eigen::VectorXd d;
+		igl::exact_geodesic(triMesh_V, triMesh_FTris, VS, FS, VT, FT, D);
+
+		// output scalars
+		dScalars.clear();
+		dScalars = zFloatArray(D.data(), D.data() + D.rows() * D.cols());
+
+		float minScalar = coreUtils.zMin(dScalars);
+		float maxScalar = coreUtils.zMax(dScalars);
+
+		printf("\n minMax %1.2f %1.2f ", minScalar, maxScalar);
+
+		
+		// compute vertex color from Geodesic Distance
+		zFnMesh fnTriMesh(o_TriMesh);
+		zColor* vColors = fnTriMesh.getRawVertexColors();
+
+		zDomainFloat distanceDomain(D.minCoeff(), D.maxCoeff());
+		zDomainColor colDomain(zColor(1, 0, 0, 1), zColor(0, 1, 0, 1));
+
+		for (int i = 0; i < fnTriMesh.numVertices(); i++)
+		{
+			vColors[i] = coreUtils.blendColor(D(i), distanceDomain, colDomain, zRGB);
+		}
+
+		fnTriMesh.computeFaceColorfromVertexColor();
+
 	}
 
 
