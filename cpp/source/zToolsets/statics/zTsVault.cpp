@@ -4036,8 +4036,8 @@ namespace zSpace
 				v_residual[i] = (b_i - v_i);
 
 				////// HK BRidge remove z and x componenents
-				v_residual[i].x = 0;
-				v_residual[i].z = 0;
+				//v_residual[i].x = 0;
+				//v_residual[i].z = 0;
 
 				zVector forceV = v_residual[i] * formVWeights[i];
 				if (formVWeights[i] == 0.0) forceV = zVector();

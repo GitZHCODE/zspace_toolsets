@@ -207,58 +207,58 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createSectionPoints(int user_nEdges, double user_edgeLength)
 	{
-		// get Yvertex
-		Y_vertex.clear();
-		get_YVertex(Y_vertex);
+		//// get Yvertex
+		//Y_vertex.clear();
+		//get_YVertex(Y_vertex);
 
-		userSection_edgeLength = user_edgeLength;
-		userSection_numEdge = user_nEdges;
+		//userSection_edgeLength = user_edgeLength;
+		//userSection_numEdge = user_nEdges;
 
-		userSection_points.clear();
+		//userSection_points.clear();
 
-		zTransform t_From;
-		t_From.setIdentity();
+		//zTransform t_From;
+		//t_From.setIdentity();
 
-		for (int i = 0; i < internalFaceIndex_primalFace.size(); i++)
-		{
-			int j = internalFaceIndex_primalFace[i];
+		//for (int i = 0; i < internalFaceIndex_primalFace.size(); i++)
+		//{
+		//	int j = internalFaceIndex_primalFace[i];
 
-			int volId = primalFace_VolumeFace[j][0];
-			int faceId = primalFace_VolumeFace[j][1];
+		//	int volId = primalFace_VolumeFace[j][0];
+		//	int faceId = primalFace_VolumeFace[j][1];
 
-			zItMeshFace f(*forceObjs[volId], faceId);
-			int numV = f.getNumVertices();
+		//	zItMeshFace f(*forceObjs[volId], faceId);
+		//	int numV = f.getNumVertices();
 
-			zPointArray tempPositions;
-			getUserSection(numV, tempPositions);
+		//	zPointArray tempPositions;
+		//	getUserSection(numV, tempPositions);
 
-			zTransform t_to;
-			t_to.setIdentity();
+		//	zTransform t_to;
+		//	t_to.setIdentity();
 
-			zVector O = primalFaceCenters[j];
+		//	zVector O = primalFaceCenters[j];
 
-			zVector Y = primalVertexPositions[Y_vertex[j]] - O;
-			Y.normalize();
+		//	zVector Y = primalVertexPositions[Y_vertex[j]] - O;
+		//	Y.normalize();
 
-			zVector Z = primalFaceNormals[j];
+		//	zVector Z = primalFaceNormals[j];
 
-			zVector X = Y ^ Z;
-			X.normalize();
+		//	zVector X = Y ^ Z;
+		//	X.normalize();
 
-			t_to(0, 0) = X.x; t_to(1, 0) = X.y; t_to(2, 0) = X.z;
-			t_to(0, 1) = Y.x; t_to(1, 1) = Y.y; t_to(2, 1) = Y.z;
-			t_to(0, 2) = Z.x; t_to(1, 2) = Z.y; t_to(2, 2) = Z.z;
-			t_to(0, 3) = O.x; t_to(1, 3) = O.y; t_to(2, 3) = O.z;
+		//	t_to(0, 0) = X.x; t_to(1, 0) = X.y; t_to(2, 0) = X.z;
+		//	t_to(0, 1) = Y.x; t_to(1, 1) = Y.y; t_to(2, 1) = Y.z;
+		//	t_to(0, 2) = Z.x; t_to(1, 2) = Z.y; t_to(2, 2) = Z.z;
+		//	t_to(0, 3) = O.x; t_to(1, 3) = O.y; t_to(2, 3) = O.z;
 
-			zTransform t = coreUtils.PlanetoPlane(t_From, t_to);
+		//	zTransform t = coreUtils.PlanetoPlane(t_From, t_to);
 
-			for (auto &p : tempPositions)
-			{
-				p = p * t;
-				userSection_points.push_back(p);
-			}
+		//	for (auto &p : tempPositions)
+		//	{
+		//		p = p * t;
+		//		userSection_points.push_back(p);
+		//	}
 
-		}
+		//}
 
 	}
 
@@ -981,421 +981,421 @@ namespace zSpace
 	
 	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal_Profile(int forceIndex, int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
 	{
-		if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
+		//if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
 
-		userSection_edgeLength = user_edgeLength;
-		userSection_numEdge = user_nEdges;
+		//userSection_edgeLength = user_edgeLength;
+		//userSection_numEdge = user_nEdges;
 
-		// 3 is hard coded , fix it to be parametric			
-		int fEdges = 3;
-		int splits = ceil(userSection_numEdge / fEdges) - 1;
+		//// 3 is hard coded , fix it to be parametric			
+		//int fEdges = 3;
+		//int splits = ceil(userSection_numEdge / fEdges) - 1;
 
-		zPointArray positions;
-		zIntArray polyConnects;
-		zIntArray polyCounts;
+		//zPointArray positions;
+		//zIntArray polyConnects;
+		//zIntArray polyCounts;
 
-		int n_v = fnForces[forceIndex].numVertices();
-		int n_e = fnForces[forceIndex].numHalfEdges();
-		int n_f = fnForces[forceIndex].numPolygons();
+		//int n_v = fnForces[forceIndex].numVertices();
+		//int n_e = fnForces[forceIndex].numHalfEdges();
+		//int n_f = fnForces[forceIndex].numPolygons();
 
-		// compute vertex_face_ profile index map
+		//// compute vertex_face_ profile index map
 
-		zPointArray fCenters;
-		fnForces[forceIndex].getCenters(zFaceData, fCenters);
+		//zPointArray fCenters;
+		//fnForces[forceIndex].getCenters(zFaceData, fCenters);
 
-		vector<zVector> fNormals;
-		fnForces[forceIndex].getFaceNormals(fNormals);
+		//vector<zVector> fNormals;
+		//fnForces[forceIndex].getFaceNormals(fNormals);
 
-		zIntArray  v_f_profileIndex;
-		v_f_profileIndex.assign(n_v * n_f, -1);
+		//zIntArray  v_f_profileIndex;
+		//v_f_profileIndex.assign(n_v * n_f, -1);
 
-		zIntArray  temp_CornerIds;
-		zPointArray sectionPoints;
+		//zIntArray  temp_CornerIds;
+		//zPointArray sectionPoints;
 
-		for (zItMeshFace f(*forceObjs[forceIndex]); !f.end(); f++)
-		{
-			string hashKey_volFace = (to_string(forceIndex) + "," + to_string(f.getId()));
-			std::unordered_map<std::string, int>::const_iterator gotFace = volumeFace_PrimalFace.find(hashKey_volFace);
-			if (gotFace != volumeFace_PrimalFace.end())
-			{
-				int globalFaceId = gotFace->second;
-				int vY = Y_vertex[globalFaceId];
+		//for (zItMeshFace f(*forceObjs[forceIndex]); !f.end(); f++)
+		//{
+		//	string hashKey_volFace = (to_string(forceIndex) + "," + to_string(f.getId()));
+		//	std::unordered_map<std::string, int>::const_iterator gotFace = volumeFace_PrimalFace.find(hashKey_volFace);
+		//	if (gotFace != volumeFace_PrimalFace.end())
+		//	{
+		//		int globalFaceId = gotFace->second;
+		//		int vY = Y_vertex[globalFaceId];
 
-				if (userSection_numEdge == 4 || userSection_numEdge == 5 || userSection_numEdge == 6) temp_CornerIds = zIntArray { 0, 2, 4 };
+		//		if (userSection_numEdge == 4 || userSection_numEdge == 5 || userSection_numEdge == 6) temp_CornerIds = zIntArray { 0, 2, 4 };
 
-				else if (userSection_numEdge == 8)temp_CornerIds = zIntArray { 0, 3, 5 };
+		//		else if (userSection_numEdge == 8)temp_CornerIds = zIntArray { 0, 3, 5 };
 
-				else if (userSection_numEdge == 9)temp_CornerIds = zIntArray { 0, 3, 6 };
+		//		else if (userSection_numEdge == 9)temp_CornerIds = zIntArray { 0, 3, 6 };
 
 
-				// get vertex index of the yVertex
-				zIntArray  fVerts;
-				f.getVertices(fVerts);
+		//		// get vertex index of the yVertex
+		//		zIntArray  fVerts;
+		//		f.getVertices(fVerts);
 
-				vector<zItMeshHalfEdge> fHEdges;
-				f.getHalfEdges(fHEdges);
+		//		vector<zItMeshHalfEdge> fHEdges;
+		//		f.getHalfEdges(fHEdges);
 
-				zItMeshHalfEdge startHE(*forceObjs[forceIndex]);
+		//		zItMeshHalfEdge startHE(*forceObjs[forceIndex]);
 
-				for (auto he : fHEdges)
-				{
+		//		for (auto he : fHEdges)
+		//		{
 
-					string hashKey_volVertex = (to_string(forceIndex) + "," + to_string(he.getStartVertex().getId()));
-					std::unordered_map<std::string, int>::const_iterator gotVertex = volumeVertex_PrimalVertex.find(hashKey_volVertex);
+		//			string hashKey_volVertex = (to_string(forceIndex) + "," + to_string(he.getStartVertex().getId()));
+		//			std::unordered_map<std::string, int>::const_iterator gotVertex = volumeVertex_PrimalVertex.find(hashKey_volVertex);
 
-					int globalVertexId = gotVertex->second;
+		//			int globalVertexId = gotVertex->second;
 
-					if (globalVertexId == vY)
-					{
-						startHE = he;
-						break;
-					}
-				}
+		//			if (globalVertexId == vY)
+		//			{
+		//				startHE = he;
+		//				break;
+		//			}
+		//		}
 
-				int counter = 0;
-				zItMeshHalfEdge he = startHE;
-				do
-				{
-					int id = n_f * f.getId() + he.getStartVertex().getId();
+		//		int counter = 0;
+		//		zItMeshHalfEdge he = startHE;
+		//		do
+		//		{
+		//			int id = n_f * f.getId() + he.getStartVertex().getId();
 
-					v_f_profileIndex[id] = temp_CornerIds[counter];
-					counter++;
+		//			v_f_profileIndex[id] = temp_CornerIds[counter];
+		//			counter++;
 
-					he = he.getNext();
+		//			he = he.getNext();
 
-				} while (he != startHE);
+		//		} while (he != startHE);
 
 
-				// compute section points at each face
-				zPointArray tempPoints;
-				getUserSection(3, tempPoints);
+		//		// compute section points at each face
+		//		zPointArray tempPoints;
+		//		getUserSection(3, tempPoints);
 
 
-				zTransform t_From;
-				t_From.setIdentity();
+		//		zTransform t_From;
+		//		t_From.setIdentity();
 
-				zTransform t_to;
-				t_to.setIdentity();
-				
+		//		zTransform t_to;
+		//		t_to.setIdentity();
+		//		
 
-				zVector O =  fCenters[f.getId()];
-				
-				if (!GFP_SSP_Face[globalFaceId])
-				{
-					zItGraphEdge form_e(*formObj, primal_internalFaceIndex[globalFaceId]);
-					zVector form_eCen = form_e.getCenter();
-					O = form_eCen;
-				}
+		//		zVector O =  fCenters[f.getId()];
+		//		
+		//		if (!GFP_SSP_Face[globalFaceId])
+		//		{
+		//			zItGraphEdge form_e(*formObj, primal_internalFaceIndex[globalFaceId]);
+		//			zVector form_eCen = form_e.getCenter();
+		//			O = form_eCen;
+		//		}
 
-				zVector Y = primalVertexPositions[Y_vertex[globalFaceId]] - O;
-				Y.normalize();
+		//		zVector Y = primalVertexPositions[Y_vertex[globalFaceId]] - O;
+		//		Y.normalize();
 
-				zVector Z = /* fNormals[f.getId()];*/ primalFaceNormals[globalFaceId];
-				if (fNormals[f.getId()] * Z < 0) Z *= -1;
+		//		zVector Z = /* fNormals[f.getId()];*/ primalFaceNormals[globalFaceId];
+		//		if (fNormals[f.getId()] * Z < 0) Z *= -1;
 
-				if (!GFP_SSP_Face[globalFaceId])
-				{
-					zItGraphEdge form_e(*formObj, primal_internalFaceIndex[globalFaceId]);
-					zVector form_eVec = form_e.getVector();
-					form_eVec.normalize();
+		//		if (!GFP_SSP_Face[globalFaceId])
+		//		{
+		//			zItGraphEdge form_e(*formObj, primal_internalFaceIndex[globalFaceId]);
+		//			zVector form_eVec = form_e.getVector();
+		//			form_eVec.normalize();
 
-					Z = form_eVec;
-					if (fNormals[f.getId()] * Z < 0) Z *= -1;
-				}
+		//			Z = form_eVec;
+		//			if (fNormals[f.getId()] * Z < 0) Z *= -1;
+		//		}
 
-				zVector X = Y ^ Z;
-				X.normalize();
+		//		zVector X = Y ^ Z;
+		//		X.normalize();
 
-				t_to(0, 0) = X.x; t_to(1, 0) = X.y; t_to(2, 0) = X.z;
-				t_to(0, 1) = Y.x; t_to(1, 1) = Y.y; t_to(2, 1) = Y.z;
-				t_to(0, 2) = Z.x; t_to(1, 2) = Z.y; t_to(2, 2) = Z.z;
-				t_to(0, 3) = O.x; t_to(1, 3) = O.y; t_to(2, 3) = O.z;
+		//		t_to(0, 0) = X.x; t_to(1, 0) = X.y; t_to(2, 0) = X.z;
+		//		t_to(0, 1) = Y.x; t_to(1, 1) = Y.y; t_to(2, 1) = Y.z;
+		//		t_to(0, 2) = Z.x; t_to(1, 2) = Z.y; t_to(2, 2) = Z.z;
+		//		t_to(0, 3) = O.x; t_to(1, 3) = O.y; t_to(2, 3) = O.z;
 
-				zTransform t = coreUtils.PlanetoPlane(t_From, t_to);
+		//		zTransform t = coreUtils.PlanetoPlane(t_From, t_to);
 
-				for (auto &p : tempPoints)
-				{
-					p = p * t;
-					sectionPoints.push_back(p);
-				}
+		//		for (auto &p : tempPoints)
+		//		{
+		//			p = p * t;
+		//			sectionPoints.push_back(p);
+		//		}
 
 
-			}
+		//	}
 
 
-		}
+		//}
 
 
-		// compute volume center
-		zPoint volCenter = fnForces[forceIndex].getCenter();
+		//// compute volume center
+		//zPoint volCenter = fnForces[forceIndex].getCenter();
 
 
 
-		for (zItMeshEdge e(*forceObjs[forceIndex]); !e.end(); e++)
-		{
-			vector<zItMeshFace> eFaces;
-			e.getFaces(eFaces);
+		//for (zItMeshEdge e(*forceObjs[forceIndex]); !e.end(); e++)
+		//{
+		//	vector<zItMeshFace> eFaces;
+		//	e.getFaces(eFaces);
 
-			int startId = 0;
-			int lastId = 2 + 2 * splits;
+		//	int startId = 0;
+		//	int lastId = 2 + 2 * splits;
 
-			zPointArray tempPosns;
+		//	zPointArray tempPosns;
 
-			int v0 = e.getHalfEdge(1).getVertex().getId();
-			int v1 = e.getHalfEdge(0).getVertex().getId();
+		//	int v0 = e.getHalfEdge(1).getVertex().getId();
+		//	int v1 = e.getHalfEdge(0).getVertex().getId();
 
 
 
-			zPoint pos0 = e.getHalfEdge(1).getVertex().getPosition();
-			zPoint pos1 = e.getHalfEdge(0).getVertex().getPosition();
+		//	zPoint pos0 = e.getHalfEdge(1).getVertex().getPosition();
+		//	zPoint pos1 = e.getHalfEdge(0).getVertex().getPosition();
 
-			zVector dir = pos1 - pos0;
-			double eLen = dir.length();
-			eLen /= (splits + 1);
+		//	zVector dir = pos1 - pos0;
+		//	double eLen = dir.length();
+		//	eLen /= (splits + 1);
 
-			dir.normalize();
+		//	dir.normalize();
 
-			tempPosns.push_back(pos0);
+		//	tempPosns.push_back(pos0);
 
-			for (int i = 1; i <= splits; i++)
-			{
-				tempPosns.push_back(pos0 + dir * eLen*i);
-				tempPosns.push_back(pos0 + dir * eLen*i);
-			}
+		//	for (int i = 1; i <= splits; i++)
+		//	{
+		//		tempPosns.push_back(pos0 + dir * eLen*i);
+		//		tempPosns.push_back(pos0 + dir * eLen*i);
+		//	}
 
-			tempPosns.push_back(pos1);
+		//	tempPosns.push_back(pos1);
 
 
-			zPoint* formPositions = fnForm.getRawVertexPositions();
+		//	zPoint* formPositions = fnForm.getRawVertexPositions();
 
-			bool firstFaceBoundary = true;
+		//	bool firstFaceBoundary = true;
 
-			int numVerts = positions.size();
+		//	int numVerts = positions.size();
 
-			for (int i = 0; i < eFaces.size(); i++)
-			{
+		//	for (int i = 0; i < eFaces.size(); i++)
+		//	{
 
-				string hashKey_volFace = (to_string(forceIndex) + "," + to_string(eFaces[i].getId()));
-				std::unordered_map<std::string, int>::const_iterator gotFace = volumeFace_PrimalFace.find(hashKey_volFace);
+		//		string hashKey_volFace = (to_string(forceIndex) + "," + to_string(eFaces[i].getId()));
+		//		std::unordered_map<std::string, int>::const_iterator gotFace = volumeFace_PrimalFace.find(hashKey_volFace);
 
-				int id_0 = v_f_profileIndex[n_f * eFaces[i].getId() + v0];
-				int id_1 = v_f_profileIndex[n_f * eFaces[i].getId() + v1];
+		//		int id_0 = v_f_profileIndex[n_f * eFaces[i].getId() + v0];
+		//		int id_1 = v_f_profileIndex[n_f * eFaces[i].getId() + v1];
 
-				int numVerts_perProfile = floor(sectionPoints.size() / fnForces[forceIndex].numPolygons());
+		//		int numVerts_perProfile = floor(sectionPoints.size() / fnForces[forceIndex].numPolygons());
 
-				if (id_0 == 0 && id_1 == temp_CornerIds[temp_CornerIds.size() - 1]) id_0 = numVerts_perProfile;
-				if (id_1 == 0 && id_0 == temp_CornerIds[temp_CornerIds.size() - 1]) id_1 = numVerts_perProfile;
+		//		if (id_0 == 0 && id_1 == temp_CornerIds[temp_CornerIds.size() - 1]) id_0 = numVerts_perProfile;
+		//		if (id_1 == 0 && id_0 == temp_CornerIds[temp_CornerIds.size() - 1]) id_1 = numVerts_perProfile;
 
-				if (gotFace != volumeFace_PrimalFace.end())
-				{
-					int globalFaceId = gotFace->second;
-					if (!GFP_SSP_Face[globalFaceId])
-					{
+		//		if (gotFace != volumeFace_PrimalFace.end())
+		//		{
+		//			int globalFaceId = gotFace->second;
+		//			if (!GFP_SSP_Face[globalFaceId])
+		//			{
 
 
-						if (i == 0) firstFaceBoundary = false;
+		//				if (i == 0) firstFaceBoundary = false;
 
-						// insert volume centre points
-						if (i == 1 && firstFaceBoundary)
-						{
-							zPoint vCenter_graphPos = formPositions[forceIndex];
+		//				// insert volume centre points
+		//				if (i == 1 && firstFaceBoundary)
+		//				{
+		//					zPoint vCenter_graphPos = formPositions[forceIndex];
 
-							for (int j = 0; j < tempPosns.size(); j++)
-							{
-								zVector dir_volCenter_0 = tempPosns[j] - volCenter;
-								double len0 = dir_volCenter_0.length();
-								dir_volCenter_0.normalize();
+		//					for (int j = 0; j < tempPosns.size(); j++)
+		//					{
+		//						zVector dir_volCenter_0 = tempPosns[j] - volCenter;
+		//						double len0 = dir_volCenter_0.length();
+		//						dir_volCenter_0.normalize();
 
-								zPoint newPos = volCenter + (dir_volCenter_0 * len0 *offset);
-								newPos += (vCenter_graphPos - volCenter);
+		//						zPoint newPos = volCenter + (dir_volCenter_0 * len0 *offset);
+		//						newPos += (vCenter_graphPos - volCenter);
 
-								positions.push_back(newPos);
-							}
+		//						positions.push_back(newPos);
+		//					}
 
-						}
+		//				}
 
-						int internalFaceId = primal_internalFaceIndex[globalFaceId];
+		//				int internalFaceId = primal_internalFaceIndex[globalFaceId];
 
-						zItGraphEdge form_e(*formObj, primal_internalFaceIndex[globalFaceId]);
+		//				zItGraphEdge form_e(*formObj, primal_internalFaceIndex[globalFaceId]);
 
-						zPoint form_eCen = form_e.getCenter();
-						zPoint fCenter = fCenters[eFaces[i].getId()];
-						zVector fNormal = fNormals[eFaces[i].getId()];
+		//				zPoint form_eCen = form_e.getCenter();
+		//				zPoint fCenter = fCenters[eFaces[i].getId()];
+		//				zVector fNormal = fNormals[eFaces[i].getId()];
 
-						double eLength = form_e.getLength();
+		//				double eLength = form_e.getLength();
 
-						zVector eVec = form_e.getVector();
-						eVec.normalize();
+		//				zVector eVec = form_e.getVector();
+		//				eVec.normalize();
 
-						if (eVec* fNormal < 0) eVec *= -1;
+		//				if (eVec* fNormal < 0) eVec *= -1;
 
-						for (int j = 0; j < tempPosns.size(); j++)
-						{
+		//				for (int j = 0; j < tempPosns.size(); j++)
+		//				{
 
-							int closestId = -1;
-							if (j == 0)
-							{
-								int id = id_0 % numVerts_perProfile;
-								closestId = (eFaces[i].getId()*numVerts_perProfile) + id;
-							}
+		//					int closestId = -1;
+		//					if (j == 0)
+		//					{
+		//						int id = id_0 % numVerts_perProfile;
+		//						closestId = (eFaces[i].getId()*numVerts_perProfile) + id;
+		//					}
 
-							else if (j == tempPosns.size() - 1)
-							{
-								int id = id_1 % numVerts_perProfile;
-								closestId = (eFaces[i].getId()*numVerts_perProfile) + id;
-							}
+		//					else if (j == tempPosns.size() - 1)
+		//					{
+		//						int id = id_1 % numVerts_perProfile;
+		//						closestId = (eFaces[i].getId()*numVerts_perProfile) + id;
+		//					}
 
-							else
-							{
-								int increment = ceil(j * 0.5);
+		//					else
+		//					{
+		//						int increment = ceil(j * 0.5);
 
-								int id = (id_0 < id_1) ? (id_0 + numVerts_perProfile + increment) % numVerts_perProfile : (id_0 + numVerts_perProfile - increment) % numVerts_perProfile;
+		//						int id = (id_0 < id_1) ? (id_0 + numVerts_perProfile + increment) % numVerts_perProfile : (id_0 + numVerts_perProfile - increment) % numVerts_perProfile;
 
-								closestId = (eFaces[i].getId()*numVerts_perProfile) + id;
-							}
+		//						closestId = (eFaces[i].getId()*numVerts_perProfile) + id;
+		//					}
 
-							zPoint newPos = sectionPoints[closestId];
-							//newPos += form_eCen - fCenter - (eVec * 0.5 * eLength * param);;
-							newPos -= (eVec * 0.5 * eLength * param);;
-							positions.push_back(newPos);
+		//					zPoint newPos = sectionPoints[closestId];
+		//					//newPos += form_eCen - fCenter - (eVec * 0.5 * eLength * param);;
+		//					newPos -= (eVec * 0.5 * eLength * param);;
+		//					positions.push_back(newPos);
 
 
-						}
+		//				}
 
 
-						// insert volume centre points
-						if (i == 0)
-						{
-							zPoint vCenter_graphPos = formPositions[forceIndex];
+		//				// insert volume centre points
+		//				if (i == 0)
+		//				{
+		//					zPoint vCenter_graphPos = formPositions[forceIndex];
 
-							for (int j = 0; j < tempPosns.size(); j++)
-							{
-								zVector dir_volCenter_0 = tempPosns[j] - volCenter;
-								double len0 = dir_volCenter_0.length();
-								dir_volCenter_0.normalize();
+		//					for (int j = 0; j < tempPosns.size(); j++)
+		//					{
+		//						zVector dir_volCenter_0 = tempPosns[j] - volCenter;
+		//						double len0 = dir_volCenter_0.length();
+		//						dir_volCenter_0.normalize();
 
-								zPoint newPos = volCenter + (dir_volCenter_0 * len0 *offset);
-								newPos += (vCenter_graphPos - volCenter);
+		//						zPoint newPos = volCenter + (dir_volCenter_0 * len0 *offset);
+		//						newPos += (vCenter_graphPos - volCenter);
 
-								positions.push_back(newPos);
-							}
-						}
+		//						positions.push_back(newPos);
+		//					}
+		//				}
 
-						// poly connects
-						for (int j = 0; j <= splits; j++)
-						{
-							polyConnects.push_back(numVerts + lastId + j * 2);
-							polyConnects.push_back(numVerts + lastId + 1 + j * 2);
-							polyConnects.push_back(numVerts + startId + 1 + j * 2);
-							polyConnects.push_back(numVerts + startId + j * 2);
+		//				// poly connects
+		//				for (int j = 0; j <= splits; j++)
+		//				{
+		//					polyConnects.push_back(numVerts + lastId + j * 2);
+		//					polyConnects.push_back(numVerts + lastId + 1 + j * 2);
+		//					polyConnects.push_back(numVerts + startId + 1 + j * 2);
+		//					polyConnects.push_back(numVerts + startId + j * 2);
 
-							polyCounts.push_back(4);
-						}
+		//					polyCounts.push_back(4);
+		//				}
 
-						if (i == 0)
-						{
-							startId += (2 + 2 * splits);
-							lastId += (2 + 2 * splits);
-						}
+		//				if (i == 0)
+		//				{
+		//					startId += (2 + 2 * splits);
+		//					lastId += (2 + 2 * splits);
+		//				}
 
-					}
-				}
-			}
+		//			}
+		//		}
+		//	}
 
 
-		}
+		//}
 
-		if (subdivs == 0) fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
+		//if (subdivs == 0) fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal_Beams_Profile(int user_nEdges, double user_edgeLength, double param)
 	{
-		zPointArray positions;
-		zIntArray polyConnects;
-		zIntArray polyCounts;
+		//zPointArray positions;
+		//zIntArray polyConnects;
+		//zIntArray polyCounts;
 
-		for (int i = 0; i < primal_n_f_i; i++)
-		{
-			int globalFaceId = internalFaceIndex_primalFace[i];
+		//for (int i = 0; i < primal_n_f_i; i++)
+		//{
+		//	int globalFaceId = internalFaceIndex_primalFace[i];
 
-			zItGraphEdge form_e(*formObj, i);
+		//	zItGraphEdge form_e(*formObj, i);
 
-			zPoint form_eCen = form_e.getCenter();
+		//	zPoint form_eCen = form_e.getCenter();
 
-			zVector fNormal = primalFaceNormals[globalFaceId];
+		//	zVector fNormal = primalFaceNormals[globalFaceId];
 
-			double eLength = form_e.getLength();
-			zVector eVec = form_e.getVector();
-			eVec.normalize();
+		//	double eLength = form_e.getLength();
+		//	zVector eVec = form_e.getVector();
+		//	eVec.normalize();
 
-			zPointArray sectionPoints;
+		//	zPointArray sectionPoints;
 
-			// compute section points at each face
-			zPointArray tempPoints;
-			//getUserSection(fVerts.size(), tempPoints);
-			getUserSection(3, tempPoints);
+		//	// compute section points at each face
+		//	zPointArray tempPoints;
+		//	//getUserSection(fVerts.size(), tempPoints);
+		//	getUserSection(3, tempPoints);
 
-			zTransform t_From;
-			t_From.setIdentity();
+		//	zTransform t_From;
+		//	t_From.setIdentity();
 
-			zTransform t_to;
-			t_to.setIdentity();
+		//	zTransform t_to;
+		//	t_to.setIdentity();
 
-			zVector O = form_eCen;
+		//	zVector O = form_eCen;
 
-			zVector Y = primalVertexPositions[Y_vertex[globalFaceId]] - O;
-			Y.normalize();
-
-
-			zVector Z = eVec;/*fNormal;*/
+		//	zVector Y = primalVertexPositions[Y_vertex[globalFaceId]] - O;
+		//	Y.normalize();
 
 
-			zVector X = Y ^ Z;
-			X.normalize();
-
-			t_to(0, 0) = X.x; t_to(1, 0) = X.y; t_to(2, 0) = X.z;
-			t_to(0, 1) = Y.x; t_to(1, 1) = Y.y; t_to(2, 1) = Y.z;
-			t_to(0, 2) = Z.x; t_to(1, 2) = Z.y; t_to(2, 2) = Z.z;
-			t_to(0, 3) = O.x; t_to(1, 3) = O.y; t_to(2, 3) = O.z;
-
-			zTransform t = coreUtils.PlanetoPlane(t_From, t_to);
-
-			for (auto &p : tempPoints)
-			{
-				p = p * t;
-				sectionPoints.push_back(p);
-			}
+		//	zVector Z = eVec;/*fNormal;*/
 
 
-			int numVerts = positions.size();
+		//	zVector X = Y ^ Z;
+		//	X.normalize();
 
-			int j = 0;
-			for (auto &p : sectionPoints)
-			{
-				zPoint newPos0 = p - (eVec * 0.5 * eLength * param);
-				zPoint newPos1 = p + (eVec * 0.5 * eLength * param);
+		//	t_to(0, 0) = X.x; t_to(1, 0) = X.y; t_to(2, 0) = X.z;
+		//	t_to(0, 1) = Y.x; t_to(1, 1) = Y.y; t_to(2, 1) = Y.z;
+		//	t_to(0, 2) = Z.x; t_to(1, 2) = Z.y; t_to(2, 2) = Z.z;
+		//	t_to(0, 3) = O.x; t_to(1, 3) = O.y; t_to(2, 3) = O.z;
 
-				positions.push_back(newPos0);
-				positions.push_back(newPos1);
+		//	zTransform t = coreUtils.PlanetoPlane(t_From, t_to);
 
-				polyConnects.push_back(numVerts + 0 + j * 2);
-				polyConnects.push_back(numVerts + 1 + j * 2);
-				polyConnects.push_back(numVerts + (3 + j * 2) % (sectionPoints.size() * 2));
-				polyConnects.push_back(numVerts + (2 + j * 2) % (sectionPoints.size() * 2));
+		//	for (auto &p : tempPoints)
+		//	{
+		//		p = p * t;
+		//		sectionPoints.push_back(p);
+		//	}
 
-				polyCounts.push_back(4);
 
-				j++;
+		//	int numVerts = positions.size();
 
-			}
+		//	int j = 0;
+		//	for (auto &p : sectionPoints)
+		//	{
+		//		zPoint newPos0 = p - (eVec * 0.5 * eLength * param);
+		//		zPoint newPos1 = p + (eVec * 0.5 * eLength * param);
 
-		}
+		//		positions.push_back(newPos0);
+		//		positions.push_back(newPos1);
 
-		fnPolytopals[fnPolytopals.size() - 1].create(positions, polyCounts, polyConnects);
+		//		polyConnects.push_back(numVerts + 0 + j * 2);
+		//		polyConnects.push_back(numVerts + 1 + j * 2);
+		//		polyConnects.push_back(numVerts + (3 + j * 2) % (sectionPoints.size() * 2));
+		//		polyConnects.push_back(numVerts + (2 + j * 2) % (sectionPoints.size() * 2));
 
-		fnPolytopals[fnPolytopals.size() - 1].setFaceColor(zColor(0.27, 0.15, 0.08, 1));
+		//		polyCounts.push_back(4);
 
-		//printf("\n%i %i %i %i ", fnPolytopals.size() - 1, fnPolytopals[fnPolytopals.size() - 1].numVertices(), fnPolytopals[fnPolytopals.size() - 1].numEdges(), fnPolytopals[fnPolytopals.size() - 1].numPolygons());
+		//		j++;
+
+		//	}
+
+		//}
+
+		//fnPolytopals[fnPolytopals.size() - 1].create(positions, polyCounts, polyConnects);
+
+		//fnPolytopals[fnPolytopals.size() - 1].setFaceColor(zColor(0.27, 0.15, 0.08, 1));
+
+		////printf("\n%i %i %i %i ", fnPolytopals.size() - 1, fnPolytopals[fnPolytopals.size() - 1].numVertices(), fnPolytopals[fnPolytopals.size() - 1].numEdges(), fnPolytopals[fnPolytopals.size() - 1].numPolygons());
 
 	}
 

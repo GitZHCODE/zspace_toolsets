@@ -35,6 +35,8 @@
 #include <igl/lscm.h>
 #include <igl/arap.h>
 
+#include <igl/exact_geodesic.h>
+
 #include <igl/heat_geodesics.h>
 #include <igl/unproject_onto_mesh.h>
 #include <igl/avg_edge_length.h>
@@ -185,6 +187,8 @@ namespace zSpace
 		void compute_NRosy();
 
 		void computeGeodesics_Heat(zIntArray &_vertexIDs, zFloatArray &dScalars);
+
+		void computeGeodesics_Exact(zIntArray& _vertexIDs, zFloatArray& dScalars);
 
 	};
 
