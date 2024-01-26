@@ -17,11 +17,11 @@
 
 #pragma once
 
-#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
+#include "headers/zToolsets/geometry/zTsSDFSlicer.h"
 
-#include <headers/zToolsets/externalMethods/zExtMesh.h>
-#include <headers/zToolsets/externalMethods/zExtGraph.h>
-#include <headers/zToolsets/externalMethods/zExtPlane.h>
+#include "headers/zToolsets/externalMethods/zExtMesh.h"
+#include "headers/zToolsets/externalMethods/zExtGraph.h"
+#include "headers/zToolsets/externalMethods/zExtPlane.h"
 
 namespace zSpace
 {

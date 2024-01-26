@@ -11,7 +11,7 @@
 //
 
 
-#include<headers/zToolsets/statics/zTsSpatialStructure.h>
+#include "headers/zToolsets/statics/zTsSpatialStructure.h"
 
 namespace zSpace
 {

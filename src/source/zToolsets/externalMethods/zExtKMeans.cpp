@@ -11,7 +11,7 @@
 //
 
 
-#include<headers/zToolsets/externalMethods/zExtKMeans.h>
+#include <headers/zToolsets/externalMethods/zExtKMeans.h>
 
 namespace zSpace
 {
@@ -45,7 +45,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void ext_KMean_computeKmeans(zTsKMeans*& kmean, double* _data, int dataCount, int strideCount, int& numCluster, int& numIterations, int initMethod, int seed1, int seed2, int* outClusterID)
+	ZSPACE_TOOLSETS_INLINE void ext_KMean_computeKmeans(zTsKMeans*& kmean, double* _data, int dataCount, int strideCount, int& numCluster, int& numIterations, int initMethod, int seed1, int seed2, float tolerance, int* outClusterID)
 	{
 		//create matrix from 1d data
 		MatrixXf data(dataCount, strideCount);
@@ -60,7 +60,7 @@ namespace zSpace
 		int actualNumCluster = numCluster;
 		if (initMethod > 1) initMethod = 1;
 		zTsKMeans::initialisationMethod init = static_cast<zTsKMeans::initialisationMethod>(initMethod);
-		numIterations = kmean->getKMeansClusters(actualNumCluster, init, seed1, seed2);
+		numIterations = kmean->getKMeansClusters(actualNumCluster, init, seed1, seed2, tolerance);
 		numCluster = actualNumCluster;
 		zIntArray clusterIDs = kmean->clusterIDS;
 		for (int i = 0; i < dataCount; i++)

@@ -17,14 +17,14 @@
 
 #pragma once
 
-#include <headers/zToolsets/data/zTsKMeans.h>
+#include "headers/zToolsets/data/zTsKMeans.h"
 
 
 namespace zSpace
 {
 	ZSPACE_TOOLSETS_EXT{
 		ZSPACE_TOOLSETS void ext_KMean_computeKmeansManualInput(zTsKMeans*& kmean, double* _data, int dataCount, int strideCount, int& numCluster, int& numIterations, double* initMeans, int* outClusterID);
-		ZSPACE_TOOLSETS void ext_KMean_computeKmeans(zTsKMeans*& kmean, double* _data, int dataCount, int strideCount, int& numCluster, int& numIterations, int initMethod, int seed1, int seed2, int* outClusterID);
+		ZSPACE_TOOLSETS void ext_KMean_computeKmeans(zTsKMeans*& kmean, double* _data, int dataCount, int strideCount, int& numCluster, int& numIterations, int initMethod, int seed1, int seed2, float tolerance, int* outClusterID);
 		ZSPACE_TOOLSETS void ext_KMean_getMeans(zTsKMeans*& kmean, double* outMeans);
 		ZSPACE_TOOLSETS int ext_KMean_findOptimalK(double* _data, int dataCount, int strideCount, int& numIterations, int initMethod, int seed1, int seed2, int min, int max, int increment, int optimalCountMethod, int* outK, double* outScore);
 		

@@ -1,4 +1,5 @@
 ## Ignore USER Provide files
+packages/
 projects/
 bin-int/
 

@@ -981,7 +981,7 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getClusterIndex(MatrixXf& data, MatrixXf& means, float tolerance)
 	{
-		double minDist = 10000000;
+		double minDist = DBL_MAX;
 		int out = -1;
 
 		for (int i = 0; i < means.rows(); i++)

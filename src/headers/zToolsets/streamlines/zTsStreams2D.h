@@ -14,7 +14,7 @@
 #define ZSPACE_TS_STREAMLINES_2D_H
 
 #pragma once
-#include <headers/base/zSpace_Toolsets.h>
+#include "headers/base/zSpace_Toolsets.h"
 
 #include <headers/zInterface/functionsets/zFnMeshField.h>
 

@@ -102,18 +102,25 @@ project "zSpace_Toolsets"
     cppdialect "C++17"
 
     CommonConfigurationSettings()
+
+    characterset("MBCS")
     
+    defines {"IGL_STATIC_LIBRARY", "_WINDLL"}
+
     files
     {
         "src/headers/**.h",
         "src/source/**.cpp",
     }
 
-    -- Exclude Copies/backups from builds
-    filter {"files:**Copy*.cpp or **backup*.cpp"}
+    removefiles {"**/externalMethods/**"}
+    removefiles {"**Copy*.cpp"}
+    removefiles {"**backup*.cpp"}
+
+    --Exclude From Build
+    filter {"files:**SDFSlicer*.* or **KMeans*.* or **OSM*.* or **RobotFab*.* or **Polyhedra*.* or **Mesh2Pix*.* or **Paneling*.* or **Remesh*.* or **SDFBridge*.* or **Spectral*.* or **VariableExtrude*.* or **/pathNetworks/** or **Polytopal*.* or **Spatial*.* or **TopOpt*.*"}
         flags {"ExcludeFromBuild"}
     filter {}
-
 
     includedirs
     {
@@ -127,11 +134,17 @@ project "zSpace_Toolsets"
 
     libdirs
     {
+        "%{LibDir.IGL}",
         "%{LibDir.CORE}",
     }
 
+    libdirs {prependPath(core_path, get_lib_dirs())}
+
     links
     {
+        "igl.lib",
+        "zSpace_Core.lib",
+        "zSpace_Interface.lib",
     }
 
     filter "configurations:Release_Unreal"

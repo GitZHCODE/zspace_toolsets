@@ -14,7 +14,7 @@
 #define ZSPACE_TS_PATHNETWORK_SLIME_H
 
 #pragma once
-#include <headers/base/zSpace_Toolsets.h>
+#include "headers/base/zSpace_Toolsets.h"
 #include <headers/zInterface/functionsets/zFnPointCloud.h>
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zInterface/functionsets/zFnGraph.h>
