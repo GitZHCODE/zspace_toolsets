@@ -1,3 +1,4 @@
+#pragma once
 // This file is part of zspace, a simple C++ collection of geometry data-structures & algorithms, 
 // data analysis & visualization framework.
 //
@@ -10,8 +11,7 @@
 // Author : Vishu Bhooshan <vishu.bhooshan@zaha-hadid.com>
 //
 
-
-#include<headers/zToolsets/data/zTsKMeans.h>
+#include"headers/zToolsets/data/zTsKMeans.h"
 
 namespace zSpace
 {
