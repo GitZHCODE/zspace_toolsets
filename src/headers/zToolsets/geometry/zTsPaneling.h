@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <headers/zCore/base/zExtern.h>
+#include <zCore/base/zExtern.h>
 
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zInterface/functionsets/zFnGraph.h>
-#include <headers/zInterface/functionsets/zFnParticle.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zInterface/functionsets/zFnGraph.h>
+#include <zInterface/functionsets/zFnParticle.h>
 
 #include <stdlib.h>
 #include <stdio.h>

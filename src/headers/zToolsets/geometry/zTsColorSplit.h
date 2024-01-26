@@ -14,8 +14,8 @@
 #define ZSPACE_TS_GEOMETRY_COLOR_SPLIT_H
 
 #pragma once
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zApp/include/zFnSets.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zApp/include/zFnSets.h>
 
 
 namespace zSpace

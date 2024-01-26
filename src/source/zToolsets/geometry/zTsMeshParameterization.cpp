@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsMeshParameterization.h"
+#include <zToolsets/geometry/zTsMeshParameterization.h>
 
 namespace zSpace
 {

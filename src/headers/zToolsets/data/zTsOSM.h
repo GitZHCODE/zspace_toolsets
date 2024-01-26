@@ -14,12 +14,12 @@
 #define ZSPACE_TS_DATA_OSM_H
 
 #pragma once
-#include "headers/base/zSpace_Toolsets.h"
-#include <headers/zCore/data/zDatabase.h>
+#include "base/zSpace_Toolsets.h"
+#include <zCore/data/zDatabase.h>
 
-#include <headers/zInterface/functionsets/zFnMeshField.h>
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zInterface/functionsets/zFnGraph.h>
+#include <zInterface/functionsets/zFnMeshField.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zInterface/functionsets/zFnGraph.h>
 
 
 namespace zSpace

@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsSpatialGraph.h"
+#include <zToolsets/geometry/zTsSpatialGraph.h>
 
 namespace zSpace
 {

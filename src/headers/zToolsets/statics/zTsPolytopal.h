@@ -14,12 +14,12 @@
 #define ZSPACE_TS_STATICS_POLYTOPAL_H
 
 #pragma once
-#include "headers/base/zSpace_Toolsets.h"
-#include <headers/zCore/base/zExtern.h>
+#include "base/zSpace_Toolsets.h"
+#include <zCore/base/zExtern.h>
 
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zInterface/functionsets/zFnGraph.h>
-#include <headers/zInterface/functionsets/zFnParticle.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zInterface/functionsets/zFnGraph.h>
+#include <zInterface/functionsets/zFnParticle.h>
 
 #include <stdlib.h>
 #include <stdio.h>

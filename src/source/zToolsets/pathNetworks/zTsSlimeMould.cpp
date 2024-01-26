@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/pathNetworks/zTsSlimeMould.h"
+#include <zToolsets/pathNetworks/zTsSlimeMould.h>
 
 //---- zSlimeAgent ------------------------------------------------------------------------------
 

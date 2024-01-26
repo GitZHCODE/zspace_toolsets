@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/pathNetworks/zTsShortestPath.h"
+#include <zToolsets/pathNetworks/zTsShortestPath.h>
 
 namespace zSpace
 {

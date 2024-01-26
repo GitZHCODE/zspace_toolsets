@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsSpectral.h"
+#include <zToolsets/geometry/zTsSpectral.h>
 
 namespace zSpace
 {

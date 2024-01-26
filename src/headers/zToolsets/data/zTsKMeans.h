@@ -15,9 +15,9 @@
 
 #pragma once
 
-#include "headers/base/zSpace_Toolsets.h"
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zCore/base/zMatrix.h>
+#include "base/zSpace_Toolsets.h"
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zCore/base/zMatrix.h>
 
 namespace zSpace
 {

@@ -14,14 +14,14 @@
 #define ZSPACE_TS_PATHNETWORK_SLIME_H
 
 #pragma once
-#include "headers/base/zSpace_Toolsets.h"
-#include <headers/zInterface/functionsets/zFnPointCloud.h>
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zInterface/functionsets/zFnGraph.h>
-#include <headers/zInterface/functionsets/zFnMeshField.h>
-#include <headers/zInterface/functionsets/zFnParticle.h>
+#include "base/zSpace_Toolsets.h"
+#include <zInterface/functionsets/zFnPointCloud.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zInterface/functionsets/zFnGraph.h>
+#include <zInterface/functionsets/zFnMeshField.h>
+#include <zInterface/functionsets/zFnParticle.h>
 
-#include <headers/zInterface/iterators/zItMeshField.h>
+#include <zInterface/iterators/zItMeshField.h>
 
 namespace zSpace
 {

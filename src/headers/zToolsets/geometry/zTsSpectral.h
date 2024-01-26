@@ -14,8 +14,8 @@
 #define ZSPACE_TS_GEOMETRY_SPECTRAL_H
 
 #pragma once
-#include "headers/base/zSpace_Toolsets.h"
-#include <headers/zInterface/functionsets/zFnMesh.h>
+#include "base/zSpace_Toolsets.h"
+#include <zInterface/functionsets/zFnMesh.h>
 
 #include <depends/spectra/include/Spectra/SymEigsShiftSolver.h>
 #include <depends/spectra/include/Spectra/MatOp/SparseSymShiftSolve.h>

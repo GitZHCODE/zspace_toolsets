@@ -14,11 +14,11 @@
 #define ZSPACE_TS_GEOMETRY_GRAPH_POLYHEDRA_H
 
 #pragma once
-#include "headers/base/zSpace_Toolsets.h"
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zInterface/functionsets/zFnGraph.h>
-#include <headers/zInterface/functionsets/zFnParticle.h>
-#include <headers/zInterface/model/zModel.h>
+#include "base/zSpace_Toolsets.h"
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zInterface/functionsets/zFnGraph.h>
+#include <zInterface/functionsets/zFnParticle.h>
+#include <zInterface/model/zModel.h>
 
 namespace zSpace
 {

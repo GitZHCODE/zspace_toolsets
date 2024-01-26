@@ -17,15 +17,15 @@
 
 #pragma once
 
-#include "headers/base/zSpace_Toolsets.h"
+#include "base/zSpace_Toolsets.h"
 
-#include <headers/zCore/base/zExtern.h>
+#include <zCore/base/zExtern.h>
 
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zInterface/functionsets/zFnGraph.h>
-#include <headers/zInterface/functionsets/zFnParticle.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zInterface/functionsets/zFnGraph.h>
+#include <zInterface/functionsets/zFnParticle.h>
 
-#include <headers/zInterface/functionsets/zFnMeshField.h>
+#include <zInterface/functionsets/zFnMeshField.h>
 
 //#include <igl/avg_edge_length.h>
 //#include <igl/cotmatrix.h>

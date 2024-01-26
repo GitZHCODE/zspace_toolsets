@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsSDFBridge.h"
+#include <zToolsets/geometry/zTsSDFBridge.h>
 
 namespace zSpace
 {

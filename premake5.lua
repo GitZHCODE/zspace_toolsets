@@ -10,7 +10,7 @@ workspace "zSpace_toolsets"
 
 project_path = "projects"
 
-core_path = "../zspace_core/"
+core_path = "../ZSPACE_CORE/"
 
 --CUSTOM FUNCTION
 function prependPath(path, table)
@@ -23,8 +23,8 @@ end
 IncludeDir = {}
 IncludeDir["IGL"] = "Dependencies/igl/headers"
 IncludeDir["OMNI"] = "Dependencies/omniverse"
-IncludeDir["CORE"] = "%{core_path}src"
-IncludeDir["SRC"] = "src"
+IncludeDir["CORE"] = "%{core_path}src/headers"
+IncludeDir["SRC"] = "src/headers"
 
 --core_includes = prependPath(core_path, get_include_dirs());
 

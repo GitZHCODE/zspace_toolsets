@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/streamlines/zTsStreamsMesh.h"
+#include <zToolsets/streamlines/zTsStreamsMesh.h>
 
 
 //---- zTsStreamszTsStreamsMesh ------------------------------------------------------------------------------

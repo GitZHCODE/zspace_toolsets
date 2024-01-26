@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/statics/zTsPolytopal.h"
+#include <zToolsets/statics/zTsPolytopal.h>
 
 //---- ALGLIB METHOD ------------------------------------------------------------------------------
 

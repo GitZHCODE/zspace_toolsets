@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsColorSplit.h"
+#include <zToolsets/geometry/zTsColorSplit.h>
 
 namespace zSpace
 {

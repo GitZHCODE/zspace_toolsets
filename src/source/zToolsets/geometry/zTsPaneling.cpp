@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsPaneling.h"
+#include <zToolsets/geometry/zTsPaneling.h>
 
 namespace zSpace
 {

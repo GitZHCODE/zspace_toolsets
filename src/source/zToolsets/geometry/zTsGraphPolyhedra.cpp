@@ -11,7 +11,7 @@
 //
 
 
-#include "headers/zToolsets/geometry/zTsGraphPolyhedra.h"
+#include <zToolsets/geometry/zTsGraphPolyhedra.h>
 
 namespace zSpace
 {
