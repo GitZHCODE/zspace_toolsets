@@ -198,6 +198,9 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\configurator\zTsConfigurator.h">
+      <Filter>Header Files\Configurator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
