@@ -64,6 +64,12 @@
     <Filter Include="Header Files\0_base">
       <UniqueIdentifier>{f46167c4-235a-4a38-b49e-b52d1aa5ec01}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Configurator">
+      <UniqueIdentifier>{76dc8b59-12aa-4272-9f34-ded5e8672d48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Configurator">
+      <UniqueIdentifier>{865c191e-634c-4430-9137-ca0400ff949a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h">
@@ -174,8 +180,14 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsColorSplit.h">
+      <Filter>Header Files\Geometry</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreamsMesh.h">
       <Filter>Header Files\Streamlines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\configurator\zTsConfigurator.h">
+      <Filter>Header Files\Configurator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -283,6 +295,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\streamlines\zTsStreamsMesh.cpp">
       <Filter>Source Files\Streamlines</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsColorSplit.cpp">
+      <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\configurator\zTsConfigurator.cpp">
+      <Filter>Source Files\Configurator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
