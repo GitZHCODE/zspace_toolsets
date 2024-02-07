@@ -70,6 +70,12 @@
     <Filter Include="Source Files\Natpower">
       <UniqueIdentifier>{a786f3d2-4d58-4cfc-8514-7cfcc26352e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Configurator">
+      <UniqueIdentifier>{76dc8b59-12aa-4272-9f34-ded5e8672d48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Configurator">
+      <UniqueIdentifier>{865c191e-634c-4430-9137-ca0400ff949a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h">
@@ -180,11 +186,11 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsColorSplit.h">
+      <Filter>Header Files\Geometry</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreamsMesh.h">
       <Filter>Header Files\Streamlines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\natpower\zTsNatpowerSDF.h">
-      <Filter>Header Files\Natpower</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -292,9 +298,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\streamlines\zTsStreamsMesh.cpp">
       <Filter>Source Files\Streamlines</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\natpower\zTsNatpowerSDF.cpp">
-      <Filter>Source Files\Natpower</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -397,11 +397,9 @@ namespace zSpace
 		/*!	\brief contatiner of robot target reachability  */
 		bool inReach = true;
 
-		/*!	\brief contatiner of Omniverse cutting plane angles  */
-		vector<float> OV_angles;
 
-#pragma endregion Fields
-		#pragma region CONSTRUCTOR
+
+
 		//--------------------------
 		//---- CONSTRUCTOR
 		//--------------------------
