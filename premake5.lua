@@ -1,12 +1,15 @@
-require('vstudio')
-
+include ("../zspace_core/premake/delay_load.lua")
 include ("../zspace_core/includes.lua")
 
 workspace "zSpace_toolsets"
     filename "zSpace_toolsets"
     architecture "x64"
-    configurations {"Debug", "Debug_DLL", "Release", "Release_DLL", "Release_DLL_OV", "Release_Make", "Release_Unreal"}
-    startproject "zSpace_Core"
+    configurations {
+                    --"Release",
+                    "Release_DLL",
+                    --"Debug",
+                    "Debug_DLL",
+                }
 
 project_path = "projects"
 
@@ -21,76 +24,64 @@ function prependPath(path, table)
 end
 
 IncludeDir = {}
-IncludeDir["IGL"] = "Dependencies/igl/headers"
-IncludeDir["OMNI"] = "Dependencies/omniverse"
 IncludeDir["CORE"] = "%{core_path}src/headers"
 IncludeDir["SRC"] = "src/headers"
 
---core_includes = prependPath(core_path, get_include_dirs());
-
-LibDir = {}
-LibDir["IGL"] = "Dependencies/igl/build/lib"
-LibDir["OMNI"] = "Dependencies/omniverse"
-LibDir["CORE"] = "../zspace_core/bin/dll"
-
 --#############__GENERAL__CONFIGURATION__SETTINGS__#############
 function CommonConfigurationSettings()
-    filter "configurations:Debug"
-        kind "StaticLib"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
-        targetdir ("bin/lib/debug")
-        targetname ("%{prj.name}")
-        defines {"ZSPACE_STATIC_LIBRARY",
-                "USING_ARMA"}
-        symbols "On"
+
+--    filter "configurations:Debug"
+--        kind "StaticLib"
+--        objdir ("bin-int/%{cfg.buildcfg}")
+--        targetdir ("bin/lib/debug/")
+--        targetname ("%{prj.name}")
+--        defines {"ZSPACE_STATIC_LIBRARY"}
+--        optimize "Off"
+--        warnings "Off"
+--        --symbols "On"
+--        flags {"MultiProcessorCompile"}
+--        buildoptions {"/bigobj"}
 
     filter "configurations:Debug_DLL"
         kind "SharedLib"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
-        targetdir ("bin/dll/")
+        objdir ("bin-int/%{cfg.buildcfg}")
+        targetdir ("bin/dll/debug")
         targetname ("%{prj.name}")
-        symbols "On"
-
-    filter "configurations:Release"
-        kind "StaticLib"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
-        targetdir ("bin/lib/")
-        targetname ("%{prj.name}")
-        defines {"ZSPACE_STATIC_LIBRARY",
-                "USING_ARMA"}
-        optimize "Full"
+        defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
+                 "ZSPACE_DYNAMIC_LIBRARY",
+                 "_WINDLL"}
+        optimize "Off"
         warnings "Off"
-        flags {"LinkTimeOptimization"}
+        --symbols "On"
+        flags {"MultiProcessorCompile"}
+        buildoptions {"/bigobj"}
+
+--    filter "configurations:Release"
+--        kind "StaticLib"
+--        objdir ("bin-int/%{cfg.buildcfg}")
+--        targetdir ("bin/lib/")
+--        targetname ("%{prj.name}")
+--        defines {"ZSPACE_STATIC_LIBRARY",
+--                 "NDEBUG"}
+--        optimize "Full"
+--        warnings "Off"
+--        flags {"LinkTimeOptimization",
+--                "MultiProcessorCompile"}
+--        buildoptions {"/bigobj"}
 
     filter "configurations:Release_DLL"
         kind "SharedLib"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
+        objdir ("bin-int/%{cfg.buildcfg}")
         targetdir ("bin/dll/")
         targetname ("%{prj.name}")
-        defines {"ZSPACE_DYNAMIC_LIBRARY", "ZSPACE_TOOLSETS_DYNAMIC_LIBRARY"}
-        optimize "Speed"
+        defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
+                 "ZSPACE_DYNAMIC_LIBRARY",
+                 "NDEBUG",
+                 "_WINDLL"}
+        optimize "Full"
         warnings "Off"
-        flags {"LinkTimeOptimization"}
-
-    filter "configurations:Release_DLL_OV"
-        kind "SharedLib"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
-        targetdir ("bin/dll/")
-        targetname ("%{prj.name}")
-        defines {"ZSPACE_DYNAMIC_LIBRARY", "ZSPACE_TOOLSETS_DYNAMIC_LIBRARY"}
-        optimize "Speed"
-        warnings "Off"
-        flags {"LinkTimeOptimization"}
-    
-    filter "configurations:Release_Unreal"
-        kind "StaticLib"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
-        targetdir ("bin/lib/")
-        targetname ("%{prj.name}")
-        defines {"ZSPACE_STATIC_LIBRARY"}
-        optimize "Speed"
-        warnings "Off"
-        flags {"LinkTimeOptimization"}
+        flags {"LinkTimeOptimization",
+                "MultiProcessorCompile"}
     
     filter {}
 end
@@ -105,7 +96,11 @@ project "zSpace_Toolsets"
 
     characterset("MBCS")
     
-    defines {"IGL_STATIC_LIBRARY", "_WINDLL"}
+    defines {"IGL_STATIC_LIBRARY"}
+
+    pchheader "zToolsets/ztoolsetspch.h"
+    pchsource "src/source/zToolsets/ztoolsetspch.cpp"
+    rawforceincludes "zToolsets/ztoolsetspch.h"
 
     files
     {
@@ -124,19 +119,11 @@ project "zSpace_Toolsets"
 
     includedirs
     {
-        "%{IncludeDir.IGL}",
-        "%{IncludeDir.OMNI}",
         "%{IncludeDir.CORE}",
         "%{IncludeDir.SRC}",
     }
 
     includedirs {prependPath(core_path, get_include_dirs())}
-
-    libdirs
-    {
-        "%{LibDir.IGL}",
-        "%{LibDir.CORE}",
-    }
 
     libdirs {prependPath(core_path, get_lib_dirs())}
 
@@ -146,14 +133,3 @@ project "zSpace_Toolsets"
         "zSpace_Core.lib",
         "zSpace_Interface.lib",
     }
-
-    filter "configurations:Release_Unreal"
-        defines {"ZSPACE_UNREAL_INTEROP"}
-
-    filter "configurations:Release_Make"
-        kind "Makefile"
-        objdir ("bin-int/%{cfg.architecture}/%{cfg.buildcfg}")
-        targetdir ("bin/make")
-        targetname ("%{prj.name}")
-
---#########################################
