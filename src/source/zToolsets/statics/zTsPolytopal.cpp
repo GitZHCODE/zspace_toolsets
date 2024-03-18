@@ -72,7 +72,7 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createForceFromFiles(zStringArray filePaths, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createForceFromFiles(zStringArray filePaths, zFileType type)
 	{
 
 		if (type == zJSON)
@@ -98,7 +98,7 @@ namespace zSpace
 			}
 		}
 
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
+		else throw std::invalid_argument(" error: invalid zFileType type");
 
 	}
 

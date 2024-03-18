@@ -870,13 +870,13 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createSmoothGuideMeshfromFile(string path, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createSmoothGuideMeshfromFile(string path, zFileType fileType)
 	{
 		zFnMesh fnGuideSmoothMesh(o_guideSmoothMesh);
 		fnGuideSmoothMesh.from(path, fileType);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createBlockSectionGraphsfromFiles(string fileDir, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFBridge::createBlockSectionGraphsfromFiles(string fileDir, zFileType type)
 	{
 		zStringArray graphFiles;
 		coreUtils.getFilesFromDirectory(graphFiles, fileDir, zJSON);

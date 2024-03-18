@@ -139,7 +139,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotfromFile(string path, zFileType type)
 	{
 		if (type == zJSON)
 		{
@@ -152,7 +152,7 @@ namespace zSpace
 		else throw std::invalid_argument(" invalid file type.");
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createRobotJointMeshesfromFile(string directory, zFileType type, bool endeffector)
 	{
 		
 		o_jointMeshes.clear();		
@@ -239,12 +239,12 @@ namespace zSpace
 
 		}
 
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
+		else throw std::invalid_argument(" error: invalid zFileType type");
 
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::exportRobotJointMeshes_local(string directory, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::exportRobotJointMeshes_local(string directory, zFileType type)
 	{
 		zTransform local;
 		local.setIdentity();
@@ -333,11 +333,11 @@ namespace zSpace
 
 		}
 
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
+		else throw std::invalid_argument(" error: invalid zFileType type");
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createTargetsfromFile(string infilename, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createTargetsfromFile(string infilename, zFileType type)
 	{
 		if (type == zTXT)
 		{
@@ -784,7 +784,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::jMatrix_to(string directoryPath, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::jMatrix_to(string directoryPath, zFileType fileType)
 	{
 		string filename = directoryPath;
 		if(fileType == zTXT)
@@ -826,7 +826,7 @@ namespace zSpace
 
 	//---- FAB MESH METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromDir(string directory, zFileTpye fileType)
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::createFabMeshesfromDir(string directory, zFileType fileType)
 	{
 		vector<string> fabFiles;
 
@@ -886,7 +886,7 @@ namespace zSpace
 			}
 		}	
 
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
+		else throw std::invalid_argument(" error: invalid zFileType type");
 
 		computeFabMeshBbox();
 

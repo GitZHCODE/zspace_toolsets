@@ -34,7 +34,7 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsSpectral::createMeshfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsSpectral::createMeshfromFile(string path, zFileType type)
 	{
 		fnMesh.from(path, type, false);
 

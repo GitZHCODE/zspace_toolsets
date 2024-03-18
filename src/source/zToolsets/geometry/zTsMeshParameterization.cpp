@@ -33,7 +33,7 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_TOOLSETS_INLINE void zTsMeshParam::setFromFile(string path, zFileTpye fType)
+	ZSPACE_TOOLSETS_INLINE void zTsMeshParam::setFromFile(string path, zFileType fType)
 	{
 
 		bool fileChk = coreUtils.fileExists(path);

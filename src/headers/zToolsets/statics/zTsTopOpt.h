@@ -256,7 +256,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file - zJSON.
 		*	\since version 0.0.2
 		*/
-		void to(string path, zFileTpye type);
+		void to(string path, zFileType type);
 
 		//--------------------------
 		//---- CREATE
@@ -268,7 +268,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createFromFile(string path, zFileTpye type);
+		void createFromFile(string path, zFileType type);
 
 		//--------------------------
 		//--- SET METHODS 

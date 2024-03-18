@@ -1,34 +1,8 @@
-include ("../zspace_core/premake/delay_load.lua")
-include ("../zspace_core/includes.lua")
-
-workspace "zSpace_toolsets"
-    filename "zSpace_toolsets"
-    architecture "x64"
-    configurations {
-                    --"Release",
-                    "Release_DLL",
-                    --"Debug",
-                    "Debug_DLL",
-                }
-
-project_path = "projects"
-
-core_path = "../ZSPACE_CORE/"
-
---CUSTOM FUNCTION
-function prependPath(path, table)
-    for key, value in pairs(table) do 
-        table[key] = path .. value
-    end
-    return table
-end
-
-IncludeDir = {}
-IncludeDir["CORE"] = "%{core_path}src/headers"
-IncludeDir["SRC"] = "src/headers"
-
 --#############__GENERAL__CONFIGURATION__SETTINGS__#############
-function CommonConfigurationSettings()
+local function CommonConfigurationSettings()
+    GlobalCommonDefines()
+
+    defines {"IGL_STATIC_LIBRARY"}
 
 --    filter "configurations:Debug"
 --        kind "StaticLib"
@@ -42,7 +16,7 @@ function CommonConfigurationSettings()
 --        flags {"MultiProcessorCompile"}
 --        buildoptions {"/bigobj"}
 
-    filter "configurations:Debug_DLL"
+    filter "configurations:Debug_DLL*"
         kind "SharedLib"
         objdir ("bin-int/%{cfg.buildcfg}")
         targetdir ("bin/dll/debug")
@@ -69,7 +43,7 @@ function CommonConfigurationSettings()
 --                "MultiProcessorCompile"}
 --        buildoptions {"/bigobj"}
 
-    filter "configurations:Release_DLL"
+    filter "configurations:Release_DLL*"
         kind "SharedLib"
         objdir ("bin-int/%{cfg.buildcfg}")
         targetdir ("bin/dll/")
@@ -86,17 +60,25 @@ function CommonConfigurationSettings()
     filter {}
 end
 
---#########################################
+ToolsetsIncludeDir = {}
+ToolsetsIncludeDir["CORE"] = "%{core_path}src/headers"
+
+--#############__ZSPACE_TOOLSETS__#############
 project "zSpace_Toolsets"
-    location "%{project_path}/zSpace_Toolsets"
+    location "projects/zSpace_Toolsets"
     language "C++"
     cppdialect "C++17"
 
+    dependson("zSpace_Interface")
+
     CommonConfigurationSettings()
 
+    defines{
+        "_HAS_STD_BYTE=0",
+        "NOMINMAX",
+    }
+
     characterset("MBCS")
-    
-    defines {"IGL_STATIC_LIBRARY"}
 
     pchheader "zToolsets/ztoolsetspch.h"
     pchsource "src/source/zToolsets/ztoolsetspch.cpp"
@@ -117,15 +99,22 @@ project "zSpace_Toolsets"
         flags {"ExcludeFromBuild"}
     filter {}
 
+    --###__BASE__###
     includedirs
     {
-        "%{IncludeDir.CORE}",
-        "%{IncludeDir.SRC}",
+        "%{ToolsetsIncludeDir.CORE}",
+        "src/headers",
     }
 
-    includedirs {prependPath(core_path, get_include_dirs())}
+    includedirs {prependPath(deps_path, get_include_dirs())}
 
-    libdirs {prependPath(core_path, get_lib_dirs())}
+    filter "configurations:Debug*"
+        libdirs { "%{core_path}bin/dll/debug"}
+    filter "configurations:Release*"
+        libdirs { "%{core_path}bin/dll"}
+    filter {}
+
+    libdirs {prependPath(deps_path, get_lib_dirs())}
 
     links
     {
@@ -133,3 +122,8 @@ project "zSpace_Toolsets"
         "zSpace_Core.lib",
         "zSpace_Interface.lib",
     }
+
+    --###__OMNIVERSE__###
+    filter {"options:interop=OV or interop=Full"}
+        links {get_omniverse_links()}
+    filter {}

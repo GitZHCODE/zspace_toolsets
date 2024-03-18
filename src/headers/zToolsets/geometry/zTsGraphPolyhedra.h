@@ -152,13 +152,13 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		void setFormGraphFromFile(string _path, zFileTpye _type, bool _staticGeom = false);
+		void setFormGraphFromFile(string _path, zFileType _type, bool _staticGeom = false);
 
 		/*! \brief DISCRIPTION
 		*
 		*	\since version 0.0.4
 		*/
-		void setFormGraphFromOffsetMeshes(string _path_top, string _path_bottom, zFileTpye _type);
+		void setFormGraphFromOffsetMeshes(string _path_top, string _path_bottom, zFileType _type);
 
 
 		/*! \brief DISCRIPTION

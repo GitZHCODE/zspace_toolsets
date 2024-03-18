@@ -431,7 +431,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createRobotfromFile(string path, zFileTpye type);
+		void createRobotfromFile(string path, zFileType type);
 
 
 		/*! \brief This method creates the robot meshes from the input directory.
@@ -440,7 +440,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createRobotJointMeshesfromFile(string directory, zFileTpye type, bool endeffector = false);
+		void createRobotJointMeshesfromFile(string directory, zFileType type, bool endeffector = false);
 
 		/*! \brief This method exports the robot meshes at local position to the the input directory.
 		*
@@ -448,7 +448,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void exportRobotJointMeshes_local(string directory, zFileTpye type);
+		void exportRobotJointMeshes_local(string directory, zFileType type);
 
 		/*! \brief This method creates the robot targets from the input file.
 		*
@@ -456,7 +456,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createTargetsfromFile(string infilename, zFileTpye type);
+		void createTargetsfromFile(string infilename, zFileType type);
 
 		/*! \brief This method create a new target from input position and rotations vectors.
 		*
@@ -641,7 +641,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createFabMeshesfromDir(string directory, zFileTpye fileType);
+		void createFabMeshesfromDir(string directory, zFileType fileType);
 
 		/*! \brief This method returns the joint transformation matrix for all targets.
 		*
@@ -650,7 +650,7 @@ namespace zSpace
 		*	\param [in]		EE				- include EE transformation
 		*	\since version 0.0.2
 		*/
-		void jMatrix_to(string directoryPath, zFileTpye fileType);
+		void jMatrix_to(string directoryPath, zFileType fileType);
 
 
 		/*! \brief This method creates the targets from the fabrication mesh.

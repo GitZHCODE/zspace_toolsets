@@ -240,7 +240,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createResultfromFile(string path, zFileTpye type);
+		void createResultfromFile(string path, zFileType type);
 
 		/*! \brief This method creates the force geometry from the input file.
 		*
@@ -248,7 +248,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createForcefromFile(string path, zFileTpye type);
+		void createForcefromFile(string path, zFileType type);
 
 		/*! \brief This method creates the form geometry from the input file.
 		*
@@ -257,7 +257,7 @@ namespace zSpace
 		*	\since version 0.0.2
 		*	\warning works only with meshes.
 		*/
-		void createFormfromFile(string path, zFileTpye type);
+		void createFormfromFile(string path, zFileType type);
 
 		/*! \brief This method computes the form diagram from the result.
 		*

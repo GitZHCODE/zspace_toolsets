@@ -75,7 +75,7 @@ namespace zSpace
 
 	//---- graph specilization for createResultfromFile
 	template<>
-	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createResultfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createResultfromFile(string path, zFileType type)
 	{
 		fnResult.from(path, type);
 
@@ -88,7 +88,7 @@ namespace zSpace
 
 	//---- mesh specilization for createResultfromFile
 	template<>
-	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createResultfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createResultfromFile(string path, zFileType type)
 	{
 		fnResult.from(path, type);
 
@@ -107,7 +107,7 @@ namespace zSpace
 
 	//---- graph specilization for createForcefromFile
 	template<>
-	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createForcefromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjGraph, zFnGraph>::createForcefromFile(string path, zFileType type)
 	{
 		fnForce.from(path, type);
 
@@ -119,7 +119,7 @@ namespace zSpace
 
 	//---- mesh specilization for createForcefromFile
 	template<>
-	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createForcefromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createForcefromFile(string path, zFileType type)
 	{
 		fnForce.from(path, type);
 
@@ -131,7 +131,7 @@ namespace zSpace
 
 	//---- mesh specilization for createForcefromFile
 	template<>
-	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createFormfromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE  void zTsVault<zObjMesh, zFnMesh>::createFormfromFile(string path, zFileType type)
 	{
 		fnForm.from(path, type);
 

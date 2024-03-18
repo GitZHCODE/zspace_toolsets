@@ -226,7 +226,7 @@ namespace zSpace
 		*	\param [in]		type			- input file type.
 		*	\since version 0.0.2
 		*/
-		void createForceFromFiles(zStringArray filePaths, zFileTpye type);
+		void createForceFromFiles(zStringArray filePaths, zFileType type);
 
 		/*! \brief This method creates the center line graph based on the input volume meshes.
 		*

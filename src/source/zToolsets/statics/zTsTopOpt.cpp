@@ -43,19 +43,19 @@ namespace zSpace
 
 	//---- TO METHOD
 
-	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::to(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::to(string path, zFileType type)
 	{
 		if (type == zJSON)
 		{
 			toJSON(path);
 
 		}
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
+		else throw std::invalid_argument(" error: invalid zFileType type");
 	}
 
 	//---- CREATE
 
-	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::createFromFile(string path, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsTopOpt::createFromFile(string path, zFileType type)
 	{
 		fnMesh.from(path, type, true);
 	}

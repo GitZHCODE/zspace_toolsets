@@ -160,7 +160,7 @@ namespace zSpace
 		*	\param [in]		type			- input file type.
 		*	\since version 0.0.1
 		*/
-		void createVolumeFromFile(string directory, string filename, int numFiles, zFileTpye type);
+		void createVolumeFromFile(string directory, string filename, int numFiles, zFileType type);
 
 		/*! \brief This method creates the center line graph based on the input volume meshes.
 		*

@@ -124,7 +124,7 @@ namespace zSpace
 		*	\param		[in]	_type	- export file type.
 		*	\since version 0.0.2
 		*/
-		void exportTo(string& _pth, zFileTpye _type);
+		void exportTo(string& _pth, zFileType _type);
 
 		//--------------------------
 		//---- GET METHODS

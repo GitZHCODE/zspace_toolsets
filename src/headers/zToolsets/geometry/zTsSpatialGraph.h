@@ -109,7 +109,7 @@ namespace zSpace
 		*	\param		[in]	fileType	- input file type.
 		*	\since version 0.0.4
 		*/
-		void setFromFile(string path, zFileTpye fileType);
+		void setFromFile(string path, zFileType fileType);
 
 		//--------------------------
 		//---- GET METHODS

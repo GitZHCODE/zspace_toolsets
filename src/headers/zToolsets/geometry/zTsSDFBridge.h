@@ -478,7 +478,7 @@ namespace zSpace
 		*	\param		[in]	fileType		- input file type
 		*	\since version 0.0.4
 		*/
-		void createSmoothGuideMeshfromFile(string path, zFileTpye fileType);
+		void createSmoothGuideMeshfromFile(string path, zFileType fileType);
 
 		/*! \brief This method creates the block section graphs from the input files.
 		*
@@ -486,7 +486,7 @@ namespace zSpace
 		*	\param		[in]	type			- input file type : zJSON.
 		*	\since version 0.0.4
 		*/
-		void createBlockSectionGraphsfromFiles(string fileDir , zFileTpye type);
+		void createBlockSectionGraphsfromFiles(string fileDir , zFileType type);
 
 
 		/*! \brief This method creates the filed mesh.

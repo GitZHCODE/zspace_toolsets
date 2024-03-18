@@ -136,7 +136,7 @@ namespace zSpace
 		*	\param [in]		type			- type of file to be imported.
 		*	\since version 0.0.2
 		*/
-		void createMeshfromFile(string path, zFileTpye type);
+		void createMeshfromFile(string path, zFileType type);
 
 		//--------------------------
 		//---- COMPUTE METHODS

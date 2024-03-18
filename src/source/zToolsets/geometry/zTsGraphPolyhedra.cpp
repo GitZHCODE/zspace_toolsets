@@ -25,7 +25,7 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromFile(string _path, zFileTpye _type, bool _staticGeom)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromFile(string _path, zFileType _type, bool _staticGeom)
 	{
 		zColor red(1, 0, 0, 1);
 		zColor green(0, 1, 0, 1);
@@ -76,7 +76,7 @@ namespace zSpace
 		setDiagrams_forceColor(zDomainFloat(1,1));
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromOffsetMeshes(string _path_top, string _path_bottom, zFileTpye _type)
+	ZSPACE_TOOLSETS_INLINE void zTsGraphPolyhedra::setFormGraphFromOffsetMeshes(string _path_top, string _path_bottom, zFileType _type)
 	{
 		zColor red(1, 0, 0, 1);
 		zColor green(0, 1, 0, 1);

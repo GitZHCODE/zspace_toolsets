@@ -32,7 +32,7 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_INLINE void zTsSpatialGraph::setFromFile(string path, zFileTpye fileType)
+	ZSPACE_INLINE void zTsSpatialGraph::setFromFile(string path, zFileType fileType)
 	{
 		zFnGraph fnGraph(o_SpatialGraph);
 		fnGraph.from(path, fileType);

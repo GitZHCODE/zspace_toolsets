@@ -43,7 +43,7 @@ namespace zSpace
 
 	//---- CREATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::createVolumeFromFile(string directory, string filename, int numFiles, zFileTpye type)
+	ZSPACE_TOOLSETS_INLINE void zTsSpatialStructures::createVolumeFromFile(string directory, string filename, int numFiles, zFileType type)
 	{
 
 		if (type == zJSON)
@@ -70,7 +70,7 @@ namespace zSpace
 			}
 		}
 
-		else throw std::invalid_argument(" error: invalid zFileTpye type");
+		else throw std::invalid_argument(" error: invalid zFileType type");
 
 	}
 

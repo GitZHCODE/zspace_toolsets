@@ -53,7 +53,7 @@ namespace zSpace
 
 	//---- EXPORT METHODS
 
-	ZSPACE_INLINE void zTsColorSplit::exportTo(string& _pth, zFileTpye _type)
+	ZSPACE_INLINE void zTsColorSplit::exportTo(string& _pth, zFileType _type)
 	{
 		for (int i = 0;i<splits.size();i++)
 		{

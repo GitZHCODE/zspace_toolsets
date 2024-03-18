@@ -138,7 +138,7 @@ namespace zSpace
 		//--- SET METHODS 
 		//--------------------------
 
-		void setFromFile(string path, zFileTpye fType);
+		void setFromFile(string path, zFileType fType);
 
 		//--------------------------
 		//--- GET METHODS 
