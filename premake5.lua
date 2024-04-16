@@ -6,8 +6,6 @@ local function CommonConfigurationSettings()
 
 --    filter "configurations:Debug"
 --        kind "StaticLib"
---        objdir ("bin-int/%{cfg.buildcfg}")
---        targetdir ("bin/lib/debug/")
 --        targetname ("%{prj.name}")
 --        defines {"ZSPACE_STATIC_LIBRARY"}
 --        optimize "Off"
@@ -18,8 +16,6 @@ local function CommonConfigurationSettings()
 
     filter "configurations:Debug_DLL*"
         kind "SharedLib"
-        objdir ("bin-int/%{cfg.buildcfg}")
-        targetdir ("bin/dll/debug")
         targetname ("%{prj.name}")
         defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
                  "ZSPACE_DYNAMIC_LIBRARY",
@@ -32,8 +28,6 @@ local function CommonConfigurationSettings()
 
 --    filter "configurations:Release"
 --        kind "StaticLib"
---        objdir ("bin-int/%{cfg.buildcfg}")
---        targetdir ("bin/lib/")
 --        targetname ("%{prj.name}")
 --        defines {"ZSPACE_STATIC_LIBRARY",
 --                 "NDEBUG"}
@@ -45,8 +39,6 @@ local function CommonConfigurationSettings()
 
     filter "configurations:Release_DLL*"
         kind "SharedLib"
-        objdir ("bin-int/%{cfg.buildcfg}")
-        targetdir ("bin/dll/")
         targetname ("%{prj.name}")
         defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
                  "ZSPACE_DYNAMIC_LIBRARY",
@@ -56,7 +48,7 @@ local function CommonConfigurationSettings()
         warnings "Off"
         flags {"LinkTimeOptimization",
                 "MultiProcessorCompile"}
-    
+
     filter {}
 end
 
@@ -108,11 +100,7 @@ project "zSpace_Toolsets"
 
     includedirs {prependPath(deps_path, get_include_dirs())}
 
-    filter "configurations:Debug*"
-        libdirs { "%{core_path}bin/dll/debug"}
-    filter "configurations:Release*"
-        libdirs { "%{core_path}bin/dll"}
-    filter {}
+    libdirs { "%{core_path}bin/%{cfg.buildcfg}"}
 
     libdirs {prependPath(deps_path, get_lib_dirs())}
 
@@ -123,7 +111,5 @@ project "zSpace_Toolsets"
         "zSpace_Interface.lib",
     }
 
-    --###__OMNIVERSE__###
-    filter {"options:interop=OV or interop=Full"}
-        links {get_omniverse_links()}
-    filter {}
+    --Omniverse is default
+    links {get_omniverse_links()}
