@@ -55,6 +55,8 @@ end
 ToolsetsIncludeDir = {}
 ToolsetsIncludeDir["CORE"] = "%{core_path}src/headers"
 
+local include_directories = prependPath(deps_path, get_include_dirs())
+
 --#############__ZSPACE_TOOLSETS__#############
 project "zSpace_Toolsets"
     location "projects/zSpace_Toolsets"
@@ -80,6 +82,8 @@ project "zSpace_Toolsets"
     {
         "src/headers/**.h",
         "src/source/**.cpp",
+        --Manualy include alglib files
+        "%{prependPath(deps_path, get_include_dirs()).ALGLIB}/alglib/**.cpp"
     }
 
     removefiles {"**/externalMethods/**"}
@@ -87,7 +91,7 @@ project "zSpace_Toolsets"
     removefiles {"**backup*.cpp"}
 
     --Exclude From Build
-    filter {"files:**SDFSlicer*.* or **KMeans*.* or **OSM*.* or **RobotFab*.* or **Polyhedra*.* or **Mesh2Pix*.* or **Paneling*.* or **Remesh*.* or **SDFBridge*.* or **Spectral*.* or **VariableExtrude*.* or **/pathNetworks/** or **Polytopal*.* or **Spatial*.* or **TopOpt*.*"}
+    filter {"files:**SDFSlicer*.* or **KMeans*.* or **OSM*.* or **RobotFab*.* or **Polyhedra*.* or **Mesh2Pix*.* or **Paneling*.* or **Remesh*.* or **SDFBridge*.* or **Spectral*.* or **VariableExtrude*.* or **/pathNetworks/** or **Spatial*.* or **TopOpt*.*"}
         flags {"ExcludeFromBuild"}
     filter {}
 
@@ -98,7 +102,7 @@ project "zSpace_Toolsets"
         "src/headers",
     }
 
-    includedirs {prependPath(deps_path, get_include_dirs())}
+    includedirs {include_directories}
 
     libdirs { "%{core_path}bin/%{cfg.buildcfg}"}
 

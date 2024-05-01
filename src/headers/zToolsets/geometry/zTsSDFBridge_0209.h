@@ -29,9 +29,9 @@
 using namespace std;
 
 
-#include <depends/alglib/cpp/src/ap.h>
-#include <depends/alglib/cpp/src/linalg.h>
-#include <depends/alglib/cpp/src/optimization.h>
+#include <alglib/ap.h>
+#include <alglib/linalg.h>
+#include <alglib/optimization.h>
 using namespace alglib;
 
 namespace zSpace

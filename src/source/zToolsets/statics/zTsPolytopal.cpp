@@ -1453,6 +1453,20 @@ namespace zSpace
 
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setFormFixedVerticies(zIntArray& vertexIds, bool fixed)
+	{
+		if (formParticlesObj.size() == 0)
+		{
+			std::cout << "No particles in Polytopal" << std::endl;
+			return;
+		}
+
+		for (auto id : vertexIds)
+		{
+			formParticlesObj[id].particle.fixed = fixed;
+		}
+	}
+
 	//---- UTILITY METHOD
 
 	ZSPACE_TOOLSETS_INLINE zObjMesh zTsPolytopal::getPolytopals()

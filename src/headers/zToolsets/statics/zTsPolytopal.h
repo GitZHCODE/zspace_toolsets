@@ -27,9 +27,9 @@
 using namespace std;
 
 
-#include <depends/alglib/cpp/src/ap.h>
-#include <depends/alglib/cpp/src/linalg.h>
-#include <depends/alglib/cpp/src/optimization.h>
+#include <alglib/ap.h>
+#include <alglib/linalg.h>
+#include <alglib/optimization.h>
 using namespace alglib;
 
 namespace zSpace
@@ -264,6 +264,9 @@ namespace zSpace
 		*	\since version 0.0.3
 		*/
 		void createSectionPoints(int user_nEdges, double user_edgeLength);
+
+
+		//void setFixedVertices(zInt)
 		
 		//--------------------------
 		//----3D GS ITERATIVE 
@@ -374,6 +377,14 @@ namespace zSpace
 		*	\since version 0.0.2
 		*/
 		void setDualEdgeWeightsfromPrimal(zDomainFloat weightDomain = zDomainFloat(2.0, 10.0));
+
+		/*! \brief This method sets whether form vertices are fixed
+		*
+		*	\param		[in]	vertexIds				- a vector of ids of verticies.
+		*	\param		[in]	fixed					- fix boolean.
+		*	\since version 0.0.4
+		*/
+		void setFormFixedVerticies(zIntArray& vertexIds, bool fixed);
 
 		//--------------------------
 		//---- UTILITY METHOD
