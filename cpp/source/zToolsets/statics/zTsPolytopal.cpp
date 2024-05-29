@@ -121,7 +121,7 @@ namespace zSpace
 			positions.push_back(fnForces[j].getCenter());
 		}
 
-		edgeConnects.assign(primal_n_f_i * 2, -1);
+		edgeConnects.assign(primal_n_f_i * 2, 0);
 
 		for (int j = 0; j < C_fc.rows(); j++)
 		{
@@ -178,6 +178,34 @@ namespace zSpace
 		for (zItGraphEdge e(*formObj); !e.end(); e++)
 		{
 			printf("\n %i | %i %i ", e.getId(), e.getHalfEdge(0).getVertex().getId(), e.getHalfEdge(1).getVertex().getId());
+		}
+
+		// create particles
+
+		zPoint* pos = fnForm.getRawVertexPositions();
+		if (fnFormParticles.size() != fnForm.numVertices())
+		{
+			fnFormParticles.clear();
+			formParticlesObj.clear();
+
+
+
+			for (zItGraphVertex v(*formObj); !v.end(); v++)
+			{
+				bool fixed = false;
+
+				int i = v.getId();
+
+				zObjParticle p;
+				p.particle = zParticle(pos[i], fixed);
+				formParticlesObj.push_back(p);
+
+			}
+
+			for (int i = 0; i < formParticlesObj.size(); i++)
+			{
+				fnFormParticles.push_back(zFnParticle(formParticlesObj[i]));
+			}
 		}
 	}
 
@@ -326,7 +354,7 @@ namespace zSpace
 
 			unordered_map <string, int> positionVertex;
 			unordered_map <string, int> faceCenterpositionVertex;
-
+			zPointArray globalFaceCenters;
 
 
 
@@ -347,13 +375,15 @@ namespace zSpace
 				for (int i = 0; i < fCenters.size(); i++)
 				{
 					int globalFaceId = -1;
-					bool chkExists = coreUtils.vertexExists(faceCenterpositionVertex, fCenters[i], precisionFac, globalFaceId);
+					//bool chkExists = coreUtils.vertexExists(faceCenterpositionVertex, fCenters[i], precisionFac, globalFaceId);
 
+					bool chkExists = coreUtils.checkRepeatVector(fCenters[i], globalFaceCenters, globalFaceId, precisionFac);
 
 
 					if (!chkExists)
 					{
-						coreUtils.addToPositionMap(faceCenterpositionVertex, fCenters[i], primal_n_f, precisionFac);
+						//coreUtils.addToPositionMap(faceCenterpositionVertex, fCenters[i], primal_n_f, precisionFac);
+						globalFaceCenters.push_back(fCenters[i]);
 
 						zIntArray  volumeFace = { j,i };
 						primalFace_VolumeFace.push_back(volumeFace);
@@ -383,7 +413,21 @@ namespace zSpace
 
 					string hashKey_volFace = (to_string(j) + "," + to_string(i));
 					volumeFace_PrimalFace[hashKey_volFace] = globalFaceId;
+
+					printf("\n vol %i face %i | global %i ", j, i, globalFaceId);
 				}
+			}
+
+			for (int i = 0; i < globalFaceCenters.size(); i++)
+			{
+				cout << "\n fc " << i << "| " << globalFaceCenters[i];
+			}
+
+			for (int i =0; i<  primalFace_VolumeFace.size(); i++)
+			{
+				printf("\n %i | ", i);
+
+				for (auto vf : primalFace_VolumeFace[i]) 	printf(" %i ", vf);
 			}
 
 			// GFP or SSP are specified volume
@@ -823,8 +867,9 @@ namespace zSpace
 	{
 		if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
 
-		int fEdges = 3;
-		int splits = ceil(userSection_numEdge / fEdges) - 1;
+		//userSection_numEdge = 4;
+		//int fEdges = 3;
+		int splits = 0;/*ceil(userSection_numEdge / fEdges) - 1;*/
 
 		zPointArray positions;
 		zIntArray polyConnects;
@@ -974,9 +1019,9 @@ namespace zSpace
 
 		}
 
-		printf("\n %i  %i %i %i ", forceIndex, positions.size(), polyCounts.size(), polyConnects.size());
+		//printf("\n %i  %i %i %i ", forceIndex, positions.size(), polyCounts.size(), polyConnects.size());
 
-		if (subdivs == 0) fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
+		/*if (subdivs == 0)*/ fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
 	}
 	
 	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal_Profile(int forceIndex, int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
@@ -1451,6 +1496,24 @@ namespace zSpace
 			//printf("\n %i %1.2f %1.2f  %1.2f %1.2f ", e.getId(), wt, fArea, areaDomain.min, areaDomain.max);
 		}
 
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setFixedVertices(zIntArray& fixed_VIDs, zDiagramType type, bool appendIDs)
+	{
+		if (type == zFormDiagram)
+		{
+			if (!appendIDs)
+			{
+				for (auto &fP : fnFormParticles) fP.setFixed(false);
+				
+			}
+
+			for (auto id : fixed_VIDs) fnFormParticles[id].setFixed(true);
+			
+
+		}
+
+		else throw std::invalid_argument(" invalid diagram type.");
 	}
 
 	//---- UTILITY METHOD
