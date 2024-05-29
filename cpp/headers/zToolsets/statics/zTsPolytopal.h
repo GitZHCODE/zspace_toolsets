@@ -375,6 +375,9 @@ namespace zSpace
 		*/
 		void setDualEdgeWeightsfromPrimal(zDomainFloat weightDomain = zDomainFloat(2.0, 10.0));
 
+
+		void setFixedVertices(zIntArray &fixed_VIDs, zDiagramType type, bool appendIDs );
+
 		//--------------------------
 		//---- UTILITY METHOD
 		//--------------------------

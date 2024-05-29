@@ -150,6 +150,7 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsStreams2D::createStreams(vector<zStreamLine>& streams, vector<zVector> &start_seedPoints, bool seedStreamsOnly)
 	{
+
 		streams.clear();
 		streams.assign(5000, zStreamLine());
 
@@ -246,6 +247,7 @@ namespace zSpace
 			if (currentStreamGraphId >= streams.size()) finished = true;
 
 			if (streamCounter >= streams.size()) finished = true;
+
 		}
 
 		printf("\n %i streamLines created. ", streamCounter);
