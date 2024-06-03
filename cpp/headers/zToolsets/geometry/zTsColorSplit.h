@@ -14,9 +14,10 @@
 #define ZSPACE_TS_GEOMETRY_COLOR_SPLIT_H
 
 #pragma once
+#include <headers/base/zSpace_Toolsets.h>
+
 #include <headers/zInterface/functionsets/zFnMesh.h>
 #include <headers/zApp/include/zFnSets.h>
-
 
 namespace zSpace
 {
@@ -41,7 +42,7 @@ namespace zSpace
 	/** @}*/
 
 
-	class ZSPACE_TOOLS zTsColorSplit 
+	class ZSPACE_TOOLSETS zTsColorSplit
 	{
 	protected:		
 
@@ -160,7 +161,7 @@ namespace zSpace
 	};
 }
 
-#if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
+#if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
 #include<source/zToolsets/geometry/zTsColorSplit.cpp>
