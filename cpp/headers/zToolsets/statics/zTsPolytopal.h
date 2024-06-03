@@ -96,6 +96,8 @@ namespace zSpace
 		/*!	\brief pointer to polytopal Object  */
 		zObjMeshPointerArray polytopalObjs;
 
+		
+
 		int smoothSubDivs;
 
 
@@ -103,6 +105,8 @@ namespace zSpace
 		//--------------------------
 		//---- PUBLIC ATTRIBUTES
 		//--------------------------
+	
+		zObjMeshArray o_formMeshes;
 
 		/*!	\brief pointer to form Object  */
 		zObjGraph *formObj;
@@ -264,6 +268,9 @@ namespace zSpace
 		*	\since version 0.0.3
 		*/
 		void createSectionPoints(int user_nEdges, double user_edgeLength);
+
+		void createFormPolyhedras(int precisionFac);
+		
 		
 		//--------------------------
 		//----3D GS ITERATIVE 
@@ -305,6 +312,7 @@ namespace zSpace
 		*	\since version 0.0.3
 		*/
 		void getDual(double threshold, bool includeBoundary = false, double boundaryEdgelength = 1.0);
+
 
 		//--------------------------
 		//----POLYTOPAL
