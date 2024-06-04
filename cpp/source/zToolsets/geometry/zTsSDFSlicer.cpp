@@ -1698,7 +1698,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computePrintBlocksPar(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, zDomainFloat _neopreneOffset, bool compFrames, bool compSDF)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computePrintBlocksPar(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, bool compFrames, bool compSDF, zDomainFloat _neopreneOffset)
 	{
 		printHeightDomain = _printHeightDomain;
 		neopreneOffset = _neopreneOffset;
@@ -2524,7 +2524,7 @@ namespace zSpace
 		
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeSDFPar(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth)
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeSDFParx(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth)
 	{
 
 		o_contourGraphs.clear();
@@ -2536,14 +2536,14 @@ namespace zSpace
 		o_raftGraphs.clear();
 		o_raftGraphs.assign(1, zObjGraph());
 
-		printf("\n num frames : %i ", o_sectionGraphs.size());
+		//printf("\n num frames : %i ", o_sectionGraphs.size());
 
 
 		int r0 = 0;
 		int r1 = floor(o_sectionGraphs.size() * 0.5) - 1;
 		int r2 = floor(o_sectionGraphs.size() * 0.5);
 		int r3 = (o_sectionGraphs.size()) - 1;
-		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
+		//printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
 
 		bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
 
@@ -2552,13 +2552,17 @@ namespace zSpace
 		numSDFlayers = (allSDFLayers) ? end : numSDFlayers;
 
 		vector<int> temp;
-		for (int i = 0; i < numSDFlayers; i++) { temp.push_back(i); }
+		for (int i = 0; i < numSDFlayers; i++) { 
+			if (i == r0 || i == r2)continue;
+			
+			temp.push_back(i); 
+		}
 
-		printf("\n before parallel foreach ");
+		//printf("\n before parallel foreach ");
 
 		for_each(std::execution::par, std::begin(temp), std::end(temp), [&](int j)
 			{
-				printf("\n inside parallel");
+				//printf("\n inside parallel");
 
 				int kStart = (!deckBlock && !rightPlaneExists) ? 1 : 0;
 				int kEnd = (!deckBlock && !leftPlaneExists) ? 1 : 2;
@@ -2603,6 +2607,121 @@ namespace zSpace
 
 
 		
+
+	}
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeSDFPar(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth)
+	{
+
+		o_contourGraphs.clear();
+		o_contourGraphs.assign(o_sectionGraphs.size(), zObjGraph());
+
+		o_trimGraphs.clear();
+		o_trimGraphs.assign(o_sectionGraphs.size(), zObjGraph());
+
+		o_raftGraphs.clear();
+		o_raftGraphs.assign(1, zObjGraph());
+
+		//printf("\n num frames : %i ", o_sectionGraphs.size());
+
+
+		int r0 = 0;
+		int r1 = floor(o_sectionGraphs.size() * 0.5) - 1;
+		int r2 = floor(o_sectionGraphs.size() * 0.5);
+		int r3 = (o_sectionGraphs.size()) - 1;
+		//printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
+
+		bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
+
+		int end = (!deckBlock) ? o_sectionGraphs.size() : floor(o_sectionGraphs.size() * 0.5);
+		numSDFlayers = (numSDFlayers > end) ? end : numSDFlayers;
+		numSDFlayers = (allSDFLayers) ? end : numSDFlayers;
+
+		vector<int> temp;
+		for (int i = 0; i < numSDFlayers; i++)
+		{
+			if (i == r0 || i == r2) continue;
+			temp.push_back(i);
+		}
+
+		//printf("\n before parallel foreach ");
+
+
+		auto processChunk = [&](int startIdx, int endIdx)
+		{
+			// Make a local copy of o_field for this thread
+			printf("\n process3 chunk ");
+
+			zObjMeshScalarField localField(o_field);
+
+			int kStart = (!deckBlock && !rightPlaneExists) ? 1 : 0;
+			int kEnd = (!deckBlock && !leftPlaneExists) ? 1 : 2;
+			for (int m = startIdx; m < endIdx; ++m)
+			{
+				int j = temp[m];
+				for (int k = kStart; k < kEnd; k++)
+				{
+					int i = (k == 0) ? j : j + end;
+
+					if (!deckBlock) i = j;
+
+					if (!deckBlock)
+					{
+						if (i == r0)
+						{
+							// raft 
+						}
+						else
+						{
+							computeBlockSDF_Balustrade(funcNum, numSmooth, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
+						}
+					}
+					else
+					{
+						if (i == r0 || i == r2)
+						{
+							// raft 
+						}
+						else
+						{
+							computeBlockSDF_DeckPar(funcNum, numSmooth, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth, localField);
+							//computeBlockSDF_Deck(funcNum, numSmooth, i, (j % 2 == 0), printWidth, neopreneOffset, false, 0, raftWidth);
+						}
+					}
+				}
+
+			}
+		};
+
+
+		// Manually set the chunks and run threads
+		const int numThreads = std::thread::hardware_concurrency();
+		//const int numThreads = std::thread::hardware_concurrency();
+		printf("\n numThreads %i ", numThreads);
+
+		const int chunkSize = temp.size() / numThreads;
+
+		std::vector<std::thread> threads;
+		for (int i = 0; i < numThreads; ++i)
+		{
+			int startIdx = i * chunkSize;
+			int endIdx = (i == numThreads - 1) ? temp.size() : startIdx + chunkSize;
+
+			//threads.emplace_back(processChunk, temp[startIdx], temp[endIdx]);
+			threads.emplace_back(processChunk, startIdx, endIdx);
+		}
+
+		// Join threads
+		for (auto& thread : threads)
+		{
+			thread.join();
+		}
+
+
+		//// Use parallel algorithm to process each chunk in parallel
+		//std::for_each(std::execution::par, temp.begin(), temp.end(), processChunk);
+
+
+
 
 	}
 
@@ -3023,7 +3142,7 @@ namespace zSpace
 		if (graphId >= o_sectionGraphs.size())return;
 		
 
-		printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
+		//printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
 
 		zFnGraph fnGraph(o_sectionGraphs[graphId]);
 		float pWidth = (addRaft) ? printWidth : printWidth;
@@ -3139,6 +3258,126 @@ namespace zSpace
 		fnIsoGraph.setTransform(t, true, true);
 		fnTrimGraph.setTransform(t, true, true);
 	}
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeBlockSDF_DeckPar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth, zObjMeshScalarField& field)
+	{
+		if (graphId >= o_sectionGraphs.size())return;
+
+
+		//printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
+
+		zFnGraph fnGraph(o_sectionGraphs[graphId]);
+		float pWidth = (addRaft) ? printWidth : printWidth;
+		float inc3dWidth = (addRaft) ? 0.025 : 0.025;
+
+
+		zPoint* positions = fnGraph.getRawVertexPositions();
+
+		zTransform t = sectionFrames[graphId];
+		fnGraph.setTransform(t, true, false);
+
+		zPoint o(t(3, 0), t(3, 1), t(3, 2));
+		zVector n(t(2, 0), t(2, 1), t(2, 2));
+
+		// TOP BOTTOM HALF EDGES
+		zItGraphHalfEdgeArray topHE, bottomHE;
+		float topLength, bottomLength;
+		polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
+
+
+		// Transform
+		zTransform tLocal;
+		tLocal.setIdentity();
+		fnGraph.setTransform(tLocal, true, true);
+
+		// field
+		zFnMeshScalarField fnField(field);
+
+		float offset_outer = 0.5 * pWidth;
+		float offset_inner = 1.5 * pWidth;
+
+		//trim graph
+		computePrintBlockTrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE);
+		zFnGraph fnTrimGraph(o_trimGraphs[graphId]);
+
+
+		// Profile polygon field
+		zScalarArray polyField;
+		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], false);
+
+		zScalarArray polyField_offset_outer;
+		if (funcNum >= 1)
+		{
+			polyField_offset_outer = polyField;;
+			for (auto& s : polyField_offset_outer) s += offset_outer;
+		}
+
+		//zScalarArray braceField;
+		//if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], pWidth, 0.25 * pWidth, alternate);
+
+		//zScalarArray slotField;
+		//float slotRadius = 0.02;
+		//if (funcNum >= 3) getScalars_3dp_slot(slotField, o_trimGraphs[graphId], slotRadius + 0.25 * pWidth); 
+
+		//zScalarArray booleanField_0;
+		//if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
+
+		//zScalarArray booleanField_1;
+		//if (funcNum >= 5) fnField.boolean_subtract(booleanField_0, slotField, booleanField_1, false);
+
+		// No SLOT, same as Balustrade
+		zScalarArray braceField;
+		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.23 * pWidth, alternate);
+
+		zScalarArray trimField;
+		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.20 * pWidth, alternate);
+
+		zScalarArray booleanField_0;
+		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
+
+		zScalarArray booleanField_1;
+		if (funcNum >= 5) fnField.boolean_union(booleanField_0, trimField, booleanField_1, false);
+
+		// RESULT FIELDS
+		switch (funcNum)
+		{
+		case 0:
+			fnField.setFieldValues(polyField);
+			break;
+
+		case 1:
+			fnField.setFieldValues(polyField_offset_outer);
+			break;
+
+		case 2:
+			fnField.setFieldValues(braceField);
+			break;
+
+		case 3:
+			fnField.setFieldValues(trimField);
+			break;
+
+		case 4:
+			fnField.setFieldValues(booleanField_0);
+			break;
+
+		case 5:
+			if (numSmooth > 0) fnField.smoothField(booleanField_1, numSmooth); // smooth field
+			fnField.setFieldValues(booleanField_1);
+			break;
+		}
+
+
+		zFnGraph fnIsoGraph(o_contourGraphs[graphId]);
+		fnField.getIsocontour(o_contourGraphs[graphId], 0.0, PRECISION, distanceTolerance);
+
+		fnIsoGraph.setEdgeWeight(2);
+
+		// transform back 
+
+		fnGraph.setTransform(t, true, true);
+		fnIsoGraph.setTransform(t, true, true);
+		fnTrimGraph.setTransform(t, true, true);
+	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeBlockSDF_Balustrade(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth)
 	{
@@ -3173,6 +3412,117 @@ namespace zSpace
 
 		// field
 		zFnMeshScalarField fnField(o_field);
+
+		float offset_outer = 0.5 * pWidth;
+		float offset_inner = 1.5 * pWidth;
+
+		//trim graph
+		zFnGraph fnTrimGraph;
+		if (funcNum >= 2)
+		{
+			computePrintBlockTrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE);
+			fnTrimGraph = zFnGraph(o_trimGraphs[graphId]);
+		}
+		
+		
+
+		// Profile polygon field
+		zScalarArray polyField;
+		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], false);
+
+		zScalarArray polyField_offset_outer;
+		if (funcNum >= 1)
+		{
+			polyField_offset_outer = polyField;;
+			for (auto& s : polyField_offset_outer) s += offset_outer;
+		}
+
+		zScalarArray braceField;
+		if (funcNum >= 2) getScalars_3dp_brace(braceField, o_trimGraphs[graphId], 0, 0.23 * pWidth, alternate);
+
+		zScalarArray trimField;
+		if (funcNum >= 3) getScalars_3dp_trim(trimField, o_trimGraphs[graphId], 0.20 * pWidth, alternate);
+
+		zScalarArray booleanField_0;
+		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, braceField, booleanField_0, false);
+
+		zScalarArray booleanField_1;
+		if (funcNum >= 5) fnField.boolean_union(booleanField_0, trimField, booleanField_1, false);
+
+		// RESULT FIELDS
+		switch (funcNum)
+		{
+		case 0:
+			fnField.setFieldValues(polyField);
+			break;
+
+		case 1:
+			fnField.setFieldValues(polyField_offset_outer);
+			break;
+
+		case 2:
+			fnField.setFieldValues(braceField);
+			break;
+
+		case 3:
+			fnField.setFieldValues(trimField);
+			break;
+
+		case 4:
+			fnField.setFieldValues(booleanField_0);
+			break;
+
+		case 5:
+			if(numSmooth > 0) fnField.smoothField(booleanField_1, numSmooth);
+			fnField.setFieldValues(booleanField_1);
+			break;
+		}
+
+		
+
+		zFnGraph fnIsoGraph(o_contourGraphs[graphId]);
+		fnField.getIsocontour(o_contourGraphs[graphId], 0.0);
+
+		fnIsoGraph.setEdgeWeight(2);
+
+		// transform back 
+		fnGraph.setTransform(t, true, true);
+		fnIsoGraph.setTransform(t, true, true);
+		if (funcNum >= 2) fnTrimGraph.setTransform(t, true, true);
+	}
+	ZSPACE_TOOLSETS_INLINE void zTsSDFSlicer::computeBlockSDF_BalustradePar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth, zObjMeshScalarField& field)
+	{
+		if (graphId >= o_sectionGraphs.size())return;
+
+
+		printf("\n fREP graphID %i  funcNum %i ", graphId, funcNum);
+
+		zFnGraph fnGraph(o_sectionGraphs[graphId]);
+		float pWidth = (addRaft) ? printWidth : printWidth;
+		float inc3dWidth = (addRaft) ? 0.025 : 0.025;
+
+
+		zPoint* positions = fnGraph.getRawVertexPositions();
+
+		zTransform t = sectionFrames[graphId];
+		fnGraph.setTransform(t, true, false);
+
+		zPoint o(t(3, 0), t(3, 1), t(3, 2));
+		zVector n(t(2, 0), t(2, 1), t(2, 2));
+
+		// TOP BOTTOM HALF EDGES
+		zItGraphHalfEdgeArray topHE, bottomHE;
+		float topLength, bottomLength;
+		if (funcNum >= 2) polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
+
+
+		// Transform
+		zTransform tLocal;
+		tLocal.setIdentity();
+		fnGraph.setTransform(tLocal, true, true);
+
+		// field
+		zFnMeshScalarField fnField(field);
 
 		float offset_outer = 0.5 * pWidth;
 		float offset_inner = 1.5 * pWidth;

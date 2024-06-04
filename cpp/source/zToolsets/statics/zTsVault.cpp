@@ -18,7 +18,9 @@ namespace zSpace
 	//---- CONSTRUCTOR
 
 	template<typename T, typename U>
-	ZSPACE_TOOLSETS_INLINE zTsVault<T,U>::zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<T, U>::zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<zObjGraph, zFnGraph>::zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<zObjMesh, zFnMesh>::zTsVault() {}
 
 	//---- graph specilization for zTsVault overloaded constructor 
 	template<>
@@ -70,6 +72,10 @@ namespace zSpace
 
 	template<typename T, typename U>
 	ZSPACE_TOOLSETS_INLINE zTsVault<T, U>::~zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<zObjGraph, zFnGraph>::~zTsVault() {}
+	ZSPACE_TOOLSETS_INLINE zTsVault<zObjMesh, zFnMesh>::~zTsVault() {}
+
+
 
 	//---- CREATE METHODS
 
@@ -100,7 +106,7 @@ namespace zSpace
 		
 
 		setTensionEdges(zResultDiagram);
-		setElementColorDomain(zResultDiagram);
+		setElementColorDomain(zResultDiagram); //<redundent, already called in setTensionEdges
 
 		setVertexWeights(zResultDiagram);
 	}
@@ -279,7 +285,7 @@ namespace zSpace
 				int v2 = eVerts[1];
 
 
-				if (fixedVerticesBoolean[v1] && fixedVerticesBoolean[v2])
+				if (fixedVerticesBoolean[v1] || fixedVerticesBoolean[v2])
 				{
 					edgeVertsFixed = true;
 

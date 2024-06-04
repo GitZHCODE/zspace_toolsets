@@ -22,9 +22,6 @@
     <Filter Include="Header Files\PathNetworks">
       <UniqueIdentifier>{4cc5e7fe-d200-4c63-8be1-b74402a40a9b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Streamlines">
-      <UniqueIdentifier>{167d8c45-e7a1-4535-920a-256126af02b0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Depends">
       <UniqueIdentifier>{6656313f-8926-489a-9d92-998cbf387a56}</UniqueIdentifier>
     </Filter>
@@ -76,6 +73,9 @@
     <Filter Include="Source Files\Configurator">
       <UniqueIdentifier>{865c191e-634c-4430-9137-ca0400ff949a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Geometry\Streamlines">
+      <UniqueIdentifier>{167d8c45-e7a1-4535-920a-256126af02b0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\data\zTsKMeans.h">
@@ -112,7 +112,7 @@
       <Filter>Header Files\Statics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreams2D.h">
-      <Filter>Header Files\Streamlines</Filter>
+      <Filter>Header Files\Geometry\Streamlines</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMesh2Pix.h">
       <Filter>Header Files\Geometry</Filter>
@@ -180,9 +180,6 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsPaneling.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\digifab\zTsRobotFab.h">
-      <Filter>Header Files\DigiFab</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
@@ -190,7 +187,13 @@
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreamsMesh.h">
-      <Filter>Header Files\Streamlines</Filter>
+      <Filter>Header Files\Geometry\Streamlines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\configurator\zTsConfigurator.h">
+      <Filter>Header Files\Configurator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsNatPower.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -290,14 +293,20 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\digiFab\zTsRobotFab.cpp">
-      <Filter>Source Files\DigiFab</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMeshParameterization.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\streamlines\zTsStreamsMesh.cpp">
       <Filter>Source Files\Streamlines</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsColorSplit.cpp">
+      <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\configurator\zTsConfigurator.cpp">
+      <Filter>Source Files\Configurator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsNatPower.cpp">
+      <Filter>Source Files\Geometry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

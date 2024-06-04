@@ -182,7 +182,7 @@ namespace zSpace
 		T *formObj;
 
 		/*!	\brief pointer to force Object  */
-		zObjMesh *forceObj;
+		zObjMesh *forceObj; //<<<<<<  Do we need this to work with graphs. zObjMesh *forceObj;
 
 		/*!	\brief result function set  */
 		U fnResult;
@@ -191,7 +191,7 @@ namespace zSpace
 		U fnForm;
 
 		/*!	\brief force function set  */
-		zFnMesh fnForce;
+		zFnMesh fnForce; //<<<<<< Do we need this to work with graphs.
 
 		//--------------------------
 		//---- CONSTRUCTOR

@@ -64,8 +64,10 @@ namespace zSpace
 		numIterations = _numIterations;
 	}
 
-	void zTsKMeans::setTolerances(vector<float> tolerances)
+	ZSPACE_TOOLSETS_INLINE void zTsKMeans::setTolerances(vector<float> dimsTolerances)
 	{
+		tolerances = dimsTolerances;
+
 	}
 
 	//---- CLUSTERING METHODS
@@ -214,6 +216,7 @@ namespace zSpace
 
 		int maxIndex;
 		float maxVal = dataPoints.maxCoeff();
+		clusterIDS.clear();
 
 		// Initialise means
 		MatrixXf tempMeans;
@@ -388,6 +391,7 @@ namespace zSpace
 		// get min max value of the datapoints
 		float minVal = dataPoints.minCoeff();
 		float maxVal = dataPoints.maxCoeff();
+		clusterIDS.clear();
 
 		// Initialise means
 		MatrixXf tempMeans;
@@ -538,6 +542,171 @@ namespace zSpace
 		//calculateIntertia();
 		return numIters;
 	}
+	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClustersWithTolerance(int& actualNumClusters, initialisationMethod initMethod, int maxClusters, MatrixXf manualInitMeans, int seed1, int seed2)
+	{
+		int numRows = dataPoints.rows();
+		int numCols = dataPoints.cols();
+
+		// get min max value of the datapoints
+		float minVal = dataPoints.minCoeff();
+		float maxVal = dataPoints.maxCoeff();
+		clusterIDS.clear();
+
+		// Initialise means
+		MatrixXf tempMeans;
+		switch (initMethod)
+		{
+		case initialisationMethod::random:
+			tempMeans = intialiseMeansRandom(minVal, maxVal, seed1);
+			break;
+
+		case initialisationMethod::kmeansPlusPlus:
+			tempMeans = intialiseMeansPlusPlus(minVal, maxVal, seed1, seed2);
+			break;
+
+		case initialisationMethod::manual:
+			tempMeans = manualInitMeans;
+				break;
+		}
+
+		// Initialize container to store cluster index per data point
+		for (int i = 0; i < numRows; i++)
+		{
+			clusterIDS.push_back(0);
+		}
+
+
+		// Initialize container to store item indicies per cluster
+		vector<vector<int>> tempClusters;
+		for (int i = 0; i < numClusters; i++)
+		{
+			vector<int> temp;
+			tempClusters.push_back(temp);
+		}
+
+
+		// compute means
+
+		int numIters = 0;
+		bool exit = false;
+
+		int maxClustersAdded = 0;
+		for (int i = 0; i < numIterations; i++)
+		{
+			numIters = i;
+
+			exit = true;
+			//exit = false;
+
+
+			for (int j = 0; j < numRows; j++)
+			{
+				MatrixXf data = dataPoints.row(j);
+				int clusterID = numClusters < maxClusters ? getClusterIndexWithTolerance(data, tempMeans) : getClusterIndexWithTolerance(data, tempMeans, false);
+				if (clusterID == -1)
+				{
+
+					printf("\n create new cluster %i", numClusters + 1);
+					tempMeans.conservativeResize(tempMeans.rows() + 1, tempMeans.cols());
+					tempMeans.row(tempMeans.rows() - 1) = data;
+
+					clusterID = tempMeans.rows() - 1;/*getClusterIndex(data, tempMeans, tolerance);*/
+
+
+					tempClusters.push_back(vector<int>());
+
+					numClusters++;
+				}
+
+
+
+				// check if data point changed cluster
+				if (clusterID != clusterIDS[j]) exit = false;
+
+				clusterIDS[j] = clusterID;
+
+
+
+				// update clusters
+				//cout << "clusterID:" << clusterID << endl;
+
+				tempClusters[clusterID].push_back(j);
+
+
+			}
+
+			// update mean			
+			for (int j = 0; j < numClusters; j++)
+			{
+				MatrixXf  mean = tempMeans.row(j);
+
+				for (int l = 0; l < tempClusters[j].size(); l++)
+				{
+					int dataId = tempClusters[j][l];
+					//cout << "dataId:" << dataId << endl;
+
+					MatrixXf data = dataPoints.row(dataId);
+
+					updateMean(data, mean, l + 1);
+				}
+
+				tempMeans.row(j) = mean;
+			}
+
+
+
+			if (exit) break;
+			else
+			{
+				// clear clusters
+				for (int j = 0; j < numClusters; j++)
+				{
+					tempClusters[j].clear();
+				}
+			}
+
+
+		}
+
+
+		// remove cluster with zero elements
+		actualNumClusters = numClusters;
+		clusters.clear();
+
+		for (int i = 0; i < numClusters; i++)
+		{
+			if (tempClusters[i].size() != 0)
+			{
+				clusters.push_back(tempClusters[i]);
+			}
+			else actualNumClusters--;
+
+		}
+
+		means = MatrixXf(actualNumClusters, tempMeans.cols());
+		int id = 0;
+		for (int i = 0; i < tempMeans.rows(); i++)
+		{
+			if (tempClusters[i].size() != 0)
+			{
+				for (int j = 0; j < tempMeans.cols(); j++)
+				{
+					means(id, j) = tempMeans(i, j);
+				}
+
+				id++;
+			}
+		}
+
+		clusterIDS = mapUniqueClusterIDs(clusterIDS);
+
+		//calculateDistortion();
+		//calculateIntertia();
+		return numIters;
+
+
+
+	}
 	ZSPACE_TOOLSETS_INLINE int zTsKMeans::getKMeansClustersWithTolerance_2nd(int& actualNumClusters, int maxClusters, int seed1, int seed2)
 	{
 		int numRows = dataPoints.rows();
@@ -546,7 +715,7 @@ namespace zSpace
 		// get min max value of the datapoints
 		float minVal = dataPoints.minCoeff();
 		float maxVal = dataPoints.maxCoeff();
-
+		clusterIDS.clear();
 		// Initialise means
 		MatrixXf tempMeans = means;
 
@@ -680,7 +849,7 @@ namespace zSpace
 				id++;
 			}
 		}
-
+		printf("\n means.rows(): %i", means.rows());
 		clusterIDS = mapUniqueClusterIDs(clusterIDS);
 
 		//calculateDistortion();

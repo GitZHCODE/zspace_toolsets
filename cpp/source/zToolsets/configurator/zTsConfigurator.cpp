@@ -79,7 +79,7 @@ namespace zSpace
 		string file_config = mainDir + "/config.json";
 
 		json j;
-		bool chk = coreUtils.readJSON(file_config, j);
+		bool chk = coreUtils.json_read(file_config, j);
 
 		if (chk)
 		{
@@ -127,7 +127,7 @@ namespace zSpace
 	{
 		json j;
 		string file = "/color_programme.json";
-		bool chk = coreUtils.readJSON(mainDir + file, j);
+		bool chk = coreUtils.json_read(mainDir + file, j);
 
 		if (chk)
 		{
