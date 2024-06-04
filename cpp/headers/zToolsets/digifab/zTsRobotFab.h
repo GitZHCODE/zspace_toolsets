@@ -108,8 +108,7 @@ namespace zSpace
 
 		void computeGcode();
 
-		void FramesFromTarget(zTransform& target, zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ);
-		void getOVAngle(zTransform& target, float& angle, zObjMesh& cutMesh);
+
 
 		//--------------------------
 		//---- PROTECTED UTILITY METHODS
@@ -117,18 +116,15 @@ namespace zSpace
 	protected:
 
 		void computeTargetsOnStrip(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip);
-		void computeTargetsOnStripPerpToMesh(zObjMesh& cutMesh, vector<zTransform>& targets_strip, vector<float>& ov_angle_strip);
 
 		void checkTargetNormal(vector<zTransform>& targets_strip);
 
 		zTransform targetFromFrames(zVector& _position, zVector& _rotationX, zVector& _rotationY, zVector _rotationZ);
 
-		void addSafeTargets(vector<zTransform>& targets_strip, vector<zTransform>& targets_stripPerp, vector<float>& ov_angle_strip, float multiplication, bool perp);
-		void addSafeTargetsStart(vector<zTransform>& targets_strip, float multiplication, bool perp);
+		void addSafeTargets(vector<zTransform>& targets_strip, vector<float>& ov_angle_strip, float multiplication);
 
 		vector<zTransform> computeSafeTargets(zTransform& target, float multiplication);
-		vector<zTransform> computeSafeTargetsPerp(zTransform& target, float multiplication);
-		
+
 	};
 }
 

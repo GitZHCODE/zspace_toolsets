@@ -195,6 +195,9 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsNatPower.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
+      <Filter>Header Files\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\data\zTsKMeans.cpp">
@@ -306,6 +309,9 @@
       <Filter>Source Files\Configurator</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsNatPower.cpp">
+      <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMeshParameterization.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
   </ItemGroup>

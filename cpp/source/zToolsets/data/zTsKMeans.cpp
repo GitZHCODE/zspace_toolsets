@@ -771,6 +771,15 @@ namespace zSpace
 				}
 
 
+					clusterID = tempMeans.rows() - 1;/*getClusterIndex(data, tempMeans, tolerance);*/
+
+
+					tempClusters.push_back(vector<int>());
+
+					numClusters++;
+				}
+
+
 
 				// check if data point changed cluster
 				if (clusterID != clusterIDS[j]) exit = false;
