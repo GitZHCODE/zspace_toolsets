@@ -54,7 +54,7 @@
 //#include <comdef.h>
 //#include<oaidl.h>
 
-using namespace std;
+//using namespace std;
 
 
 namespace zSpace
@@ -175,8 +175,8 @@ namespace zSpace
 		
 		zColorArray blockColors;
 
-		bool leftPlaneExists = false;
-		bool rightPlaneExists = false;
+		//bool leftPlaneExists = false;
+		//bool rightPlaneExists = false;
 
 		int blockId = 1;
 
@@ -428,7 +428,7 @@ namespace zSpace
 		* 	\param		[in]	left				- input boolean indicating if the planes for the left or right side meshes.
 		*	\since version 0.0.4
 		*/
-		void computeSliceMesh(zObjMesh& o_Mesh, int startVID, int endVID, int blockStride, bool left);
+		void computeSliceMesh(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left);
 
 
 		//--------------------------
@@ -493,7 +493,7 @@ namespace zSpace
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void computeBlockSDF_Deck(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void computeBlockSDF_Planar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -501,7 +501,7 @@ namespace zSpace
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void computeBlockSDF_Balustrade(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void computeBlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 
 
 		bool exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth);
@@ -532,6 +532,7 @@ namespace zSpace
 		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset , bool alternate);
 
 		void getScalars_3dp_trim(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
+		void getScalars_3dp_trimStart(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
 
 
 
@@ -549,7 +550,7 @@ namespace zSpace
 #if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include<source/zToolsets/natpower/zTsSDFNatpower.cpp>
+#include<source/zToolsets/natpower/zTsNatpowerSDF.cpp>
 #endif
 
 #endif
