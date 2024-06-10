@@ -96,6 +96,8 @@ namespace zSpace
 		/*!	\brief pointer to polytopal Object  */
 		zObjMeshPointerArray polytopalObjs;
 
+		
+
 		int smoothSubDivs;
 
 
@@ -103,6 +105,8 @@ namespace zSpace
 		//--------------------------
 		//---- PUBLIC ATTRIBUTES
 		//--------------------------
+	
+		zObjMeshArray o_formMeshes;
 
 		/*!	\brief pointer to form Object  */
 		zObjGraph *formObj;
@@ -265,8 +269,8 @@ namespace zSpace
 		*/
 		void createSectionPoints(int user_nEdges, double user_edgeLength);
 
-
-		//void setFixedVertices(zInt)
+		void createFormPolyhedras(int precisionFac);
+		
 		
 		//--------------------------
 		//----3D GS ITERATIVE 
@@ -308,6 +312,7 @@ namespace zSpace
 		*	\since version 0.0.3
 		*/
 		void getDual(double threshold, bool includeBoundary = false, double boundaryEdgelength = 1.0);
+
 
 		//--------------------------
 		//----POLYTOPAL
@@ -378,13 +383,8 @@ namespace zSpace
 		*/
 		void setDualEdgeWeightsfromPrimal(zDomainFloat weightDomain = zDomainFloat(2.0, 10.0));
 
-		/*! \brief This method sets whether form vertices are fixed
-		*
-		*	\param		[in]	vertexIds				- a vector of ids of verticies.
-		*	\param		[in]	fixed					- fix boolean.
-		*	\since version 0.0.4
-		*/
-		void setFormFixedVerticies(zIntArray& vertexIds, bool fixed);
+
+		void setFixedVertices(zIntArray &fixed_VIDs, zDiagramType type, bool appendIDs );
 
 		//--------------------------
 		//---- UTILITY METHOD

@@ -1523,6 +1523,8 @@ namespace zSpace
 		MatrixXd RHS = A.transpose() * Pn   ;
 		VectorXd del_q = LHS.ldlt().solve(RHS);
 
+		del_q *= -1;
+
 		printf("\n bestFit Q \n");
 		cout << del_q << endl <<endl;
 

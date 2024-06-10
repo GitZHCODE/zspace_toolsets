@@ -55,8 +55,6 @@ end
 ToolsetsIncludeDir = {}
 ToolsetsIncludeDir["CORE"] = "%{core_path}src/headers"
 
-local include_directories = prependPath(deps_path, get_include_dirs())
-
 --#############__ZSPACE_TOOLSETS__#############
 project "zSpace_Toolsets"
     location "projects/zSpace_Toolsets"
@@ -102,10 +100,18 @@ project "zSpace_Toolsets"
         "src/headers",
     }
 
-    includedirs {include_directories}
+    -- Add omniverse includes
+    includedirs {prependPath(deps_path, get_omniverse_includes())}
+
+    -- Add other include directories
+    includedirs {prependPath(deps_path, get_include_dirs())}
 
     libdirs { "%{core_path}bin/%{cfg.buildcfg}"}
 
+    -- Add omniverse libdirs
+    libdirs {prependPath(deps_path, get_omniverse_libdirs())}
+
+    -- Add other lib directories
     libdirs {prependPath(deps_path, get_lib_dirs())}
 
     links
@@ -115,5 +121,5 @@ project "zSpace_Toolsets"
         "zSpace_Interface.lib",
     }
 
-    --Omniverse is default
+    -- Add omniverse links
     links {get_omniverse_links()}

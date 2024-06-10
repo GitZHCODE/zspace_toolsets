@@ -846,7 +846,7 @@ namespace zSpace
 				}
 
 				json j;
-				bool fileChk = coreUtils.readJSON(fabFiles[0], j);
+				bool fileChk = coreUtils.json_read(fabFiles[0], j);
 
 				if (!fileChk) return;
 				else 

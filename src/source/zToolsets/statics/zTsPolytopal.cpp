@@ -121,7 +121,7 @@ namespace zSpace
 			positions.push_back(fnForces[j].getCenter());
 		}
 
-		edgeConnects.assign(primal_n_f_i * 2, -1);
+		edgeConnects.assign(primal_n_f_i * 2, 0);
 
 		for (int j = 0; j < C_fc.rows(); j++)
 		{
@@ -178,6 +178,34 @@ namespace zSpace
 		for (zItGraphEdge e(*formObj); !e.end(); e++)
 		{
 			printf("\n %i | %i %i ", e.getId(), e.getHalfEdge(0).getVertex().getId(), e.getHalfEdge(1).getVertex().getId());
+		}
+
+		// create particles
+
+		zPoint* pos = fnForm.getRawVertexPositions();
+		if (fnFormParticles.size() != fnForm.numVertices())
+		{
+			fnFormParticles.clear();
+			formParticlesObj.clear();
+
+
+
+			for (zItGraphVertex v(*formObj); !v.end(); v++)
+			{
+				bool fixed = false;
+
+				int i = v.getId();
+
+				zObjParticle p;
+				p.particle = zParticle(pos[i], fixed);
+				formParticlesObj.push_back(p);
+
+			}
+
+			for (int i = 0; i < formParticlesObj.size(); i++)
+			{
+				fnFormParticles.push_back(zFnParticle(formParticlesObj[i]));
+			}
 		}
 	}
 
@@ -262,6 +290,203 @@ namespace zSpace
 
 	}
 
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::createFormPolyhedras(int precisionFac)
+	{
+		//zPointArray positions;
+		//zIntArray pConnects, pCounts;
+
+		zPointArray globalPositions;
+		fnForm.getVertexPositions(globalPositions);
+
+		zSparseMatrix C_fc;
+		getPrimal_FaceCellMatrix(zForceDiagram, C_fc); // edge vertex matrix of dual		
+
+		zSparseMatrix C_ef;
+		getPrimal_EdgeFaceMatrix(zForceDiagram, C_ef); // face edge matrix of dual
+
+		zSparseMatrix C_ev;
+		getPrimal_EdgeVertexMatrix(zForceDiagram, C_ev); // face cell matrix of dual
+		
+		o_formMeshes.clear();
+		o_formMeshes.assign(C_ev.cols(), zObjMesh());
+
+		//for (int j = 0; j < C_ef.rows(); j++)
+		//{
+		//	int dual_faceId = j;
+		//	zPointArray face_vPositions;
+		//	zIntArray face_vIDs;
+
+		//	for (int i = 0; i < C_ef.cols(); i++)
+		//	{
+		//		int dual_edgeId = i;
+
+		//		// face edges
+		//		if (C_ef.coeff(dual_faceId, dual_edgeId) == 1 || C_ef.coeff(dual_faceId, dual_edgeId) == -1)
+		//		{
+		//			for (int k = 0; k < C_fc.cols(); k++)
+		//			{
+		//				int dual_vertexId = k;
+
+		//				// head of the edge
+		//				if (C_fc.coeff(dual_edgeId, dual_vertexId) == 1 || C_fc.coeff(dual_edgeId, dual_vertexId) == -1)
+		//				{
+		//					int vID = -1;
+		//					bool chkExists = coreUtils.checkRepeatVector(globalPositions[dual_vertexId], face_vPositions, vID, precisionFac);
+		//				
+		//				
+		//					if (!chkExists)
+		//					{
+		//						face_vPositions.push_back(globalPositions[dual_vertexId]);
+		//						face_vIDs.push_back(dual_vertexId);
+		//					}
+		//				}						
+		//			}
+		//		}
+		//	}
+
+		//	// compute sorted points of face
+		//	
+		//	zPlane plane = coreUtils.getBestFitPlane(face_vPositions);	
+
+		//	zPointArray sortedPoints;
+		//	zVector Z(plane(2, 0), plane(2, 1), plane(2, 2));
+		//	zVector X(plane(0, 0), plane(0, 1), plane(0, 2));
+
+		//	coreUtils.cyclicalSortPoints(face_vPositions, X, Z, sortedPoints);
+		//	zIntArray pConnect, pCount;
+
+		//	int numV = positions.size();
+		//	for (int l = 0; l < sortedPoints.size(); l++)
+		//	{
+		//		positions.push_back(sortedPoints[l]);
+		//		pConnects.push_back(l + numV);
+		//	}
+		//	pCounts.push_back(sortedPoints.size());
+		//}
+
+		//zFnMesh fnFormFaceMesh(o_formFaceMesh);
+		//fnFormFaceMesh.create(positions, pCounts, pConnects);
+
+		// compute cells
+		for (int m = 0; m < C_ev.cols(); m++)
+		{
+			int dual_cellId = m;
+
+			if (GFP_SSP_Vertex[dual_cellId]) continue;
+
+			zPointArray cell_positions;
+			zIntArray cell_pCounts, cell_pConnects;
+			
+			zPointArray face_vPositions;
+			zIntArray cell_faceIDs;
+
+			for (int n = 0; n < C_ev.rows(); n++)
+			{
+				int dual_faceId = n;
+
+				// face cells
+				if (C_ev.coeff(dual_faceId, dual_cellId) == 1 || C_ev.coeff(dual_faceId, dual_cellId) == -1)
+				{
+					zPointArray face_vPositions;
+					
+					for (int i = 0; i < C_ef.cols(); i++)
+					{
+						int dual_edgeId = i;
+
+						// face edges
+						if (C_ef.coeff(dual_faceId, dual_edgeId) == 1 || C_ef.coeff(dual_faceId, dual_edgeId) == -1)
+						{
+							for (int k = 0; k < C_fc.cols(); k++)
+							{
+								int dual_vertexId = k;
+
+								// edge vertices
+								if (C_fc.coeff(dual_edgeId, dual_vertexId) == 1 || C_fc.coeff(dual_edgeId, dual_vertexId) == -1)
+								{
+									int vID = -1;
+									bool chkExists = coreUtils.checkRepeatVector(globalPositions[dual_vertexId], face_vPositions, vID, precisionFac);
+													
+									if (!chkExists) face_vPositions.push_back(globalPositions[dual_vertexId]);
+								}
+							}
+						}
+					}
+
+					// compute sorted points of face
+
+					zPlane plane = coreUtils.getBestFitPlane(face_vPositions);
+
+					zPointArray sortedPoints;
+					zVector Z(plane(2, 0), plane(2, 1), plane(2, 2));
+					zVector X(plane(0, 0), plane(0, 1), plane(0, 2));
+
+					coreUtils.cyclicalSortPoints(face_vPositions, X, Z, sortedPoints);
+					zIntArray pConnect, pCount;
+
+					int numV = cell_positions.size();
+					for (int l = 0; l < sortedPoints.size(); l++)
+					{
+						cell_positions.push_back(sortedPoints[l]);
+						cell_pConnects.push_back(l + numV);
+					}
+					cell_pCounts.push_back(sortedPoints.size());
+				}
+			}
+
+			zObjMesh o_tempMesh;
+			zFnMesh fnTempMesh(o_tempMesh);
+			fnTempMesh.create(cell_positions, cell_pCounts, cell_pConnects);
+
+			// merge and conform normals
+			zPointArray positions;
+			zIntArray pCounts, pConnects;
+
+			zPoint cellCenter = fnTempMesh.getCenter();
+			
+			for (zItMeshFace f(o_tempMesh); !f.end(); f++)
+			{
+				zPoint faceCenter = f.getCenter();
+				zVector dir = cellCenter - faceCenter;
+				dir.normalize();
+
+				zVector fNorm = f.getNormal();
+
+				bool flip = (fNorm * dir > 0) ? true : false;
+
+				zPointArray fVPositions;
+				f.getVertexPositions(fVPositions);
+
+				if(flip) std::reverse(fVPositions.begin(), fVPositions.end());
+
+				//printf("\n cell %i | %i | ", dual_cellId, fVPositions.size());
+				
+				for (auto& p : fVPositions)
+				{
+					int id = -1;
+					bool chkExists = coreUtils.checkRepeatVector(p, positions, id, precisionFac);
+
+					if (!chkExists)
+					{
+						id = positions.size();
+						positions.push_back(p);
+					}
+
+					pConnects.push_back(id);
+					//printf(" %i ", id);
+				}
+
+				pCounts.push_back(fVPositions.size());			
+				
+			}
+
+			//printf("\n cell %i %i %i ", positions.size(), pConnects.size(), pCounts.size());
+
+			zFnMesh fnFormMesh(o_formMeshes[dual_cellId]);
+			fnFormMesh.create(positions, pCounts, pConnects);
+
+		}
+	}
+
 	//----3D GS ITERATIVE 
 
 	ZSPACE_TOOLSETS_INLINE bool zTsPolytopal::equilibrium(bool &computeTargets, double minmax_Edge, zDomainFloat &deviations, double dT, zIntergrationType type, int numIterations, double angleTolerance, bool colorEdges, bool printInfo)
@@ -326,7 +551,7 @@ namespace zSpace
 
 			unordered_map <string, int> positionVertex;
 			unordered_map <string, int> faceCenterpositionVertex;
-
+			zPointArray globalFaceCenters;
 
 
 
@@ -347,13 +572,15 @@ namespace zSpace
 				for (int i = 0; i < fCenters.size(); i++)
 				{
 					int globalFaceId = -1;
-					bool chkExists = coreUtils.vertexExists(faceCenterpositionVertex, fCenters[i], precisionFac, globalFaceId);
+					//bool chkExists = coreUtils.vertexExists(faceCenterpositionVertex, fCenters[i], precisionFac, globalFaceId);
 
+					bool chkExists = coreUtils.checkRepeatVector(fCenters[i], globalFaceCenters, globalFaceId, precisionFac);
 
 
 					if (!chkExists)
 					{
-						coreUtils.addToPositionMap(faceCenterpositionVertex, fCenters[i], primal_n_f, precisionFac);
+						//coreUtils.addToPositionMap(faceCenterpositionVertex, fCenters[i], primal_n_f, precisionFac);
+						globalFaceCenters.push_back(fCenters[i]);
 
 						zIntArray  volumeFace = { j,i };
 						primalFace_VolumeFace.push_back(volumeFace);
@@ -383,8 +610,11 @@ namespace zSpace
 
 					string hashKey_volFace = (to_string(j) + "," + to_string(i));
 					volumeFace_PrimalFace[hashKey_volFace] = globalFaceId;
+									
 				}
 			}
+
+		
 
 			// GFP or SSP are specified volume
 			if (GFP_SSP_Index != -1)
@@ -823,8 +1053,9 @@ namespace zSpace
 	{
 		if (forceIndex > fnForces.size()) throw std::invalid_argument(" error: index out of bounds.");
 
-		int fEdges = 3;
-		int splits = ceil(userSection_numEdge / fEdges) - 1;
+		//userSection_numEdge = 4;
+		//int fEdges = 3;
+		int splits = 0;/*ceil(userSection_numEdge / fEdges) - 1;*/
 
 		zPointArray positions;
 		zIntArray polyConnects;
@@ -974,9 +1205,9 @@ namespace zSpace
 
 		}
 
-		printf("\n %i  %i %i %i ", forceIndex, positions.size(), polyCounts.size(), polyConnects.size());
+		//printf("\n %i  %i %i %i ", forceIndex, positions.size(), polyCounts.size(), polyConnects.size());
 
-		if (subdivs == 0) fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
+		/*if (subdivs == 0)*/ fnPolytopals[forceIndex].create(positions, polyCounts, polyConnects);
 	}
 	
 	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::getPolytopal_Profile(int forceIndex, int user_nEdges, double user_edgeLength, double offset, double param, int subdivs)
@@ -1453,18 +1684,22 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setFormFixedVerticies(zIntArray& vertexIds, bool fixed)
+	ZSPACE_TOOLSETS_INLINE void zTsPolytopal::setFixedVertices(zIntArray& fixed_VIDs, zDiagramType type, bool appendIDs)
 	{
-		if (formParticlesObj.size() == 0)
+		if (type == zFormDiagram)
 		{
-			std::cout << "No particles in Polytopal" << std::endl;
-			return;
+			if (!appendIDs)
+			{
+				for (auto &fP : fnFormParticles) fP.setFixed(false);
+				
+			}
+
+			for (auto id : fixed_VIDs) fnFormParticles[id].setFixed(true);
+			
+
 		}
 
-		for (auto id : vertexIds)
-		{
-			formParticlesObj[id].particle.fixed = fixed;
-		}
+		else throw std::invalid_argument(" invalid diagram type.");
 	}
 
 	//---- UTILITY METHOD
@@ -1919,6 +2154,8 @@ namespace zSpace
 
 			out = zSparseMatrix(primal_n_e_i, primal_n_v);
 			out.setZero();
+
+			//printf("\n nei %i | %i ", primal_n_e_i,internalEdgeIndex_primalEdge.size());
 
 			vector<zTriplet> coefs; // -1 for from vertex and 1 for to vertex
 
