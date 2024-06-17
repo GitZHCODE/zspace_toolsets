@@ -52,8 +52,9 @@ local function CommonConfigurationSettings()
     filter {}
 end
 
-ToolsetsIncludeDir = {}
-ToolsetsIncludeDir["CORE"] = "%{core_path}src/headers"
+path_from_toolsets_to_workspace = path.join("..", path.getrelative(sketches_path, "%{wks.location}"))
+path_from_toolsets_to_zspace_deps = path.join(path_from_toolsets_to_workspace, zspace_deps_path)
+path_from_toolsets_to_zspace_core = path.join(path_from_toolsets_to_workspace, zspace_core_path)
 
 --#############__ZSPACE_TOOLSETS__#############
 project "zSpace_Toolsets"
@@ -81,7 +82,7 @@ project "zSpace_Toolsets"
         "src/headers/**.h",
         "src/source/**.cpp",
         --Manualy include alglib files
-        "%{prependPath(deps_path, get_include_dirs()).ALGLIB}/alglib/**.cpp"
+        "%{prependPath(path_from_toolsets_to_zspace_deps, get_zspace_include_dirs()).ALGLIB}/alglib/**.cpp"
     }
 
     removefiles {"**/externalMethods/**"}
@@ -96,23 +97,25 @@ project "zSpace_Toolsets"
     --###__BASE__###
     includedirs
     {
-        "%{ToolsetsIncludeDir.CORE}",
+        "%{path_from_toolsets_to_zspace_core}/src/headers",
         "src/headers",
     }
 
+    -- Add Core include directories
+    includedirs {prependPath(path_from_toolsets_to_zspace_deps , get_zspace_include_dirs())}
+
     -- Add omniverse includes
-    includedirs {prependPath(deps_path, get_omniverse_includes())}
+    includedirs {prependPath(path_from_toolsets_to_zspace_deps , get_omniverse_includes())}
 
-    -- Add other include directories
-    includedirs {prependPath(deps_path, get_include_dirs())}
 
-    libdirs { "%{core_path}bin/%{cfg.buildcfg}"}
+    -- Add Core lib directories
+    libdirs {prependPath(path_from_toolsets_to_zspace_deps , get_zspace_lib_dirs())}
+
+    -- Core build libdirs
+    libdirs { "%{path_from_toolsets_to_zspace_core}/bin/%{cfg.buildcfg}"}
 
     -- Add omniverse libdirs
-    libdirs {prependPath(deps_path, get_omniverse_libdirs())}
-
-    -- Add other lib directories
-    libdirs {prependPath(deps_path, get_lib_dirs())}
+    libdirs {prependPath(path_from_toolsets_to_zspace_deps , get_omniverse_libdirs())}
 
     links
     {
