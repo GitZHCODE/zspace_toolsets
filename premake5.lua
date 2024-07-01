@@ -14,15 +14,10 @@ local function CommonConfigurationSettings()
 --        flags {"MultiProcessorCompile"}
 --        buildoptions {"/bigobj"}
 
-    filter "configurations:Debug_DLL*"
-        kind "SharedLib"
+    filter "configurations:*Debug*"
         targetname ("%{prj.name}")
-        defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
-                 "ZSPACE_DYNAMIC_LIBRARY",
-                 "_WINDLL"}
         optimize "Off"
         warnings "Off"
-        --symbols "On"
         flags {"MultiProcessorCompile"}
         buildoptions {"/bigobj"}
 
@@ -37,28 +32,29 @@ local function CommonConfigurationSettings()
 --                "MultiProcessorCompile"}
 --        buildoptions {"/bigobj"}
 
-    filter "configurations:Release_DLL*"
-        kind "SharedLib"
+    filter "configurations:*Release*"
         targetname ("%{prj.name}")
-        defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
-                 "ZSPACE_DYNAMIC_LIBRARY",
-                 "NDEBUG",
-                 "_WINDLL"}
+        defines {"NDEBUG"}
         optimize "Full"
         warnings "Off"
         flags {"LinkTimeOptimization",
                 "MultiProcessorCompile"}
 
+    filter "configurations:*DLL*"
+        kind "SharedLib"
+        defines {"ZSPACE_TOOLSETS_DYNAMIC_LIBRARY",
+                 "ZSPACE_DYNAMIC_LIBRARY",
+                 "_WINDLL"}
+
     filter {}
 end
 
-path_from_toolsets_to_workspace = path.join("..", path.getrelative(sketches_path, "%{wks.location}"))
-path_from_toolsets_to_zspace_deps = path.join(path_from_toolsets_to_workspace, zspace_deps_path)
-path_from_toolsets_to_zspace_core = path.join(path_from_toolsets_to_workspace, zspace_core_path)
+path_from_toolsets_to_zspace_deps = path.getrelative(zspace_toolsets_path, zspace_deps_path)
+path_from_toolsets_to_zspace_core = path.getrelative(zspace_toolsets_path, zspace_core_path)
 
 --#############__ZSPACE_TOOLSETS__#############
 project "zSpace_Toolsets"
-    location "projects/zSpace_Toolsets"
+    location "projects/zSpace_Toolsets/%{wks.name}"
     language "C++"
     cppdialect "C++17"
 
@@ -104,18 +100,11 @@ project "zSpace_Toolsets"
     -- Add Core include directories
     includedirs {prependPath(path_from_toolsets_to_zspace_deps , get_zspace_include_dirs())}
 
-    -- Add omniverse includes
-    includedirs {prependPath(path_from_toolsets_to_zspace_deps , get_omniverse_includes())}
-
-
     -- Add Core lib directories
     libdirs {prependPath(path_from_toolsets_to_zspace_deps , get_zspace_lib_dirs())}
 
     -- Core build libdirs
-    libdirs { "%{path_from_toolsets_to_zspace_core}/bin/%{cfg.buildcfg}"}
-
-    -- Add omniverse libdirs
-    libdirs {prependPath(path_from_toolsets_to_zspace_deps , get_omniverse_libdirs())}
+    libdirs { "%{path_from_toolsets_to_zspace_core}/bin/%{cfg.buildcfg}/%{cfg.platform}"}
 
     links
     {
@@ -123,6 +112,24 @@ project "zSpace_Toolsets"
         "zSpace_Core.lib",
         "zSpace_Interface.lib",
     }
+    --##############
 
-    -- Add omniverse links
-    links {get_omniverse_links()}
+    --###__Injected__###
+        -- Inject included dirs
+        includedirs {get_include_dirs_injection()}
+
+        -- Inject lib dirs
+        libdirs {get_lib_dirs_injection()}
+    --##################
+
+    --###__Omniverse__###
+    filter {"platforms:Omniverse or Both"}
+        -- Add omniverse includes
+        includedirs {prependPath(path_from_toolsets_to_zspace_deps , get_omniverse_includes())}
+
+        -- Add omniverse libdirs
+        libdirs {prependPath(path_from_toolsets_to_zspace_deps , get_omniverse_libdirs())}
+
+        -- Add omniverse links
+        links {get_omniverse_links()}
+    --###################
