@@ -51,7 +51,7 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setFromJSON(string dir, int _blockID, bool runBothPlanes, bool runPlaneLeft)
+	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setFromJSON(string dir, int _blockID)
 	{
 		string path = dir + "blockMesh_" + to_string(_blockID) + ".json";
 		/*bool pathExist = coreUtils.fileExists(path);
@@ -80,7 +80,7 @@ namespace zSpace
 		if (planarBlock)
 		{
 
-			readJSON_planarBlock(path, _blockID,  runBothPlanes,  runPlaneLeft);
+			readJSON_planarBlock(path, _blockID);
 		}
 		else
 		{
@@ -493,7 +493,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE zIntArray zTsNatpowerSDF::getGraphSequence(zObjGraph graph)
+	ZSPACE_TOOLSETS_INLINE  zIntArray zTsNatpowerSDF::getGraphSequence(zObjGraph graph)
 	{
 		zIntArray sequence;
 		zItGraphVertexArray vArray;
@@ -623,74 +623,6 @@ namespace zSpace
 		return planarBlock;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeFrontBackHalfEdges(zObjGraph& graph, zItGraphHalfEdgeArray& outHeInner, zItGraphHalfEdgeArray& outHEOuter)
-	{
-		//get HE for front and back sides
-		outHeInner.clear();
-		outHEOuter.clear();
-		//vector<zItGraphHalfEdges> hesBack, hesFront;
-		//starting from boundary vertex, walk all half edges till you reach next boundary vertex
-		zItGraphHalfEdge he1, he2;
-		for(zItGraphVertex v(graph); !v.end(); v++)
-		{
-			if (v.getColor() == _colorCornersBoundary)
-			{
-				zItGraphHalfEdgeArray hc;
-				v.getConnectedHalfEdges(hc);
-				for (int i; i < 2; i++)
-				{
-					if (hc[i].getVertex().getColor() == _colorCornersBoundary) he1 = hc[i].getNext();
-					else he2 = hc[i];
-				}
-				break;
-			}
-		}
-		bool he1IsOuter = false;
-		int safetyCounter = 0;
-		zItGraphHalfEdgeArray hes1, hes2;
-		while(safetyCounter < 1000)
-		{
-			safetyCounter++;
-			hes1.push_back(he1);
-			he1 = he1.getNext();
-			if (he1.getVertex().getColor() == _colorFeatureOuter) he1IsOuter = true;
-			if (he1.getStartVertex().getColor() == _colorCornersBoundary) break;
-		}
-		safetyCounter = 0;
-		while (safetyCounter < 1000)
-		{
-			safetyCounter++;
-			hes2.push_back(he2);
-			he2 = he2.getNext();
-			if (he2.getStartVertex().getColor() == _colorCornersBoundary) break;
-		}
-
-		outHEOuter = he1IsOuter ? hes1 : hes2;
-		outHeInner = !he1IsOuter ? hes1 : hes2;
-
-	}
-
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computePrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, zDomainFloat _neopreneOffset, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS)
-	{
-		frameCHECKS = false;
-		geomCHECKS = true;
-		sdfCHECKS = true;
-
-		printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
-
-		sectionFrames.clear();
-		computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
-		if (!isRegular) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
-		
-		o_sectionGraphs.clear();
-		o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
-		computePrintBlockSections(true);
-		if (!isRegular) computePrintBlockSections(false);
-
-		frameCHECKS = checkPrintLayerHeights(sdfCHECKS, geomCHECKS);
-		printf("\n");
-	}
-
 	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computePrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, zDomainFloat _neopreneOffset, bool compFrames, bool compSDF)
 	{
 		printHeightDomain = _printHeightDomain;
@@ -700,49 +632,44 @@ namespace zSpace
 		bool geomCHECKS = true;
 		bool sdfCHECKS = true;
 
-		int minCriticalPtsCount = INT_MAX;
-		float bestPlaneSpacing = FLT_MAX;
-
-
 		if (compFrames)
 		{
-
 			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
 			{
-				computePrintSectionFromPlaneSpacing(printPlaneSpacing, printHeightDomain,  _neopreneOffset, frameCHECKS, sdfCHECKS, geomCHECKS);
+				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
+
+				sectionFrames.clear();
+				computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
+				if(!isRegular) computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
+				//cout << endl;
+				//for (int i = 0; i < sectionFrames.size(); i++)
+				//{
+				//	cout << "n_" << sectionFrames[i](2, 0) << sectionFrames[i](2, 1) << sectionFrames[i](2, 0);
+				//	cout << " | o_" << sectionFrames[i](3, 0) << sectionFrames[i](3, 1) << sectionFrames[i](3, 0);
+				//	cout << endl;
+				//}
+
+				o_sectionGraphs.clear();
+				o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
+				computePrintBlockSections(true);
+				if (!isRegular) computePrintBlockSections(false);
+
+				frameCHECKS = checkPrintLayerHeights(sdfCHECKS, geomCHECKS);
+				printf("\n");
 
 				if (frameCHECKS) break;
 
-				zFnPointCloud fnCritical_min(criticalMinLayer_pts);
-				zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
-
-				if (minCriticalPtsCount > fnCritical_min.numVertices() + fnCritical_max.numVertices())
-				{
-					minCriticalPtsCount = fnCritical_min.numVertices() + fnCritical_max.numVertices();
-					bestPlaneSpacing = printPlaneSpacing;
-				}
-
-				if (actualPrintHeightDomain.min < printHeightDomain.min && actualPrintHeightDomain.max < printHeightDomain.max)
+				if (actualPrintHeightDomain.min < printHeightDomain.min)
 				{
 					printf("\n minimum print height was reached and no solution was found.");
 					break;
 				}
-
-			}
-
-			if (!frameCHECKS)
-			{
-				printf("\n Layer height check FALSE!  Choose best plane spacing %1.4f", bestPlaneSpacing);
-
-				computePrintSectionFromPlaneSpacing(bestPlaneSpacing, printHeightDomain,  _neopreneOffset, frameCHECKS, sdfCHECKS, geomCHECKS);
 			}
 
 			printf("\n frameCHECKS %s ", (frameCHECKS) ? "T" : "F");
 		}
 		printf("\n layerCheck %i | geomChk %i | sdCheck %i ", (frameCHECKS), geomCHECKS, sdfCHECKS);
 		printf("\n sectionFrames %i | o_sectionGraphs %i", sectionFrames.size(), o_sectionGraphs.size());
-
-
 
 		if (compSDF)
 		{
@@ -1225,18 +1152,12 @@ namespace zSpace
 		
 		//hesFeatureOuter.push_back(heTemp.getPrev().getPrev().getSym());
 
-		vector<bool> featureCheck;
-		featureCheck.push_back(true);
-
-		fnGuide.setEdgeColor(zBLACK);
 
 		for (int k = featureStart; k < featureWalkNum; k++)
 		{
 			int blockStride = FeaturedNumStrides[k];
 			for (int i = 0; i < blockStride; i++)
 			{
-				featureCheck.push_back(i == blockStride-1);
-
 				heTemp = left ? heTemp.getSym().getNext().getNext() : heTemp.getPrev().getPrev().getSym();
 
 				//}
@@ -1287,34 +1208,29 @@ namespace zSpace
 			bool patternChk = blockType != zBlockType::Wall ? i > FeaturedNumStrides[0] : true;
 			//printf("\n patternChk %d	- checkWall %d		- i %i		- FeaturedNumStrides[0] %i", patternChk, blockType == zBlockType::Wall, i, FeaturedNumStrides[0]);
 
-			zColor outerColor = startChk ? _colorFeatureOuter : _colorPattern;
-			zColor innerColor = startChk ? _colorFeatureInner : zBLACK;
+			zColor outerColor = startChk ? _colorStartOuter : _colorPattern;
+			zColor innerColor = startChk ? _colorStartInner : zBLACK;
 
 			if (i == 0)
 			{
-				//innerColor = _colorCornersInterior;
-				//outerColor = _colorCornersInterior;
-				innerColor = _colorFeatureInner;
-				outerColor = _colorFeatureOuter;
+				innerColor = _colorCornersInterior;
+				outerColor = _colorCornersInterior;
 			}
 			else if (i == hesFeatureInner.size() - 1)
 			{
 				innerColor = _colorCornersBoundary;
 				outerColor = _colorCornersBoundary;
 			}
-			else if (featureCheck[i])
+			else if (startChk)
 			{
-				innerColor = _colorFeatureInner;
-				outerColor = _colorFeatureOuter;
+				innerColor = _colorStartInner;
+				outerColor = _colorStartOuter;
 			}
 			else
 			{
 				innerColor = zBLACK;
 				outerColor = patternChk? _colorPattern :zBLACK ;
 			}
-
-			//innerColor = featureCheck[i] ? zRED : zGREY;
-			//outerColor = featureCheck[i] ? zCYAN : zGREY;
 
 			hesFeatureInner[i].getEdge().setColor(innerColor);
 			hesFeatureOuter[i].getEdge().setColor(outerColor);
@@ -1370,7 +1286,7 @@ namespace zSpace
 		bool exit = false;
 		zItMeshHalfEdge he = heStart;
 
-		const int featureWalkNum = (FeaturedNumStrides.size() - 1) / 2;
+		int featureWalkNum = (FeaturedNumStrides.size() - 1) / 2;
 		int featureStart = 0;
 		/*
 		do
@@ -1712,21 +1628,12 @@ namespace zSpace
 		hesFeatureOuter.push_back(heTemp0.getPrev().getPrev().getSym());
 		hesFeatureOuter.push_back(heTemp1.getSym().getNext().getNext());
 
-		vector<bool> featureCheck;
-		featureCheck.push_back(true);
-		featureCheck.push_back(true);
-
-		fnGuide.setEdgeColor(zBLACK);
-
 		for (int k = 0; k < featureWalkNum; k++)
 		{
 			int blockStride = FeaturedNumStrides[k];
 			//if (checkWall) blockStride--;
 			for (int i = 0; i < blockStride; i++)
 			{
-				featureCheck.push_back(i == blockStride-1);
-				featureCheck.push_back(i == blockStride-1);
-
 				heTemp1 = heTemp1.getSym().getNext().getNext();
 				heTemp0 = heTemp0.getPrev().getPrev().getSym();
 
@@ -1772,8 +1679,8 @@ namespace zSpace
 
 			bool patternChk = blockType == zBlockType::Wall ? true : i > FeaturedNumStrides[0];
 
-			zColor outerColor = startChk ? _colorFeatureOuter : _colorPattern;
-			zColor innerColor = startChk ? _colorFeatureInner : zBLACK;
+			zColor outerColor = startChk ? _colorStartOuter : _colorPattern;
+			zColor innerColor = startChk ? _colorStartInner : zBLACK;
 			printf("\n m %i - i %i | %d - %d - %d ", m, i, blockType == zBlockType::Wall, patternChk, i == (hesFeatureInner.size() / 2) - 1);
 
 			if (i == 0)
@@ -1788,523 +1695,14 @@ namespace zSpace
 			}
 			else if (startChk)
 			{
-				innerColor = _colorFeatureInner;
-				outerColor = _colorFeatureOuter;
+				innerColor = _colorStartInner;
+				outerColor = _colorStartOuter;
 			}
 			else
 			{
 				innerColor = zBLACK;
 				outerColor = patternChk ? _colorPattern : zBLACK;
 			}
-
-
-
-			//innerColor = featureCheck[m] ? zRED : zGREY;
-			//outerColor = featureCheck[m] ? zCYAN : zGREY;
-
-			eInner.getEdge().setColor(innerColor);
-			eOuter.getEdge().setColor(outerColor);
-
-			for (int j = 0; j < sideDivisionCount - 1; j++)
-			{
-				eInner = eInner.getNext().getSym().getNext();
-				eOuter = eOuter.getNext().getSym().getNext();
-
-				eInner.getEdge().setColor(innerColor);
-				eOuter.getEdge().setColor(outerColor);
-
-			}
-
-
-
-		}
-
-
-		//*/
-
-
-
-
-
-		//printf("\n sliceMesh %i %i %i ", fnMesh.numVertices(), fnMesh.numEdges(), fnMesh.numPolygons());
-
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeSliceMesh_Corner(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides)
-	{
-		unordered_map<string, int> positionVertex;
-		zPointArray positions;
-		zIntArray pCounts;
-		zIntArray pConnects;
-
-		//compute start half edge
-		zItMeshHalfEdge heStart = getStartHalfEdge(o_Mesh, startVID, endVID);
-
-		//get end he
-		zItMeshHalfEdge heEnd = heStart;
-		//int sideDivisionCount = 1;
-		while (heEnd.getVertex().getId() != endVID)
-		{
-			heEnd = heEnd.getNext().getSym().getNext();
-			//sideDivisionCount++;
-		}
-
-		//printf("\n sideDivisionCount %i ", sideDivisionCount);
-
-
-		// walk along spine
-		bool exit = false;
-		zItMeshHalfEdge he = heStart;
-
-		const int featureWalkNum = (FeaturedNumStrides.size() - 1) / 2;
-		int featureStart = 0;
-		/*
-		do
-		{
-			////right
-			if (!left)
-			{
-				//for (int ff = FeaturedNumStrides.size()-1; ff >= 0; ff--)
-				//{
-					//int blockStride = FeaturedNumStrides[ff];
-				zItMeshHalfEdge he_Left = he.getPrev();
-
-				//for (int& blockStride : FeaturedNumStrides)
-				for (int k = featureStart; k < featureWalkNum; k++)
-				{
-					int blockStride = FeaturedNumStrides[k];
-					for (int i = 0; i < blockStride; i++)
-					{
-
-						zItMeshHalfEdge heTmp = he_Left;
-						int pCount = 0;
-						//get each face
-						do
-						{
-							zPoint p = heTmp.getVertex().getPosition();
-							int vID;
-							bool chkRepeat = coreUtils.vertexExists(positionVertex, p, PRECISION, vID);
-
-							if (!chkRepeat)
-							{
-								vID = positions.size();
-								coreUtils.addToPositionMap(positionVertex, p, vID, PRECISION);
-								positions.push_back(p);
-							}
-
-							pConnects.push_back(vID);
-							pCount++;
-
-							heTmp = heTmp.getNext();
-
-							//heTmp = heTmp.getPrev();
-
-						} while (heTmp != he_Left);
-
-						pCounts.push_back(pCount);
-
-						he_Left = he_Left.getPrev().getSym().getPrev();
-
-
-					}
-
-				}
-			}
-
-			//sideCounter++;
-			//if (sideCounter < sideDivisionCount)
-			//{
-			//	heTmp.getEdge().setColor(zCYAN);
-			//}
-
-			////left
-			else
-			{
-				zItMeshHalfEdge he_Right = he.getSym().getNext();
-				//for (int& blockStride : FeaturedNumStrides)
-				for (int k = featureStart; k < featureWalkNum; k++)
-				{
-					int blockStride = FeaturedNumStrides[k];
-
-					for (int i = 0; i < blockStride; i++)
-					{
-						zItMeshHalfEdge heTmp = he_Right;
-						int pCount = 0;
-						do
-						{
-							zPoint p = heTmp.getStartVertex().getPosition();
-							int vID;
-							bool chkRepeat = coreUtils.vertexExists(positionVertex, p, PRECISION, vID);
-
-							if (!chkRepeat)
-							{
-								vID = positions.size();
-								coreUtils.addToPositionMap(positionVertex, p, vID, PRECISION);
-								positions.push_back(p);
-							}
-							pConnects.push_back(vID);
-							pCount++;
-
-							heTmp = heTmp.getNext();
-
-						} while (heTmp != he_Right);
-
-						pCounts.push_back(pCount);
-
-						he_Right = he_Right.getNext().getSym().getNext();
-
-					}
-
-				}
-
-			}
-
-
-			//spine walk
-			he = he.getNext().getSym().getNext();
-
-			if (he == heStart) exit = true;
-			//if(he.getStartVertex().getId() == )
-
-
-
-		} while (!exit);
-
-		printf("\n sliceMesh input %i %i %i ", positions.size(), pCounts.size(), pConnects.size());
-
-
-		// cap faces
-		//right
-		if (!left)
-		{
-			zItMeshHalfEdge heTop = heStart;
-			zItMeshHalfEdge heBottom = heStart;
-			heBottom = heBottom.getPrev().getSym().getPrev();
-			heBottom = heBottom.getPrev().getSym().getPrev();
-
-			zItMeshHalfEdge heTop_corner = heTop;
-			zItMeshHalfEdge heBottom_corner = heBottom;
-
-			for (int k = featureStart; k < featureWalkNum; k++)
-			{
-				int blockStride = FeaturedNumStrides[k];
-				//for (int& blockStride : FeaturedNumStrides)
-				//{
-
-				for (int i = 0; i < blockStride; i++)
-				{
-					heTop_corner = heTop_corner.getPrev().getPrev().getSym();
-					heBottom_corner = heBottom_corner.getPrev().getPrev().getSym();
-				}
-			}
-
-
-			exit = false;
-			do
-			{
-				if (heTop.getVertex().getId() == endVID) exit = true;
-
-				zPoint p0 = heTop.getVertex().getPosition();
-				int v0;
-				coreUtils.vertexExists(positionVertex, p0, PRECISION, v0);
-
-				zPoint p1 = heTop.getStartVertex().getPosition();
-				int v1;
-				coreUtils.vertexExists(positionVertex, p1, PRECISION, v1);
-
-				zPoint p2 = heBottom.getVertex().getPosition();
-				int v2;
-				coreUtils.vertexExists(positionVertex, p2, PRECISION, v2);
-
-				zPoint p3 = heBottom.getStartVertex().getPosition();
-				int v3;
-				coreUtils.vertexExists(positionVertex, p3, PRECISION, v3);
-
-				pConnects.push_back(v0);
-				pConnects.push_back(v1);
-				pConnects.push_back(v2);
-				pConnects.push_back(v3);
-
-				pCounts.push_back(4);
-
-				// corner
-				zPoint p4 = heTop_corner.getStartVertex().getPosition();
-				int v4;
-				coreUtils.vertexExists(positionVertex, p4, PRECISION, v4);
-
-				zPoint p5 = heTop_corner.getVertex().getPosition();
-				int v5;
-				coreUtils.vertexExists(positionVertex, p5, PRECISION, v5);
-
-				zPoint p6 = heBottom_corner.getStartVertex().getPosition();
-				int v6;
-				coreUtils.vertexExists(positionVertex, p6, PRECISION, v6);
-
-				zPoint p7 = heBottom_corner.getVertex().getPosition();
-				int v7;
-				coreUtils.vertexExists(positionVertex, p7, PRECISION, v7);
-
-				pConnects.push_back(v4);
-				pConnects.push_back(v5);
-				pConnects.push_back(v6);
-				pConnects.push_back(v7);
-
-				pCounts.push_back(4);
-
-				//
-				heTop = heTop.getNext().getSym().getNext();
-				heBottom = heBottom.getPrev().getSym().getPrev();
-
-				heTop_corner = heTop_corner.getNext().getSym().getNext();
-				heBottom_corner = heBottom_corner.getPrev().getSym().getPrev();
-
-			} while (!exit);
-		}
-		else
-		{
-			zItMeshHalfEdge heTop = heStart.getSym();
-			zItMeshHalfEdge heBottom = heStart.getSym();
-			heBottom = heBottom.getNext().getSym().getNext();
-			heBottom = heBottom.getNext().getSym().getNext();
-
-			zItMeshHalfEdge heTop_corner = heTop;
-			zItMeshHalfEdge heBottom_corner = heBottom;
-
-			for (int k = 0; k < featureWalkNum; k++)
-			{
-				int blockStride = FeaturedNumStrides[k];
-				//for (int& blockStride : FeaturedNumStrides)
-				//{
-
-				for (int i = 0; i < blockStride; i++)
-				{
-					heTop_corner = heTop_corner.getPrev().getPrev().getSym();
-					heBottom_corner = heBottom_corner.getPrev().getPrev().getSym();
-				}
-			}
-
-			exit = false;
-			do
-			{
-				if (heTop.getStartVertex().getId() == endVID) exit = true;
-
-				zPoint p0 = heTop.getVertex().getPosition();
-				int v0;
-				coreUtils.vertexExists(positionVertex, p0, PRECISION, v0);
-
-				zPoint p1 = heTop.getStartVertex().getPosition();
-				int v1;
-				coreUtils.vertexExists(positionVertex, p1, PRECISION, v1);
-
-				zPoint p2 = heBottom.getVertex().getPosition();
-				int v2;
-				coreUtils.vertexExists(positionVertex, p2, PRECISION, v2);
-
-				zPoint p3 = heBottom.getStartVertex().getPosition();
-				int v3;
-				coreUtils.vertexExists(positionVertex, p3, PRECISION, v3);
-
-				pConnects.push_back(v0);
-				pConnects.push_back(v1);
-				pConnects.push_back(v2);
-				pConnects.push_back(v3);
-
-				pCounts.push_back(4);
-
-				// corner
-				zPoint p4 = heTop_corner.getStartVertex().getPosition();
-				int v4;
-				coreUtils.vertexExists(positionVertex, p4, PRECISION, v4);
-
-				zPoint p5 = heTop_corner.getVertex().getPosition();
-				int v5;
-				coreUtils.vertexExists(positionVertex, p5, PRECISION, v5);
-
-				zPoint p6 = heBottom_corner.getStartVertex().getPosition();
-				int v6;
-				coreUtils.vertexExists(positionVertex, p6, PRECISION, v6);
-
-				zPoint p7 = heBottom_corner.getVertex().getPosition();
-				int v7;
-				coreUtils.vertexExists(positionVertex, p7, PRECISION, v7);
-
-				pConnects.push_back(v4);
-				pConnects.push_back(v5);
-				pConnects.push_back(v6);
-				pConnects.push_back(v7);
-
-				pCounts.push_back(4);
-
-				//
-				heTop = heTop.getPrev().getSym().getPrev();
-				heBottom = heBottom.getNext().getSym().getNext();
-
-				heTop_corner = heTop_corner.getPrev().getSym().getPrev();
-				heBottom_corner = heBottom_corner.getNext().getSym().getNext();
-
-			} while (!exit);
-
-		}
-		*/
-
-
-
-		zObjMesh* o_sliceMesh = &o_SliceMesh_Left;
-		o_SliceMesh_Right.mesh.clear();
-
-		zFnMesh fnMesh(*o_sliceMesh);
-
-
-		zFnMesh fnGuideMesh(o_Mesh);
-		fnGuideMesh.getVertexPositions(positions);
-		fnGuideMesh.getPolygonData(pConnects, pCounts);
-		fnMesh.create(positions, pCounts, pConnects);
-
-
-
-		fnMesh.setFaceColor(zGREY);
-
-
-		//walk on the slice mesh to color the edges
-		//get heStart
-		zFnMesh fnGuide(o_Mesh);
-		zPointArray guidePts;
-		fnGuide.getVertexPositions(guidePts);
-		int vSIDSlice, vEIDSlice;
-		vSIDSlice = coreUtils.getClosest_PointCloud(guidePts[startVID], positions);
-		vEIDSlice = coreUtils.getClosest_PointCloud(guidePts[endVID], positions);
-		zItMeshHalfEdge heStartSlice = getStartHalfEdge(*o_sliceMesh, vSIDSlice, vEIDSlice);
-		zItMeshHalfEdge heEndSlice = heStartSlice;
-		int sideDivisionCount = 1;
-		while (heEndSlice.getVertex().getId() != vEIDSlice)
-		{
-			heEndSlice.getEdge().setColor(zCYAN);
-
-			heEndSlice = heEndSlice.getNext().getSym().getNext();
-			sideDivisionCount++;
-		}
-		heEndSlice.getEdge().setColor(zCYAN);
-
-		//get start of all feature edges
-		zItMeshHalfEdgeArray hesFeatureInner, hesFeatureOuter;
-		zItMeshHalfEdge heTemp0 = heStartSlice;
-		zItMeshHalfEdge heTemp1 = heStartSlice;
-
-
-		//color the end boundary edge
-		heEndSlice = heEndSlice.getNext();
-		heEndSlice.getEdge().setColor(zRED);
-
-		fnGuide.setEdgeColor(zBLACK);
-
-		int safetyCounter = 0;
-		while (heEndSlice.getVertex().getId() != vEIDSlice)
-		{
-			heEndSlice.getEdge().setColor(zBLUE);
-
-			heEndSlice = heEndSlice.getNext().getSym().getNext();
-			safetyCounter++;
-			if (safetyCounter > 1000)
-			{
-				printf("\n End was not reached!");
-				break;
-			}
-		}
-
-
-		hesFeatureInner.push_back(heTemp0);
-		hesFeatureInner.push_back(heTemp1);
-
-		hesFeatureOuter.push_back(heTemp0.getPrev().getPrev().getSym());
-		hesFeatureOuter.push_back(heTemp1.getSym().getNext().getNext());
-
-		vector<bool> featureCheck;
-		featureCheck.push_back(true);
-		featureCheck.push_back(true);
-
-
-		for (int k = 0; k < featureWalkNum; k++)
-		{
-			int blockStride = FeaturedNumStrides[k];
-			//if (checkWall) blockStride--;
-			for (int i = 0; i < blockStride; i++)
-			{
-				featureCheck.push_back(i == blockStride-1);
-				featureCheck.push_back(i == blockStride-1);
-
-				heTemp1 = heTemp1.getSym().getNext().getNext();
-				heTemp0 = heTemp0.getPrev().getPrev().getSym();
-
-				//}
-				hesFeatureInner.push_back(heTemp0);
-				hesFeatureInner.push_back(heTemp1);
-
-				zItMeshHalfEdge eOuter0, eOuter1;
-				{
-					eOuter1 = heTemp1.
-						getPrev().getSym().getPrev().
-						getPrev().getSym().getPrev().
-						getSym();
-				}
-				{
-					eOuter0 = heTemp0.
-						getSym().
-						getNext().getSym().getNext().
-						getNext().getSym().getNext();
-				}
-				hesFeatureOuter.push_back(eOuter0);
-				hesFeatureOuter.push_back(eOuter1);
-
-				/*eOuter0.getEdge().setColor(zBLUE);
-				eOuter1.getEdge().setColor(zORANGE);
-				heTemp0.getEdge().setColor(zGREEN);
-				heTemp1.getEdge().setColor(zRED);*/
-			}
-
-		}
-
-		//assuming bridging is always 1
-		for (int m = 0; m < hesFeatureInner.size(); m++)
-		{
-			zItMeshHalfEdge eInner = hesFeatureInner[m];
-			zItMeshHalfEdge eOuter = hesFeatureOuter[m];
-
-			//bool slotType1 = true;
-
-			int i = m % 2 == 0 ? m / 2 : (m - 1) / 2;
-
-			bool startChk = i == FeaturedNumStrides[0] / 2;
-
-			bool patternChk = blockType == zBlockType::Wall ? true : i > FeaturedNumStrides[0];
-
-			zColor outerColor = startChk ? _colorFeatureOuter : _colorPattern;
-			zColor innerColor = startChk ? _colorFeatureInner : zBLACK;
-			printf("\n m %i - i %i | %d - %d - %d ", m, i, blockType == zBlockType::Wall, patternChk, i == (hesFeatureInner.size() / 2) - 1);
-
-			if (i == 0)
-			{
-				innerColor = _colorCornersInterior;
-				outerColor = _colorCornersInterior;
-			}
-			if (i == (hesFeatureInner.size() /2) - 1)
-			{
-				innerColor = _colorCornersBoundary;
-				outerColor = _colorCornersBoundary;
-			}
-			else if (startChk)
-			{
-				innerColor = _colorFeatureInner;
-				outerColor = _colorFeatureOuter;
-			}
-			else
-			{
-				innerColor = zBLACK;
-				outerColor = patternChk ? _colorPattern : zBLACK;
-			}
-
-
-
-			innerColor = featureCheck[m] ? zRED : zGREY;
-			outerColor = featureCheck[m] ? zCYAN : zGREY;
 
 			eInner.getEdge().setColor(innerColor);
 			eOuter.getEdge().setColor(outerColor);
@@ -2498,7 +1896,6 @@ namespace zSpace
 
 		}
 
-		bool interpolateOrigin = _interpolateFramesOrigins;
 
 		// Start point
 
@@ -2507,8 +1904,6 @@ namespace zSpace
 
 		zVector tempZ = Z;
 		tempZ.normalize();
-
-		zPoint tempO;
 
 		zVector X;
 		zVector Y(0, 1, 0);
@@ -2563,7 +1958,6 @@ namespace zSpace
 			zVector he_vec = walkHe.getVector();
 			he_vec.normalize();
 
-
 			//O
 			O = pOnCurve + he_vec * distance_increment;
 
@@ -2571,13 +1965,6 @@ namespace zSpace
 			{
 				O = end;
 				Z = endNorm;
-			}
-
-			if (interpolateOrigin)
-			{
-
-				tempO = (startOrig * (1 - mult)) + (endOrig * mult);
-				O = tempO;
 			}
 
 			tempZ = Z;
@@ -2920,8 +2307,8 @@ namespace zSpace
 					if (v.getColor() == zORANGE) orangeCounter++;
 					if (v.getColor() == zMAGENTA) magentaCounter++;
 
-					if (v.getColor() == _colorFeatureInner) innerSideCounter++;
-					if (v.getColor() == _colorFeatureOuter) outerSideCounter++;
+					if (v.getColor() == _colorStartInner) innerSideCounter++;
+					if (v.getColor() == _colorStartOuter) outerSideCounter++;
 					
 
 					zPoint p1 = p + norm * 1.0;
@@ -3003,19 +2390,13 @@ namespace zSpace
 		checkGeometry = (!checkLeftPlanar || !checkRightPlanar) ? false : true;
 		//if (!checkGeometry) out = false;
 
-		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | chkMagenta %s | pathExist %s | < min ht intersectionPts %i  | > max ht intersectionPts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", (checkMagentas) ? "T" : "F", (checkGeometry) ? "T" : "F", fnCritical_min.numVertices(), fnCritical_max.numVertices());
+		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | chkMagenta %s | pathExist %s | < min ht pts %i  | > max ht pts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", (checkMagentas) ? "T" : "F", (checkGeometry) ? "T" : "F", fnCritical_min.numVertices(), fnCritical_max.numVertices());
 
-		/*zPointArray maxPts;
-		fnCritical_max.getVertexPositions(maxPts);
-		for (auto& p : maxPts)
-		{
-			cout << endl << p;
-		}*/
 		
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset, bool runBothPlanes, bool runPlaneLeft)
+	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset)
 	{
 		printHeightDomain = _printHeightDomain;
 		neopreneOffset = _neopreneOffset;
@@ -3047,19 +2428,19 @@ namespace zSpace
 			<< "geometryCHECK" <<  ","
 			<< "criticalPtsMin" <<  ","
 			<< "criticalPtsMax" <<  ","
-			<< "planeSpacing" << ","
 			<< "dihedralAngle" <<  endl;
 
 
 		for (auto& s : files)
 		{
 			zStringArray split_0 = coreUtils.splitString(s, ".");
-			zStringArray split_1 = coreUtils.splitString(split_0[split_0.size()-2], "_");
+			zStringArray split_1 = coreUtils.splitString(split_0[0], "_");
+
 
 			printf("\n File: %s ", s.c_str());
 			int _blockID = atoi(split_1[split_1.size() - 1].c_str());
 
-			setFromJSON(folderDir, _blockID, runBothPlanes, runPlaneLeft);
+			setFromJSON(folderDir, _blockID);
 			Block_visitied[_blockID] = true;
 
 			if (!planarBlock) continue;
@@ -3072,31 +2453,28 @@ namespace zSpace
 			bool maxHeight = true;
 			bool minHeight = true;
 
-			int minCriticalPtsCount = INT_MAX;
-			float bestPlaneSpacing = FLT_MAX;
-
 			for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
 			{
+				printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
+
+
 				if (planarBlock)
 				{
-					//printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
-					computePrintSectionFromPlaneSpacing(printPlaneSpacing, printHeightDomain, _neopreneOffset, frameCHECKS, sdfCHECKS, geomCHECKS);
-					if (frameCHECKS)
-					{
-						bestPlaneSpacing = printPlaneSpacing;
-						break;
-					}
+					sectionFrames.clear();
+					computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, true);
+					computePrintBlockFrames(printPlaneSpacing, neopreneOffset.min, neopreneOffset.max, false);
 
-					zFnPointCloud fnCritical_min(criticalMinLayer_pts);
-					zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
+					o_sectionGraphs.clear();
+					o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
+					computePrintBlockSections(true);
+					computePrintBlockSections(false);
+					frameCHECKS = checkPrintLayerHeights(sdfCHECKS, geomCHECKS);
 
-					if (minCriticalPtsCount > (fnCritical_min.numVertices() + fnCritical_max.numVertices()))
-					{
-						minCriticalPtsCount = fnCritical_min.numVertices() + fnCritical_max.numVertices();
-						bestPlaneSpacing = printPlaneSpacing;
-					}
 
-					if (actualPrintHeightDomain.min < printHeightDomain.min && actualPrintHeightDomain.max < printHeightDomain.max)
+					
+
+
+					if (actualPrintHeightDomain.min < printHeightDomain.min)
 					{
 						printf("\n minimum print height was reached and no solution was found.");
 						break;
@@ -3105,21 +2483,16 @@ namespace zSpace
 				}
 				else
 				{
-
+					//to be implemented
 				}
+				
 
+				printf("\n");
+
+				if (frameCHECKS) break;
 			}
 
-			if (!frameCHECKS)
-			{
-				printf("\n Layer height check FALSE!  Choose best plane spacing %1.4f", bestPlaneSpacing);
-
-				computePrintSectionFromPlaneSpacing(bestPlaneSpacing, printHeightDomain, _neopreneOffset, frameCHECKS, sdfCHECKS, geomCHECKS);
-			}
-
-			
-
-			printf("\n ----------- \n BlockID %i | %s | %1.4f %1.4f \n", _blockID, (frameCHECKS) ? "True" : "False", actualPrintHeightDomain.min, actualPrintHeightDomain.max);
+			//printf("\n ----------- \n BlockID %i | %s | %1.4f %1.4f \n", _blockID, (frameCHECKS) ? "True" : "False", actualPrintHeightDomain.min, actualPrintHeightDomain.max);
 
 			int minPts, maxPts;
 			zFnPointCloud fnptCloudMin, fnptCloudMax;
@@ -3160,15 +2533,11 @@ namespace zSpace
 			coreUtils.json_read(path, j);
 			//output json for critical points
 			//json j;
-			string planeTypes = runningType == 0 ? "BothPlanes" : runningType == 1 ? "LeftPlanes" : "RightPlanes";
-			string outDir = folderDir + "/criticalPointsCheck_" + planeTypes;
+			string outDir = folderDir + "/criticalPointsCheck";
 			string outPath = outDir + "/outBlock_" + to_string(_blockID) + ".json";
 			if (!filesystem::is_directory(outDir) || !filesystem::exists(outDir)) filesystem::create_directory(outDir);
 			j["CP_Min"] = ptsMin;
 			j["CP_Max"] = ptsMax;
-			j["Layer_Height_Min"] = actualPrintHeightDomain.min;
-			j["Layer_Height_Max"] = actualPrintHeightDomain.max;
-			j["PlaneSpacing"] = bestPlaneSpacing;
 
 			if (ptsMin.size()>0||ptsMax.size()>0)
 			{
@@ -3183,16 +2552,15 @@ namespace zSpace
 			float maxAngle = leftAngle > rightAngle ? leftAngle : rightAngle;
 
 			
-			myfile << _blockID << ","
-				<< ((planarBlock) ? "PlanarBlock" : "NonPlanarBlock") << ","
-				<< ((frameCHECKS) ? "True" : "False") << ","
-				<< actualPrintHeightDomain.min * 1000 << ","
-				<< actualPrintHeightDomain.max * 1000 << ","
-				<< ((sdfCHECKS) ? "True" : "False") << ","
+			myfile << _blockID << "," 
+				<< ((planarBlock) ? "PlanarBlock" : "NonPlanarBlock") << "," 
+				<< ((frameCHECKS) ? "True" : "False") << "," 
+				<< actualPrintHeightDomain.min * 1000 << "," 
+				<< actualPrintHeightDomain.max * 1000 << "," 
+				<< ((sdfCHECKS) ? "True" : "False") << "," 
 				<< ((geomCHECKS) ? "True" : "False") << ","
 				<< minPts << ","
 				<< maxPts << ","
-				<< bestPlaneSpacing * 1000 << ","
 				<< maxAngle << endl;
 
 			printf("\n Finished block %i ", _blockID);
@@ -3325,7 +2693,7 @@ namespace zSpace
 		float topLength, bottomLength;
 
 		
-		slotGraph_1(sectionFrames[graphId], o_sectionGraphs[graphId],  bottomLength, o_trimGraphs[graphId]);
+		slotGraph_1(o_sectionGraphs[graphId], o_trimGraphs[graphId],  bottomLength);
 		
 		if (false)
 		{
@@ -3477,21 +2845,23 @@ namespace zSpace
 
 		// TOP BOTTOM HALF EDGES
 		zItGraphHalfEdgeArray topHE, bottomHE;
+		float topLength, bottomLength;
 
 		
+		slotGraph_1(o_sectionGraphs[graphId], o_trimGraphs[graphId],  bottomLength);
 		
 		if (false)
 		{
-			//polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
+			polyTopBottomEdges(o_sectionGraphs[graphId], topHE, bottomHE, topLength, bottomLength);
 			//trim graph
-			//computePrintBlockTrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE);
+			computePrintBlockTrimGraphs(o_sectionGraphs[graphId], o_trimGraphs[graphId], topHE, bottomHE);
 		}
 		zFnGraph fnTrimGraph(o_trimGraphs[graphId]);
 
 		// Profile polygon field
 		zScalarArray polyField;
 		zIntArray edgeId;
-		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], edgeId , false );
+		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], false, edgeId);
 
 		zScalarArray polyField_offset_outer, polyField_offset_inner;
 
@@ -3525,35 +2895,27 @@ namespace zSpace
 			for (auto& s : polyField_offset_inner) s += offset_inner;
 		}
 
-		
-		zObjGraph slotGraph;
-		float graphLength = 2 / pWidth;
-		slotGraph_1(sectionFrames[graphId], o_sectionGraphs[graphId], graphLength, slotGraph);
-
 		zScalarArray slotField;
 		float slotRadius = 0.02;
-		if (funcNum >= 2) fnField.getScalarsAsEdgeDistance(slotField, slotGraph, 0.20 * pWidth, false);
+		zObjGraph slotGraph;
+		if (funcNum >= 2) fnField.getScalarsAsEdgeDistance(slotField, o_trimGraphs[graphId], 0.20 * pWidth, false);
 
 		zScalarArray patternField, patternField_1, patternField_2;
 		float patternOffset = 0.025;
 		float patternOffset2 = 0.015;
 		float patternMove = offset_outer;
-		/*if (funcNum >= 3)
+		if (funcNum >= 3)
 		{
 			getScalars_3dp_pattern_2(patternField_1, o_sectionGraphs[graphId], patternOffset,	patternMove, true, graphId % 2 == 0);
 			getScalars_3dp_pattern_2(patternField_2, o_sectionGraphs[graphId], patternOffset2,	patternMove, true, graphId % 2 != 0);
 
 			fnField.boolean_union(patternField_1, patternField_2, patternField, false);
-		}*/
-
-		
-		//computeCableSectionPoints(graphId, )
-
+		}
 
 
 		zScalarArray booleanField_0;
 		if (funcNum >= 4) fnField.boolean_subtract(polyField_offset_outer, polyField_offset_inner, booleanField_0, false);
-		
+
 		zScalarArray booleanField_1;
 		if (funcNum >= 5) fnField.boolean_subtract(booleanField_0, slotField, booleanField_1, false);
 
@@ -3572,6 +2934,7 @@ namespace zSpace
 		case 1:
 			fnField.setFieldValues(polyField_offset_outer, zFieldSDF, sdfWidth);
 			break;
+
 
 		case 2:
 
@@ -3737,9 +3100,7 @@ namespace zSpace
 	{
 		zFnMesh fn;
 		json j;
-		string blockPath = pathCurrent + "blockMesh_" + to_string(blockId) + ".json";
-
-		bool fileChk = fn.json_read(blockPath, j);
+		bool fileChk = fn.json_read(pathCurrent, j);
 
 		if (!fileChk) return false;
 
@@ -4068,174 +3429,6 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeCableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& outputPoints)
-	{
-		zFnGraph fnSection(o_sectionGraphs[graphId]);
-		zPointArray graphPts;
-		fnSection.getVertexPositions(graphPts);
-		zPlane frame = sectionFrames[graphId];
-		zVector normal(frame(2, 0), frame(2, 1), frame(2, 2));
-
-		zPointArray intersectionPts;
-		intersect_graphPlane(o_cableGraph, frame, false, intersectionPts);
-
-		outputPoints.clear();
-		if (intersectionPts.size() > 0)
-		{
-			for (auto& p : intersectionPts)
-			{
-				if (coreUtils.pointInPlanarPolygon(p, graphPts, normal))
-				{
-					outputPoints.push_back(p);
-				}
-			}
-		}
-		if (outputPoints.size() > 0)
-		{
-			printf("\n cableGraph intersection - number of intersection %i ", outputPoints.size());
-
-		}
-
-		//if (intersectionEvents.Count() > 0)
-		//{
-		//	fnField.getScalars_Circle(scalars, intersectionPoint, radius);
-
-		//}
-	}
-	ZSPACE_TOOLSETS_INLINE int zTsNatpowerSDF::getCableGraphIndexPerGraph(int graphId)
-	{
-		//iterate through all the graphs to get the graph the block belongs to
-		int index = -1;
-		int counter = 0;
-		for (int i = 0; i < o_CableGraphs.size(); i++)
-		{
-			zPointArray intersectionPts;
-			computeCableSectionPoints(graphId, o_CableGraphs[i], intersectionPts);
-			if (intersectionPts.size() > 0)
-			{
-				index = i;
-				counter++;
-			}
-		}
-
-		if (counter != 1) index = -1;
-
-		//printf("\n cableGraph intersection - number of intersection %i index %i", counter, index);
-
-		return index;
-
-
-		//// create graphs
-		//zFnGraph fnGraph(o_cableGraph);
-
-		//zPoint O(frame(3, 0), frame(3, 1), frame(3, 2));
-		//zVector N(frame(2, 0), frame(2, 1), frame(2, 2));
-
-		//zVector X(frame(0, 0), frame(0, 1), frame(0, 2));
-		//X.normalize();
-
-		//zObjNurbsCurve curve;
-		//zFnNurbsCurve fnnurbs(curve);
-		//fnnurbs.create(o_cableGraph, 0.01, 1, false, true, 20);
-
-		//zObjPlane oPlane;
-		//zFnPlane fnPlane(oPlane);
-
-		//fnPlane.createFromMatrix(frame);
-
-
-		//ON_SimpleArray<ON_X_EVENT> intersectionEvents;
-		//zFnNurbsCurve fnCurve(curve);
-		//ON_NurbsCurve* onCurve = fnCurve.getRawON_Curve();
-		//int intersection_result = onCurve->IntersectPlane(oPlane.on_plane.plane_equation, intersectionEvents);
-
-		//zPoint intersectionPoint;
-		//float dist = FLT_MAX;
-		//for (int i = 0; i < intersectionEvents.Count(); i++)
-		//{
-		//	ON_3dPoint onpt = intersectionEvents[i].m_A[0];
-		//	zPoint pt = zPoint(onpt.x, onpt.y, onpt.z);
-		//	float d = pt.distanceTo(O);
-		//	if (d < dist)
-		//	{
-		//		intersectionPoint = pt;
-		//		dist = d;
-		//	}
-		//}
-		////zFnMesh fn(o_SliceMesh_Left);
-
-		//if (intersectionEvents.Count() > 0)
-		//{
-		//	fnField.getScalars_Circle(scalars, intersectionPoint, radius);
-
-		//}
-	}
-
-
-	ZSPACE_TOOLSETS_INLINE zPoint zTsNatpowerSDF::getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh)
-	{
-		float scaleVal = coreUtils.ofMap(threshold, thresholdLow, thresholdHigh, 0.0000f, 1.0000f);
-		zVector e = vertex_higher - vertex_lower;
-		double edgeLen = e.length();
-		e.normalize();
-		return (vertex_lower + (e * edgeLen * scaleVal));
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints)
-	{
-		zFnGraph fnGraph(o_graph);
-		zPoint* vPositions = fnGraph.getRawVertexPositions();
-		contourPoints.clear();
-		for (zItGraphEdge e(o_graph); !e.end(); e++)
-		{
-			zIntArray eVerts;
-			e.getVertices(eVerts);
-			float s0 = vertexScalars[eVerts[0]];
-			float s1 = vertexScalars[eVerts[1]];
-			bool contour = false;
-			if (s0 <= threshold && s1 >= threshold)contour = true;
-			if (s0 >= threshold && s1 <= threshold)contour = true;
-			if (!contour) continue;
-			zPoint v0 = vPositions[eVerts[0]];
-			zPoint v1 = vPositions[eVerts[1]];
-			zPoint pos1 = getContourPosition(threshold, v1, v0, s1, s0);
-			contourPoints.push_back(pos1);
-		}
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::intersect_graphPlane(zObjGraph& o_graph, zPlane& inPlane, bool closestPoint, zPointArray& outPoints)
-	{
-		outPoints.clear();
-		zScalarArray vertexScalars;
-		zPoint O(inPlane(3, 0), inPlane(3, 1), inPlane(3, 2));
-		zVector N(inPlane(2, 0), inPlane(2, 1), inPlane(2, 2));
-		for (zItGraphVertex v(o_graph); !v.end(); v++)
-		{
-			zPoint P = v.getPosition();
-			float minDist_Plane = coreUtils.minDist_Point_Plane(P, O, N);
-			vertexScalars.push_back(minDist_Plane);
-		}
-		zPointArray contourPoints;
-		isoContour(o_graph, vertexScalars, 0.0, contourPoints);
-		if (closestPoint)
-		{
-			float dist = 1000000;
-			zPoint cPoint;
-			for (auto& p : contourPoints)
-			{
-				if (p.distanceTo(O) < dist)
-				{
-					dist = p.distanceTo(O);
-					cPoint = p;
-				}
-			}
-			outPoints.push_back(cPoint);
-		}
-		else outPoints = contourPoints;
-	}
-
-
-
-
-
 	//---- PROTECTED UTILITY METHODS
 
 
@@ -4379,14 +3572,14 @@ namespace zSpace
 		zItGraphVertex startV, endV;
 		for (zItGraphVertex v(inPoly); !v.end(); v++)
 		{
-			if (v.getColor() == _colorFeatureInner)
+			if (v.getColor() == _colorStartInner)
 			{
 
 				startV = v;
 				//printf("\n  start  found %1.4f, %1.4, %1.4f", startV.getPosition().x, startV.getPosition().y, startV.getPosition().z);
 
 			}
-			if (v.getColor() == _colorFeatureOuter)
+			if (v.getColor() == _colorStartOuter)
 			{
 				endV = v;
 				//printf("\n  end  found %1.4f, %1.4, %1.4f", endV.getPosition().x, endV.getPosition().y, endV.getPosition().z);
@@ -4493,7 +3686,7 @@ namespace zSpace
 
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::slotGraph_1(zPlane plane, zObjGraph& inPoly, float graphLength, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::slotGraph_1(zPlane plane, zObjGraph& inPoly, float graphLength, zObjGraph& innerHE)
 	{
 		//poly is sectionGraph -> we don't have to specify right/left
 		zFnGraph inFnGraph(inPoly);
@@ -4507,9 +3700,7 @@ namespace zSpace
 
 		zPoint startV, endV;
 		
-		int startEdgeId = INT_MAX;
-		int endEdgeId = INT_MAX;
-		zVector edgeVector;
+		int startEdgeId, endEdgeId = INT_MAX;
 
 		for (zItGraphEdge e(inPoly); !e.end(); e++)
 		{
@@ -4521,7 +3712,6 @@ namespace zSpace
 				{
 					startV = e.getCenter();
 					startEdgeId = e.getId();
-					edgeVector = e.getVector();
 					printf("\n start slot found");
 				}
 				else if(blockType == zBlockType::Wall)
@@ -4546,29 +3736,22 @@ namespace zSpace
 		}
 		
 
-		zVector planeNormal(plane(2, 0), plane(2, 1), plane(2, 2));
-		//printf("\n \n slotGraph planeNormal %1.4f - %1.4f - %1.4f", planeNormal.x, planeNormal.y, planeNormal.z);
-		//printf("\n slotGraph edgeVector %1.4f - %1.4f - %1.4f ", edgeVector.x, edgeVector.y, edgeVector.z);
-
-		zVector vector = planeNormal ^ edgeVector;
-		//printf("\n slotGraph vector %1.4f - %1.4f - %1.4f \n", vector.x, vector.y, vector.z);
-
-		//float length = 0.02;
+		
+		zVector vector = endV - startV;
+		float length = vector.length() / 2;
 		vector.normalize();
 
 		zPointArray gPts;
 		zIntArray gEdges;
-		gPts.push_back(startV - (vector * (graphLength /2)));
-		gPts.push_back(startV + (vector * (graphLength)));
+		gPts.push_back(startV - (vector * (length/2)));
+		gPts.push_back(startV + (vector * (length)));
 		gEdges.push_back(0);
 		gEdges.push_back(1);
 
 		zObjGraph oGraph;
-		zFnGraph fnG(outGraph);
+		zFnGraph fnG(innerHE);
 		fnG.create(gPts, gEdges);
-
-		//printf("\n \n slotGraph gPts %1.4f - %1.4f - %1.4f", gPts[0].x, gPts[0].y, gPts[0].z);
-		//printf("\n slotGraph gPts %1.4f - %1.4f - %1.4f \n", gPts[1].x, gPts[1].y, gPts[1].z);
+		innerLength = length;
 
 		//// Flip if needed, to have lower point in 0 index
 		//if (inPositions[startVerts[1]].z < inPositions[startVerts[0]].z)
@@ -4721,7 +3904,7 @@ namespace zSpace
 		bool chk = alternateChk;
 		for (zItGraphVertex v(o_sectionGraph); !v.end(); v++)
 		{
-			bool colorChk = blockType == zBlockType::Wall ? v.getColor() == _colorPattern || v.getColor() == _colorFeatureOuter : v.getColor() == _colorPattern;
+			bool colorChk = blockType == zBlockType::Wall ? v.getColor() == _colorPattern || v.getColor() == _colorStartOuter : v.getColor() == _colorPattern;
 			//if (v.getColor() == _colorPattern || v.getColor() == _colorStartOuter)
 			if (v.getColor() == _colorPattern)
 			{
@@ -4774,7 +3957,7 @@ namespace zSpace
 
 		for (zItGraphVertex v(o_sectionGraph); !v.end(); v++)
 		{
-			bool colorChk = blockType == zBlockType::Wall ? v.getColor() == _colorPattern || v.getColor() == _colorFeatureOuter : v.getColor() == _colorPattern;
+			bool colorChk = blockType == zBlockType::Wall ? v.getColor() == _colorPattern || v.getColor() == _colorStartOuter : v.getColor() == _colorPattern;
 			//if (v.getColor() == _colorPattern || v.getColor() == _colorStartOuter)
 			if (v.getColor() == _colorPattern)
 			{
@@ -4812,6 +3995,60 @@ namespace zSpace
 		fnField.getScalarsAsVertexDistance(scalars, gPositions, offset, false);
 
 
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_3dp_cable(zScalarArray& scalars, zObjGraph& o_cableGraph, zPlane& frame, float radius)
+	{
+		zFnMeshScalarField fnField(o_field);
+
+
+		//zScalarArray scalars;
+
+
+		scalars.clear();
+		// create graphs
+		zFnGraph fnGraph(o_cableGraph);
+
+		zPoint O(frame(3, 0), frame(3, 1), frame(3, 2));
+		zVector N(frame(2, 0), frame(2, 1), frame(2, 2));
+
+		zVector X(frame(0, 0), frame(0, 1), frame(0, 2));
+		X.normalize();
+
+		zObjNurbsCurve curve;
+		zFnNurbsCurve fnnurbs(curve);
+		fnnurbs.create(o_cableGraph, 0.01, 1, false, true, 20);
+
+		zObjPlane oPlane;
+		zFnPlane fnPlane(oPlane);
+
+		fnPlane.createFromMatrix(frame);
+		
+
+		ON_SimpleArray<ON_X_EVENT> intersectionEvents;
+		zFnNurbsCurve fnCurve(curve);
+		ON_NurbsCurve* onCurve = fnCurve.getRawON_Curve();
+		int intersection_result = onCurve->IntersectPlane(oPlane.on_plane.plane_equation, intersectionEvents);
+		
+		zPoint intersectionPoint;
+		float dist = FLT_MAX;
+		for (int i = 0; i < intersectionEvents.Count(); i++)
+		{
+			ON_3dPoint onpt = intersectionEvents[i].m_A[0];
+			zPoint pt = zPoint(onpt.x, onpt.y, onpt.z);
+			float d = pt.distanceTo(O);
+			if (d<dist)
+			{
+				intersectionPoint = pt;
+				dist = d;
+			}
+		}
+
+		if (intersectionEvents.Count() > 0)
+		{
+			fnField.getScalars_Circle(scalars, intersectionPoint, radius);
+
+		}
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_3dp_patternMesh(zScalarArray& scalars, zObjGraph& o_sectionGraph, zIntArray& faceIDs, zPointArray& closestPoints, zDomainFloat& offsetDomain)
@@ -5105,17 +4342,10 @@ namespace zSpace
 		fnField.getScalarsAsEdgeDistance(scalars, tempGraph, offset, false);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_3dp_cable(zScalarArray& scalars, zPoint cablePoint, float radius)
-	{
-		zFnMeshScalarField fnField(o_field);
-		scalars.clear();
-		fnField.getScalars_Circle(scalars, cablePoint, radius);
-	}
-
 	
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::readJSON_planarBlock(string path, int _blockID, bool runBothPlanes, bool runPlaneLeft)
+	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::readJSON_planarBlock(string path, int _blockID)
 	{
 		printf("\n readJSON_planarBlock 0");
 
@@ -5140,23 +4370,16 @@ namespace zSpace
 		int eID = j["MedialStartEnd"][1];
 		//int blockStride = j["BlockStride"];
 
-
-
-		isCorner = j["IsCorner"];
-		int type = j["BlockType"];
-		blockType = static_cast<zBlockType>(type);
-		
 		
 
 
 		//zFloatArray arrayL, eArrayR;
-		zTransform sPlaneRight, ePlaneRight, sPlaneLeft, ePlaneLeft;
+		zTransform sPlane, ePlane;
 	
 		//vector<zFloatArray> arrayL = j["LeftPlane"];
 		//vector<zFloatArray> arrayR = j["RightPlane"];
 
 		zPoint oS, oE, xS, xE, yS, yE, zS, zE;
-		zVector zVectorEndRight, zVectorEndLeft;
 
 		//zFloatArray sArrayL = j["leftPlanes"][0];
 		//zFloatArray eArrayL = j["leftPlanes"][1];
@@ -5175,11 +4398,12 @@ namespace zSpace
 
 		zS = zPoint(j["LeftPlanes"][0][2], j["LeftPlanes"][0][6], j["LeftPlanes"][0][10]);
 		zE = zPoint(j["LeftPlanes"][1][2], j["LeftPlanes"][1][6], j["LeftPlanes"][1][10]);
-		zVectorEndLeft = zE;
-		sPlaneLeft = coreUtils.getPlaneFromVectors(oS, xS, yS, zS);
-		ePlaneLeft = coreUtils.getPlaneFromVectors(oE, xE, yE, zE);
 
-		
+		sPlane = coreUtils.getPlaneFromVectors(oS, xS, yS, zS);
+		ePlane = coreUtils.getPlaneFromVectors(oE, xE, yE, zE);
+
+		setStartEndPlanes(sPlane, ePlane, true);
+		base_world = sPlane;
 
 		//zFloatArray sArrayR = j["rightPlanes"][0];
 		//zFloatArray eArrayR = j["rightPlanes"][1];
@@ -5194,40 +4418,14 @@ namespace zSpace
 		yE = zPoint(j["RightPlanes"][1][1], j["RightPlanes"][1][5], j["RightPlanes"][1][9]);
 		zS = zPoint(j["RightPlanes"][0][2], j["RightPlanes"][0][6], j["RightPlanes"][0][10]);
 		zE = zPoint(j["RightPlanes"][1][2], j["RightPlanes"][1][6], j["RightPlanes"][1][10]);
-		zVectorEndRight = zE;
-
-		sPlaneRight = coreUtils.getPlaneFromVectors(oS, xS, yS, zS);
-		ePlaneRight = coreUtils.getPlaneFromVectors(oE, xE, yE, zE);
-
-		runningType = runBothPlanes ? 0 : runPlaneLeft ? 1 : 2;
-
-		if (!runBothPlanes)
-		{
-			if (isCorner && blockType == zBlockType::Top)
-			{
-				bool check = abs(zVectorEndLeft.z) < abs(zVectorEndRight.z);
-
-				check = runPlaneLeft ? check : !check;
-
-				if (check)
-				{
 
 
-					sPlaneRight = sPlaneLeft;
-					ePlaneRight = ePlaneLeft;
-				}
-				else
-				{
-					sPlaneLeft = sPlaneRight;
-					ePlaneLeft = ePlaneRight;
-				}
-			}
-		}
+		sPlane = coreUtils.getPlaneFromVectors(oS, xS, yS, zS);
+		ePlane = coreUtils.getPlaneFromVectors(oE, xE, yE, zE);
 
 
-		setStartEndPlanes(sPlaneLeft, ePlaneLeft, true);
-		base_world = sPlaneLeft;
-		setStartEndPlanes(sPlaneRight, ePlaneRight, false);
+
+		setStartEndPlanes(sPlane, ePlane, false);
 
 		base_local.setIdentity();
 		//medial axis
@@ -5239,6 +4437,9 @@ namespace zSpace
 		coreUtils.json_readAttribute(j, "FeaturedNumStrides", FeaturedNumStrides);
 		//coreUtils.json_readAttribute(j, "FeaturedNumStrides_2", FeaturedNumStrides2);
 
+		isCorner = j["IsCorner"];
+		int type = j["BlockType"];
+		blockType = static_cast<zBlockType>(type);
 		
 		//checkWall = blockType == zBlockType::Wall;
 
@@ -5290,16 +4491,8 @@ namespace zSpace
 			// left mesh
 			if (planarBlock)
 			{
-				//isRegular = blockType == zBlockType::Wall || blockType == zBlockType::Arch || (blockType == zBlockType::Top && !isCorner);
-				isRegular = blockType == zBlockType::Wall || blockType == zBlockType::Arch || (blockType == zBlockType::Top );
-				
-				if (isCorner)
-				{
-					printf("\n slice mesh corner");
-
-					computeSliceMesh_Corner(o_GuideMesh, sID, eID, FeaturedNumStrides);
-				}
-				else if (isRegular)
+				isRegular = blockType == zBlockType::Wall || blockType == zBlockType::Arch || (blockType == zBlockType::Top && !isCorner);
+				if (isRegular)
 				{
 					computeSliceMesh_Regular(o_GuideMesh, sID, eID, FeaturedNumStrides);
 					printf("\n slice mesh regular");
@@ -5351,10 +4544,6 @@ namespace zSpace
 			}
 		}
 
-	}
-
-	void zTsNatpowerSDF::readCableGraph(string path)
-	{
 	}
 
 

@@ -27,6 +27,10 @@
 
 #include <headers/zInterface/functionsets/zFnMeshField.h>
 
+#include <headers/zInterOp/functionSets/zFnPlane.h>
+#include <headers/zInterOp/functionSets/zFnNurbsCurve.h>
+
+
 //#include <igl/avg_edge_length.h>
 //#include <igl/cotmatrix.h>
 //#include <igl/invert_diag.h>
@@ -59,7 +63,13 @@
 
 namespace zSpace
 {
-	
+	enum zBlockType
+	{
+		Bottom,
+		Top,
+		Wall,
+		Arch
+	};
 		
 	/** \addtogroup zToolsets
 	*	\brief Collection of toolsets for applications.
@@ -125,9 +135,15 @@ namespace zSpace
 		/*!	\brief container of trim graph objects  */
 		zObjGraphArray o_trimGraphs;
 
+		zObjGraphArray o_CableGraphs;
+
+		int cableGraphId_left = -1;
+		int cableGraphId_right = -1;
 
 		bool checkOranges = true;
 		bool checkMagentas = true;
+
+		int runningType = 0; //< 0 running both planes, 1 running left planes only, 2 running right planes only
 
 
 		//--------------------------
@@ -185,7 +201,22 @@ namespace zSpace
 		zTransform base_world, base_local;
 
 		bool planarBlock;
+		bool isCorner;
+		bool isRegular;
 
+		bool _interpolateFramesOrigins = false;
+		
+		zBlockType blockType;
+		private:
+			//color settings 
+			zColor _colorCornersBoundary = zYELLOW;
+			zColor _colorCornersInterior = zGREEN;
+
+			zColor _colorFeatureInner = zMAGENTA;
+			zColor _colorFeatureOuter = zORANGE;
+			zColor _colorPattern = zBLUE;
+
+			//bool checkWall = false;
 	public:
 
 		//--------------------------
@@ -232,7 +263,7 @@ namespace zSpace
 		**	\param		[in]	_blockID	- input block ID.
 		*	\since version 0.0.4
 		*/
-		void setFromJSON(string dir, int _blockID);
+		void setFromJSON(string dir, int _blockID, bool runBothPlanes = true, bool runPlaneLeft= false);
 
 		/*! \brief This method sets the slice mesh object.
 		*
@@ -392,6 +423,24 @@ namespace zSpace
 
 		bool isPlanarBlock();
 
+
+		/*! \brief This method computes the.
+		*
+		* 	\param		[in]	printLayerDepth				- input print layer depth.
+		*	\since version 0.0.4
+		*/
+
+		void computeFrontBackHalfEdges(zObjGraph& graph, zItGraphHalfEdgeArray& outHeBack, zItGraphHalfEdgeArray& outHEFront);
+
+		/*! \brief This method computes the.
+		*
+		* 	\param		[in]	printLayerDepth				- input print layer depth.
+		*	\since version 0.0.4
+		*/
+
+		void computePrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, zDomainFloat _neopreneOffset, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS);
+
+
 		/*! \brief This method computes the.
 		*
 		* 	\param		[in]	printLayerDepth				- input print layer depth.
@@ -429,6 +478,9 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void computeSliceMesh(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left);
+
+		void computeSliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides);
+		void computeSliceMesh_Corner(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides);
 
 
 		//--------------------------
@@ -478,7 +530,7 @@ namespace zSpace
 		*	\param		[in]	_block						- input block.
 		*	\since version 0.0.4
 		*/
-		void checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset);
+		void checkPrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset, bool runBothPlanes = true, bool runPlaneLeft = false);
 
 		/*! \brief This method check the block interfaces are planar.
 		*
@@ -493,7 +545,8 @@ namespace zSpace
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void computeBlockSDF_Planar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void computeBlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void computeBlockSDF_Planar_bracing(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -502,6 +555,14 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void computeBlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+
+		void computeCableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts);
+		int getCableGraphIndexPerGraph(int graphId);
+
+
+		zPoint getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh);
+		void isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints);
+		void intersect_graphPlane(zObjGraph& o_graph, zPlane& inPlane, bool closestPoint, zPointArray& outPoints);
 
 
 		bool exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth);
@@ -521,24 +582,35 @@ namespace zSpace
 		zItMeshHalfEdge getStartHalfEdge(zObjMesh& o_mesh, int startVID, int endVID);
 
 		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
+		void slotGraph_0(zObjGraph& inPoly, zObjGraph& innerHE, float& innerLength);
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="inPoly"></param>
+		/// <param name="innerHE"></param>
+		/// <param name="innerLength"></param>
+		void slotGraph_1(zPlane plane, zObjGraph& inPoly, float graphLength, zObjGraph& innerHE);
 
 		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset );
 
-		void getScalars_3dp_pattern(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset);
-
+		void getScalars_3dp_pattern(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset, bool alternate, bool alternateCheck);
+		void getScalars_3dp_pattern_2(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset, float offset2, bool alternate, bool alternateCheck);
+		void getScalars_3dp_pattern_3(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset, float offset2, bool alternate, bool alternateCheck);
 		void getScalars_3dp_patternMesh(zScalarArray& scalars, zObjGraph& o_sectionGraph, zIntArray& faceIDs, zPointArray& closestPoints, zDomainFloat &offsetDomain);
 
 
 		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset , bool alternate);
+		void getScalars_3dp_brace2(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset , bool alternate);
 
 		void getScalars_3dp_trim(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
 		void getScalars_3dp_trimStart(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
-
+		void getScalars_3dp_cable(zScalarArray& scalars, zPoint cablePoint, float radius);
 
 
 	
-		void readJSON_planarBlock(string path, int _blockID);
+		void readJSON_planarBlock(string path, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false);
 
+		void readCableGraph(string path);
 	};
 
 }
