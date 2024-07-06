@@ -183,14 +183,8 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsMeshParameterization.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsColorSplit.h">
-      <Filter>Header Files\Geometry</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\streamlines\zTsStreamsMesh.h">
       <Filter>Header Files\Geometry\Streamlines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\configurator\zTsConfigurator.h">
-      <Filter>Header Files\Configurator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsNatPower.h">
       <Filter>Header Files</Filter>
@@ -305,17 +299,14 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\streamlines\zTsStreamsMesh.cpp">
       <Filter>Source Files\Streamlines</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsColorSplit.cpp">
-      <Filter>Source Files\Geometry</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\configurator\zTsConfigurator.cpp">
-      <Filter>Source Files\Configurator</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsNatPower.cpp">
       <Filter>Source Files\Geometry</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsMeshParameterization.cpp">
       <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\natpower\zTsNatpowerSDF.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

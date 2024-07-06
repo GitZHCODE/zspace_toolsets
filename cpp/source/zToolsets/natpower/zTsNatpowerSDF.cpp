@@ -2973,6 +2973,7 @@ namespace zSpace
 
 
 
+
 		//left mesh
 		//if (leftPlaneExists)
 		{
