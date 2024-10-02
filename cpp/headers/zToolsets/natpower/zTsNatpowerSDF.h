@@ -95,7 +95,27 @@ namespace zSpace
 			return hash1;
 		}
 	};
+	struct zPrintParamSDF
+	{
+		const float printWidthInterior = 0.048;
+		const float printWidthExterior = 0.036;
+		const float printOverlap = 0.002; //2mm overlap total
+		const float offset_outer_interior = printWidthInterior / 2.0; //total 48mm layer width
+		const float offset_outer_exterior = printWidthExterior / 2.0; //total 36mm layer width
+		const float targetInteriorGap = 0.044; //layer width - overlapping 
+		const float targetExteriorGap = 0.034; //layer width - overlapping
+		const float offset_inner_interior = (targetInteriorGap - offset_outer_interior);
+		const float offset_inner_exterior = (targetExteriorGap - offset_outer_exterior);
+		const float bracingEdgeWidth = 0.012;
+		//slots width
+		const float slotStartWidth = 0.022 / 2.0;
+		const float slotBracingWidth = 0.018 / 2.0;
+		//cable
+		const float cableWidth = 0.045;
 
+
+
+	};
 	/** \addtogroup zToolsets
 	*	\brief Collection of toolsets for applications.
 	*  @{
@@ -126,6 +146,7 @@ namespace zSpace
 
 		/*!	\brief core utilities Object  */
 		zUtilsCore core;
+		//zPrintParamSDF _printParameters;
 
 		/*!	\brief input guide mesh object  */
 		zObjMesh o_GuideMesh;
@@ -175,6 +196,7 @@ namespace zSpace
 		/// Used in the SDF and in the post-processing
 		/// </summary>
 		zObjGraphArray o_trimGraphs_bracing;
+		zObjGraphArray o_trimGraphs_bracing_flat;
 
 		/// <summary>
 		/// Used to align seam in the post-processing
@@ -498,14 +520,6 @@ namespace zSpace
 		bool isPlanarBlock();
 
 
-		/*! \brief This method computes the.
-		*
-		* 	\param		[in]	printLayerDepth				- input print layer depth.
-		*	\since version 0.0.4
-		*/
-
-		void compute_FrontBackHE(zObjGraph& graph, zItGraphHalfEdgeArray& outHeBack, zItGraphHalfEdgeArray& outHEFront);
-
 
 		///----------SLICE MESH METHODS
 
@@ -613,7 +627,10 @@ namespace zSpace
 		void compute_TrimGraphs_CableBracing_2(int graphId, zObjGraph& outGraph);
 		void compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph & outGraph_hardFeature, zObjGraph& outGraph_softFeature);
 		void compute_TrimGraphs_SlotSide(int graphId, zObjGraph& outGraph_splitGraph);
-		void compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph);
+		void compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph);		
+		
+		void compute_TrimGraphs_SlotSide(zObjGraph& sectionGraph, zObjGraph& outGraph_splitGraph);
+		void compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph);
 
 		void compute_topAndBottom(int graphId, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx);
 		void compute_topAndBottom(zObjGraph& sectionGraph, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx);
@@ -652,6 +669,7 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void compute_BlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+
 		void compute_BlockSDF_Planar_bracing(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 		void compute_BlockSDF_Planar_pentagon(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
 
@@ -734,6 +752,16 @@ namespace zSpace
 		void transformAllGraphs(int graphId, zTransform t,  bool toLocal);
 
 
+		//--------------------------
+		//---- POST-PROCESSING METHODS
+		//--------------------------
+		void cleanContourGraph(int graphId);
+		 
+
+		void scalar_getOffset(int graphId, zScalarArray& polyField, zIntArray& edgeId, zScalarArray & out_scalar_offset_outer, zScalarArray & out_scalar_offset_inner);
+
+		void graphIntersection(zObjGraph& graph, zObjGraphArray& trims, zObjGraph& outGraph);
+
 
 
 		//--------------------------
@@ -753,14 +781,9 @@ namespace zSpace
 		/// <param name="innerLength"></param>
 		void slotGraph_1(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph);
 		void splitGraph_1(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph);
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="plane"></param>
-		/// <param name="inPoly"></param>
-		/// <param name="graphLength"></param>
-		/// <param name="innerHE"></param>
 		
+		
+
 
 		/// <summary>
 		/// 
