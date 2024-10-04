@@ -449,7 +449,7 @@ namespace zSpace
 		*/
 		void computePrintBlocks(zDomainFloat &_printHeightDomain, float printLayerWidth , float raftLayerWidth, bool allSDFLayers , int & numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat _neopreneOffset = zDomainFloat(0,0),  bool compFrames = true, bool compSDF = true);
 
-		void computePrintBlocksPar(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat _neopreneOffset = zDomainFloat(0, 0), bool compFrames = true, bool compSDF = true);
+		void computePrintBlocksPar(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, bool compFrames = true, bool compSDF = true, zDomainFloat _neopreneOffset = zDomainFloat(0, 0));
 
 		/*! \brief This method computes the medial graph from input mesh.
 		*
@@ -511,6 +511,7 @@ namespace zSpace
 		void computeSDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
 
 		void computeSDFPar(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
+		void computeSDFParx(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
 
 
 		void computeSDFSingleLayer(int SDFlayersNum, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
@@ -567,6 +568,7 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void computeBlockSDF_Deck(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void computeBlockSDF_DeckPar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth, zObjMeshScalarField& field);
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -575,6 +577,7 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void computeBlockSDF_Balustrade(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void computeBlockSDF_BalustradePar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth, zObjMeshScalarField& field);
 
 
 		/*! \brief This method compute the block SDF for the balustrade.

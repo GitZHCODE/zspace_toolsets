@@ -90,8 +90,6 @@ namespace zSpace
 			robotMesh_transforms_prev.push_back(zTransform(4, 4));
 		}
 			
-		robot_base_matrix.setIdentity();
-		robot_endEffector_matrix.setIdentity();
 	}
 
 	//---- DESTRUCTOR
@@ -523,12 +521,10 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE zVector zTsRobot::inverseKinematics()
 	{
-		inReach = true;
-		// temporary J rotations
-		vector<zJointRotation> temp_rotations = jointRotations;
-
 		// compute target for joint 6
-		zTransform Target_J6 = robot_target_matrix * robot_endEffector_matrix;
+		zTransform Target_J6;
+		//Target_J6.setIdentity();
+		Target_J6 = robot_target_matrix * robot_endEffector_matrix;
 
 		//cout << "\n Target J6 \n " << Target_J6;
 
@@ -888,8 +884,32 @@ namespace zSpace
 
 		else throw std::invalid_argument(" error: invalid zFileType type");
 
-		computeFabMeshBbox();
 
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::setFabricationMeshes(zObjMeshArray& meshes)
+	{
+		o_FabricationMeshes.clear();
+		fabMeshBbox.clear();
+		o_FabricationMeshes = meshes;
+		int n = meshes.size();
+		for (int i = 0; i < n; i++)
+		{
+			zFnMesh fnMesh(o_FabricationMeshes[i]);
+			fnMesh.setTransform(fabrication_workBase);
+		}
+
+	}
+
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabricationMeshes(zObjMeshArray* meshes)
+	{
+		meshes = &o_FabricationMeshes;
+	}
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabricationWorkbase(zTransform* _workbase)
+	{
+		_workbase = &fabrication_workBase;
+	}
+	ZSPACE_TOOLSETS_INLINE void zTsRobot::getFabricationRobotHome(zTransform* _home)
+	{
+		_home = &fabrication_robotHome;
 	}
 
 

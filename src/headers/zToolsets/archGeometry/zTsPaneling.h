@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <zCore/base/zExtern.h>
+#include <headers/zCore/base/zExtern.h>
 
-#include <zInterface/functionsets/zFnMesh.h>
-#include <zInterface/functionsets/zFnGraph.h>
-#include <zInterface/functionsets/zFnParticle.h>
+#include <headers/zInterface/functionsets/zFnMesh.h>
+#include <headers/zInterface/functionsets/zFnGraph.h>
+#include <headers/zInterface/functionsets/zFnParticle.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -327,7 +327,7 @@ namespace zSpace
 #if defined(ZSPACE_STATIC_LIBRARY)  || defined(ZSPACE_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include<source/zToolsets/Geometry/zTsPaneling.cpp>
+#include<source/zToolsets/geometry/zTsPaneling.cpp>
 #endif
 
 #endif

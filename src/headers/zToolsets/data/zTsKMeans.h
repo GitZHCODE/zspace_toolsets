@@ -189,6 +189,7 @@ namespace zSpace
 		int getKMeansClusters(int& actualNumClusters, MatrixXf manualInitMeans, float tolerance = FLT_MAX);
 
 		int getKMeansClustersWithTolerance(int& actualNumClusters, initialisationMethod initMethod, int maxClusters, int seed1, int seed2 = 1);
+		int getKMeansClustersWithTolerance(int& actualNumClusters, initialisationMethod initMethod, int maxClusters, MatrixXf manualInitMeans = MatrixXf(), int seed1 = 1, int seed2 = 1);
 		int getKMeansClustersWithTolerance_2nd(int& actualNumClusters, int maxClusters, int seed1, int seed2 = 1);
 
 		int runKMeansClusters(int maxClusters, int& actualNumClusters, zFloatArray tolerance());

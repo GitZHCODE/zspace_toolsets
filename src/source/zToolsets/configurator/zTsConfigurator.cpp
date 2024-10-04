@@ -11,7 +11,7 @@
 //
 
 
-#include "zToolsets/configurator/zTsConfigurator.h"
+#include<headers/zToolsets/configurator/zTsConfigurator.h>
 
 namespace zSpace
 {
@@ -346,7 +346,7 @@ namespace zSpace
 		_type = type;
 	}
 
-	ZSPACE_INLINE void zTsConfigurator::exportTo(string& _pth, zFileType _type)
+	ZSPACE_INLINE void zTsConfigurator::exportTo(string& _pth, zFileTpye _type)
 	{
 		json allObjectsJson = json::array();
 		for (auto& obj : gameObjs)
