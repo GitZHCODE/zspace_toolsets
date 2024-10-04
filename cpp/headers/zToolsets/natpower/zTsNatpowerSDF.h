@@ -97,22 +97,37 @@ namespace zSpace
 	};
 	struct zPrintParamSDF
 	{
+	public:
 		const float printWidthInterior = 0.048;
 		const float printWidthExterior = 0.036;
 		const float printOverlap = 0.002; //2mm overlap total
-		const float offset_outer_interior = printWidthInterior / 2.0; //total 48mm layer width
-		const float offset_outer_exterior = printWidthExterior / 2.0; //total 36mm layer width
+	private:
 		const float targetInteriorGap = 0.044; //layer width - overlapping 
 		const float targetExteriorGap = 0.034; //layer width - overlapping
-		const float offset_inner_interior = (targetInteriorGap - offset_outer_interior);
-		const float offset_inner_exterior = (targetExteriorGap - offset_outer_exterior);
+	public:
+		//1st offset (exterior side and interior side)
+		const float offset_1st_interior = printWidthInterior / 2.0; //total 48mm layer width
+		const float offset_1st_exterior = printWidthExterior / 2.0; //total 36mm layer width
+
+		//2nd offset (exterior side and interior side)
+		const float offset_2nd_interior = (targetInteriorGap - offset_1st_interior);
+		const float offset_2nd_exterior = (targetExteriorGap - offset_1st_exterior);
+
+	
+
 		const float bracingEdgeWidth = 0.012;
 		//slots width
 		const float slotStartWidth = 0.022 / 2.0;
 		const float slotBracingWidth = 0.018 / 2.0;
 		//cable
 		const float cableWidth = 0.045;
-
+		//iterating offset for slots
+		const float slotIterating = 0.024;
+		//offset value for split trim graph
+		const float splitTrimOffset = offset_1st_exterior + (offset_2nd_exterior);
+		const float splitTrimTimming = offset_1st_interior + offset_2nd_interior;
+		//wall bracing - triangle offset percentage/factor of the edge length (starting from inner side)
+		const float wall_triangleOffsetFactor = 0.4;
 
 
 	};
@@ -532,11 +547,9 @@ namespace zSpace
 		* 	\param		[in]	left				- input boolean indicating if the planes for the left or right side meshes.
 		*	\since version 0.0.4
 		*/
-		void compute_SliceMesh(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left);
 
 		void compute_SliceMesh_Pentagon(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left);
 		void compute_SliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides);
-		void compute_SliceMesh_Top(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides);
 		//Slice mesh: helper methods
 
 		/*! \brief This method computes the medial graph from input mesh.
@@ -568,7 +581,7 @@ namespace zSpace
 		* 	\param		[in]	printLayerDepth				- input print layer depth.
 		*	\since version 0.0.4
 		*/
-		void compute_PrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, float raftLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, zDomainFloat _neopreneOffset = zDomainFloat(0, 0), bool compFrames = true, bool compSDF = true);
+		void compute_PrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum = 0, int numSmooth = 0, bool compFrames = true, bool compSDF = true);
 
 		//Print blocks: helper methods
 
@@ -578,7 +591,7 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 
-		void compute_PrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, zDomainFloat _neopreneOffset, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS);
+		void compute_PrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS);
 
 
 		/*! \brief This method compute the block frames.
@@ -588,7 +601,7 @@ namespace zSpace
 		*	\param		[in]	guideMesh_vertex			- input guide mesh vertex.
 		*	\since version 0.0.4
 		*/
-		void compute_PrintBlock_Frames(float printPlaneSpacing, float neopreneOffset_start, float neopreneOffset_end, bool left);
+		void compute_PrintBlock_Frames(float printPlaneSpacing, bool left, float neopreneOffset_start = 0, float neopreneOffset_end = 0);
 
 		/*! \brief This method compute the block frames.
 		*
@@ -621,10 +634,7 @@ namespace zSpace
 		void compute_PrintBlock_ComputeTrimGraphs();
 
 
-		void slotGraph_Arch(int graphId, float graphLength, zObjGraph& innerHE);
-		void compute_TrimGraphs_Boundary_Arch(int graphId, zObjGraph& outGraph);
 		void compute_TrimGraphs_BracingCable(int graphId, zObjGraph& outGraph);
-		void compute_TrimGraphs_CableBracing_2(int graphId, zObjGraph& outGraph);
 		void compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph & outGraph_hardFeature, zObjGraph& outGraph_softFeature);
 		void compute_TrimGraphs_SlotSide(int graphId, zObjGraph& outGraph_splitGraph);
 		void compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph);		
@@ -632,46 +642,38 @@ namespace zSpace
 		void compute_TrimGraphs_SlotSide(zObjGraph& sectionGraph, zObjGraph& outGraph_splitGraph);
 		void compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph);
 
-		void compute_topAndBottom(int graphId, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx);
-		void compute_topAndBottom(zObjGraph& sectionGraph, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx);
+		void util_innerOuter(zObjGraph& sectionGraph, bool addEndStart, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx);
 
 
 		//--------------------------
 		//---- UTILITY METHODS
 		//--------------------------
-		void getPerpendicularVector(zPlane& plane, zVector edgeVector, zPoint midPoint, float graphLength, zObjGraph& outGraph);
-		zVector averageVectorsAtGraphVertex(zItGraphVertex& v);
-		void combineMultipleGraphs(zObjGraphArray& inGraphs, zObjGraph& outGraph);
-		zPoint getGraphPointAtParameter(zObjGraph& inGraph, float normalizedPar, int& outEdgeIndex);
-		zPoint getPointAtParameterHalfEdge(zItGraphHalfEdge& he, float normalizedPar);
+		void util_getPerpendicularVector(zPlane& plane, zVector edgeVector, zPoint midPoint, float graphLength, zObjGraph& outGraph);
+		zVector util_averageVectorsAtGraphVertex(zItGraphVertex& v);
+		void util_combineMultipleGraphs(zObjGraphArray& inGraphs, zObjGraph& outGraph);
+		zPoint util_getGraphPointAtParameter(zObjGraph& inGraph, float normalizedPar, int& outEdgeIndex);
+		zPoint util_getPointAtParameterHalfEdge(zItGraphHalfEdge& he, float normalizedPar);
 		
-		void cleanContourGraph(zObjGraph& refGraph);
 
-		double normalise(double value, double min, double max);
-		double denormalise(double value, double min, double max);
+		double util_normalise(double value, double min, double max);
+		double util_denormalise(double value, double min, double max);
 		/*! \brief This method computes the SDF for the blocks.
 		*
 		*	\since version 0.0.4
 		*/
-		void compute_SDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth, float neopreneOffset, float raftWidth);
+		void compute_SDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth);
 
 
-		/*! \brief This method compute the block frames.
-		*
-		*	\param		[out]	outGraph						- output trim graph.
-		*	\since version 0.0.4
-		*/
-		void compute_PrintBlock_TrimGraphs(zObjGraph& inPolyObj, zObjGraph& o_outGraph, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE);
 		/*! \brief This method compute the block SDF for the deck.
 		*
 		*	\param		[in]	_block						- input block.
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void compute_BlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void compute_BlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth);
 
-		void compute_BlockSDF_Planar_bracing(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
-		void compute_BlockSDF_Planar_pentagon(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void compute_BlockSDF_Planar_regular(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth);
+		void compute_BlockSDF_Planar_pentagon(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth);
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -679,19 +681,17 @@ namespace zSpace
 		*	\param		[in]	graphId						- input index of section graph.
 		*	\since version 0.0.4
 		*/
-		void compute_BlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth, float neopreneOffset, bool addRaft, int raftId, float raftWidth);
+		void compute_BlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate);
 
-		void compute_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts, float threshold = 0.0);
-		int get_CableGraphIndexPerGraph(int graphId);
-
-		void compute_GraphEdgesForSlot_Arch();
-
-		zPoint getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh);
-		void isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints);
-		void intersect_graphPlane(zObjGraph& o_graph, zPlane& inPlane, bool closestPoint, zPointArray& outPoints, float threshold = 0.0);
+		void compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts, float threshold = 0.0);
+		int compute_cable_CableGraphIndexPerGraph(int graphId);
 
 
-		bool exportJSON(string pathCurrent, string dir, string filename, float printLyerWidth, float raftLayerWidth);
+		zPoint util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh);
+		void util_isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints);
+		void util_intersect_graphPlane(zObjGraph& o_graph, zPlane& inPlane, bool closestPoint, zPointArray& outPoints, float threshold = 0.0);
+
+
 		bool exportJSON_update(string pathCurrent, string dir);
 		bool exportJSON_sliceMesh(string pathCurrent, string dir);
 
@@ -703,10 +703,6 @@ namespace zSpace
 
 
 
-
-		void computeClosestPointToGradientMesh(zPointArray& inPoints, zIntArray& faceID, zPointArray& closestPoints);
-
-		float computeWeightedGradientValue(int& faceID, zPoint& closestPt);
 
 
 		/*! \brief This method checks the layer heights for all the blocks in the input directory.
@@ -758,7 +754,6 @@ namespace zSpace
 		void cleanContourGraph(int graphId);
 		 
 
-		void scalar_getOffset(int graphId, zScalarArray& polyField, zIntArray& edgeId, zScalarArray & out_scalar_offset_outer, zScalarArray & out_scalar_offset_inner);
 
 		void graphIntersection(zObjGraph& graph, zObjGraphArray& trims, zObjGraph& outGraph);
 
@@ -769,10 +764,8 @@ namespace zSpace
 		//--------------------------
 	protected:
 
-		zItMeshHalfEdge getStartHalfEdge(zObjMesh& o_mesh, int startVID, int endVID);
-		void createGraphFromHEArray(zItGraphHalfEdgeArray& heArray, zObjGraph& outGraph);
-		void polyTopBottomEdges(zObjGraph& inPoly, zItGraphHalfEdgeArray& topHE, zItGraphHalfEdgeArray& bottomHE, float& topLength, float& bottomLength);
-		void slotGraph_0(zObjGraph& inPoly, zObjGraph& innerHE, float& innerLength);
+		zItMeshHalfEdge util_getStartHalfEdge(zObjMesh& o_mesh, int startVID, int endVID);
+		void util_createGraphFromHEArray(zItGraphHalfEdgeArray& heArray, zObjGraph& outGraph);
 		/// <summary>
 		/// 
 		/// </summary>
@@ -781,6 +774,7 @@ namespace zSpace
 		/// <param name="innerLength"></param>
 		void slotGraph_1(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph);
 		void splitGraph_1(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph);
+		void splitGraph_world(zObjGraph& inPoly, zObjGraph& outGraph);
 		
 		
 
@@ -791,7 +785,7 @@ namespace zSpace
 		/// <param name="graph"></param>
 		/// <param name="startColor"></param>
 		/// <param name="endColor"></param>
-		bool getShortestHEsBetweenColors(zObjGraph& graph, zColor startColor, zColor endColor, zItGraphHalfEdgeArray& outHEs);
+		bool util_getShortestHEsBetweenColors(zObjGraph& graph, zColor startColor, zColor endColor, zItGraphHalfEdgeArray& outHEs);
 		/// <summary>
 		/// 
 		/// </summary>
@@ -800,34 +794,25 @@ namespace zSpace
 		/// <param name="outPoint"></param>
 		/// <param name="dist"></param>
 		/// <returns>Edge index if closest point</returns>
-		int getGraphClosestPoint(zObjGraph& graph, zPoint& samplePoint, zPoint& outPoint, float& dist);
+		int util_getGraphClosestPoint(zObjGraph& graph, zPoint& samplePoint, zPoint& outPoint, float& dist);
 
-		int getHeArrayClosestPoint(zItGraphHalfEdgeArray& hes, zPoint& samplePoint, zPoint& outPoint, float& dist);
+		int util_getHeArrayClosestPoint(zItGraphHalfEdgeArray& hes, zPoint& samplePoint, zPoint& outPoint, float& dist);
 		
 		
 		
 		
 		
-		void getScalars_3dp_slot(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset);
 
-		void getScalars_3dp_pattern(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset, bool alternate, bool alternateCheck);
-		void getScalars_3dp_pattern_2(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset, float offset2, bool alternate, bool alternateCheck);
-		void getScalars_3dp_pattern_3(zScalarArray& scalars, zObjGraph& o_sectionGraph, float offset, float offset2, bool alternate, bool alternateCheck);
-		void getScalars_3dp_patternMesh(zScalarArray& scalars, zObjGraph& o_sectionGraph, zIntArray& faceIDs, zPointArray& closestPoints, zDomainFloat& offsetDomain);
+		
 
 
-		void getScalars_3dp_brace(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset, bool alternate);
-		void getScalars_3dp_brace2(zScalarArray& scalars, zObjGraph& o_trimGraph, float outer_printWidth, float offset, bool alternate);
+		void getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots);
+		void getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray & outScalar_triangles);
 
-		void getScalars_3dp_trim(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
-		void getScalars_3dp_trimStart(zScalarArray& scalars, zObjGraph& o_trimGraph, float offset, bool alternate);
-		void getScalars_3dp_cable(zScalarArray& scalars, zPoint cablePoint, float radius);
+		void getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner);
 
 
-		void getScalars_wall_all(zScalarArray& scalars, zObjGraph& o_sectionGraph);
-
-
-		void readJSON_planarBlock(string path, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false);
+		void readJSON(string path, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false);
 		void get2DArrayFromTransform(zTransform& transform, vector<zDoubleArray>& arr);
 	};
 
