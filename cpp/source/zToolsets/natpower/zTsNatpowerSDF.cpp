@@ -2672,9 +2672,12 @@ namespace zSpace
 	{
 		//create a trim graph at each trim points. Trim points are all feature curves and corner
 		//The graph will be made by avg the two outgoing vector from the feature vertex
+
+		zPrintParamSDF _printParameters;
+
 		zPointArray posittions;
 		zIntArray eConnect;
-		float length = 0.1;
+		float length = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior + (_printParameters.printWidthInterior * 3);
 		float angleThreshold = 30;
 		float lengthTolerance = 0.05;
 		zItGraphVertexArray features_hard;
@@ -2687,16 +2690,18 @@ namespace zSpace
 		{
 
 			bool cornerByTopology = v.getColor() == _col_in_corner_st ||
-				v.getColor() == _col_out_corner_st ||
-				v.getColor() == _col_in_corner ||
-				v.getColor() == _col_out_corner;
+									v.getColor() == _col_out_corner_st ||
+									v.getColor() == _col_in_corner ||
+									v.getColor() == _col_out_corner;
+
 			bool otherFeature = v.getColor() == _col_in_feature ||
-				v.getColor() == _col_out_feature;
-			if (blockType == zBlockType::Bottom)
+								v.getColor() == _col_out_feature;
+
+			/*if (blockType == zBlockType::Bottom)
 			{
-				cornerByTopology = v.getColor() == _col_in_corner_st ||
-					v.getColor() == _col_in_corner;
-			}
+				cornerByTopology =	v.getColor() == _col_in_corner_st ||
+									v.getColor() == _col_in_corner;
+			}*/
 			if (cornerByTopology) features_hard.push_back(v);
 			else
 			{
@@ -3068,58 +3073,15 @@ namespace zSpace
 		transformAllGraphs_planar(graphId, true);
 
 		
-
-		zPoint o(t(3, 0), t(3, 1), t(3, 2));
-		zVector n(t(2, 0), t(2, 1), t(2, 2));
-
-
-
-
 		// field
 		zFnMeshScalarField fnField(o_field);
 
 
 		
-		//color the section based on the offset color
-		zItGraphHalfEdgeArray hesInterior;
-		///getShortestHEsBetweenColors(o_sectionGraphs[graphId], _colorCornersStart, _colorCornersInner, hesInterior);
-		util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_in_corner_st, _col_in_corner, hesInterior);
+		//Polygon and offset
+		zScalarArray polyField, scalar_offset_outer, scalar_offset_inner;
+		getScalars_offset(o_sectionGraphs[graphId], numSmooth, polyField, scalar_offset_outer, scalar_offset_inner);
 
-
-		// Profile polygon field
-		zScalarArray polyField;
-		zIntArray edgeId;
-		if (funcNum >= 0) fnField.getScalars_Polygon(polyField, o_sectionGraphs[graphId], edgeId, false);
-
-		zScalarArray scalar_offset_outer, scalar_offset_inner;
-
-		//create a map of edge offset based on the edgeId
-		zFloatArray outerOffsetArray, innerOffsetArray;
-		outerOffsetArray.assign(fnGraph.numEdges(), _printParameters.offset_1st_exterior);
-		innerOffsetArray.assign(fnGraph.numEdges(), _printParameters.offset_1st_exterior + _printParameters.offset_2nd_exterior);
-
-		for (zItGraphHalfEdge he : hesInterior)
-		{
-			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-		}
-
-
-		if (funcNum >= 1)
-		{
-			scalar_offset_outer = polyField;
-			scalar_offset_inner = polyField;
-			for (int sf = 0; sf < scalar_offset_outer.size(); sf++)
-			{
-				scalar_offset_outer[sf] += outerOffsetArray[edgeId[sf]];
-				scalar_offset_inner[sf] += outerOffsetArray[edgeId[sf]] + innerOffsetArray[edgeId[sf]];
-			}
-			fnField.smoothField(scalar_offset_inner, numSmooth);
-			fnField.smoothField(scalar_offset_outer, numSmooth);
-
-
-
-		}
 
 		zPlane planeXY;
 		planeXY.setIdentity();
@@ -3153,103 +3115,8 @@ namespace zSpace
 		if (funcNum >= 3)
 		{
 			
-			float cableRadius = _printParameters.cableWidth + _printParameters.bracingEdgeWidth;
-			zItGraphVertex vCenter(o_trimGraphs_bracing[graphId], 0);
-			zPoint cableCenter = vCenter.getPosition();
-
-			fnField.getScalars_Circle(scalar_cable, cableCenter, cableRadius, 0, false);
-
-			fnField.getScalarsAsEdgeDistance(scalar_cableBracing, o_trimGraphs_bracing[graphId], _printParameters.bracingEdgeWidth, false);
-
-			//get all edges except the one with the least length. Create new graph
-			//get edge of the smallest length
-			//create an array of all edges except the minimum
-			//get all edges
-
-			zItGraphEdgeArray esTemp;
-			double minLength = DBL_MAX;
-			int minIndex = -1;
-
-			for (zItGraphEdge e(o_trimGraphs_bracing[graphId]); !e.end(); e++)
-			{
-				if (e.getLength() < minLength)
-				{
-					minLength = e.getLength();
-					minIndex = e.getId();
-				}
-				esTemp.push_back(e);
-			}
-			//if (minIndex < esTemp.size()) esTemp.erase(esTemp.begin() + minIndex); // Erase element at index
-			if (minIndex < esTemp.size()) esTemp.erase(esTemp.begin() + 2); // Erase element at index
-
-			//get HE array for each edge in one direction. following the edge connectivity 
-			zItGraphHalfEdgeArray hesTemp, hesTemp2;
-			//zBoolArray isCableEdge;
-			for (zItGraphEdge e : esTemp)
-			{
-				zItGraphVertexArray vs;
-				e.getVertices(vs);
-				int ind = e.getHalfEdge(0).getStartVertex().getId() == vs[0].getId() ? 1 : 0;
-				hesTemp.push_back(e.getHalfEdge(ind));
-				//isCableEdge.push_back(e.getHalfEdge(ind).getStartVertex().getPosition() == vCenter.getPosition());
-			}
-			
-
-			//zItGraphHalfEdgeArray hesTemp;
-			//vCenter.getConnectedHalfEdges(hesTemp);
-			//int minIndex = -1;
-			//double minLength = DBL_MAX;
-			//for (int sf = 0; sf < hesTemp.size(); sf++)
-			//{
-			//	if (hesTemp[sf].getLength() < minLength)
-			//	{
-			//		minLength = hesTemp[sf].getLength();
-			//		minIndex = sf;
-			//	}
-			//}
-			//if (minIndex < hesTemp.size()) hesTemp.erase(hesTemp.begin() + minIndex); // Erase element at index
-
-			zObjGraph cableBracingSlots;
-			zObjGraphArray cableBracingSlotsArray;
-			cableBracingSlotsArray.assign(hesTemp.size(), zObjGraph());
-			int counter = 0;
-			for (zItGraphHalfEdge& he : hesTemp)
-			{
-				bool isCableEdge = he.getStartVertex().getPosition() == vCenter.getPosition() || he.getVertex().getPosition() == vCenter.getPosition();
-				//float slotOffset = counter < hesTemp.size()-1 ? cableRadius + (bracingEdgeWidth * 4) : (he.getLength()/2.0) + (bracingEdgeWidth * 4);
-				//float slotOffset = isCableEdge? cableRadius + (pWidth/2.0) : (he.getLength() / 2.0) + (bracingEdgeWidth * 4);
-				float slotOffset = isCableEdge? (he.getLength()- cableRadius)/2.0 : (he.getLength() / 2.0) + (_printParameters.bracingEdgeWidth * 4);
-				//if (graphId % 2 == 0) slotOffset += (bracingEdgeWidth * 2);
-				
-				if (graphId % 2 == 0) slotOffset += pWidth/2.0;
-				zVector vec = he.getVector();
-				vec.normalize();
-				vec *= slotOffset;
-				zPoint midP = he.getStartVertex().getPosition() + vec;
-
-				
-
-				//getPerpendicularVector(sectionFrames[graphId], vec, midP, bracingEdgeWidth * 2, cableBracingSlotsArray[counter]);
-				util_getPerpendicularVector(planeXY, vec, midP, _printParameters.bracingEdgeWidth * 2, cableBracingSlotsArray[counter]);
-
-				counter++;
-
-			}
-			util_combineMultipleGraphs(cableBracingSlotsArray, cableBracingSlots);
-
-			fnField.getScalarsAsEdgeDistance(scalar_cableBracingSlots, cableBracingSlots, _printParameters.slotBracingWidth, false);
-
-			fnField.boolean_union(scalar_cable, scalar_cableBracing, scalar_cableBoolean, false);
-
-			fnField.boolean_subtract(scalar_cableBoolean, scalar_cableBracingSlots, scalar_interiorBracing, false);
-
-
-			//SHOULD BE REMOVED - TESTING ONLY
-			//fnField.boolean_subtract(scalar_cableBracing, scalar_cableBracingSlots, scalar_interiorBracing, false);
-
-			//scalar_interiorBracing = scalar_cableBracing;
-
-
+			getScalars_3dp_cable_bracing(o_sectionGraphs[graphId], o_trimGraphs_bracing[graphId], graphId % 2 == 0, scalar_cableBracingSlots,
+				scalar_cableBracing, scalar_interiorBracing);
 		}
 		
 		//fnField.smoothField(scalar_offset_inner, numSmooth);
@@ -4267,7 +4134,8 @@ namespace zSpace
 				zFnPointCloud fnCritical_min(criticalMinLayer_pts);
 				zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
 
-
+				int minHeight = FLT_MAX;
+				int maxHeight = FLT_MIN;
 
 
 				for (int m = 0; m < o_sectionGraphs.size(); m++)
@@ -4300,13 +4168,19 @@ namespace zSpace
 
 
 					//iterate throught the print width and check for all criticcal points bellow or above maximum printDomain
+					
 					for (int h = 0; h < pHeights.size(); h++)
 					{
 						if (pHeights[h] < printHeightDomain.min)fnCritical_min.addPosition(secPts[h]);
 						if (pHeights[h] > printHeightDomain.max)fnCritical_max.addPosition(secPts[h]);
+					
+						if (pHeights[h] < minHeight) minHeight = pHeights[h];
+						if (pHeights[h] > maxHeight) maxHeight = pHeights[h];
+						
 					}
 				}
-
+				actualPrintHeightDomain.min = minHeight;
+				actualPrintHeightDomain.max = maxHeight;
 
 			}
 
@@ -5285,7 +5159,8 @@ namespace zSpace
 
 
 
-		float cableRadius = _printParameters.cableWidth + _printParameters.bracingEdgeWidth;
+		float cableRadius_offset = _printParameters.cableWidth + (_printParameters.bracingEdgeWidth*2);
+		float cableRadius = _printParameters.cableWidth;
 		zItGraphVertex vCenter(bracingGraph, 0);
 		zPoint cableCenter = vCenter.getPosition();
 
@@ -5336,12 +5211,13 @@ namespace zSpace
 			bool isCableEdge = he.getStartVertex().getPosition() == vCenter.getPosition() || he.getVertex().getPosition() == vCenter.getPosition();
 			
 			float edgeStartLength = (he.getLength() - _printParameters.offset_1st_interior - _printParameters.offset_2nd_interior);
-			float cableoffset = (edgeStartLength - cableRadius) / 2.0;
+			float cableoffset = (edgeStartLength - cableRadius_offset) / 2.0;
 			float bracingOffset = (edgeStartLength - _printParameters.bracingEdgeWidth) / 2.0;
 			float slotOffset = isCableEdge ? cableoffset : bracingOffset;
 			//if (graphId % 2 == 0) slotOffset += (bracingEdgeWidth * 2);
 
 			if (iterateChk) slotOffset += _printParameters.slotIterating;
+
 			zVector vec = he.getVector();
 			vec.normalize();
 			vec *= slotOffset;
