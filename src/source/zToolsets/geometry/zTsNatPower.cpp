@@ -11,7 +11,7 @@
 //
 
 
-#include<headers/zToolsets/geometry/zTsNatPower.h>
+#include "zToolsets/geometry/zTsNatPower.h"
 
 namespace zSpace
 {

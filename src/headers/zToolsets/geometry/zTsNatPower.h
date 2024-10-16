@@ -14,13 +14,13 @@
 #define ZSPACE_TS_GEOMETRY_NATPOWER_H
 
 #pragma once
-#include <headers/base/zSpace_Toolsets.h>
+#include "base/zSpace_Toolsets.h"
 
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zApp/include/zFnSets.h>
-#include <headers/zInterOp/functionSets/zFnPlane.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zApp/include/zFnSets.h>
+#include <zInterOp/functionSets/zFnPlane.h>
 
-#include <headers/zInterOp/functionSets/zFnNurbsCurve.h>
+//#include <zInterOp/functionSets/zFnNurbsCurve.h>
 
 #include <cmath>
 

@@ -14,9 +14,9 @@
 #define ZSPACE_TS_CONFIGURATOR_H
 
 #pragma once
-#include <headers/zInterface/functionsets/zFnMesh.h>
-#include <headers/zApp/include/zFnSets.h>
-#include<headers/zToolsets/geometry/zTsColorSplit.h>
+#include <zInterface/functionsets/zFnMesh.h>
+#include <zApp/include/zFnSets.h>
+#include <zToolsets/geometry/zTsColorSplit.h>
 
 
 namespace zSpace
@@ -226,7 +226,7 @@ namespace zSpace
 		*	\param		[in]	_type	- export file type.
 		*	\since version 0.0.2
 		*/
-		void exportTo(string& _pth, zFileTpye _type = zJSON);
+		void exportTo(string& _pth, zFileType _type = zJSON);
 
 		void to_json(json& j, const zTransform& t);
 

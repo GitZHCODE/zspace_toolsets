@@ -67,8 +67,6 @@ project "zSpace_Toolsets"
         "NOMINMAX",
     }
 
-    characterset("MBCS")
-
     pchheader "zToolsets/ztoolsetspch.h"
     pchsource "src/source/zToolsets/ztoolsetspch.cpp"
     rawforceincludes "zToolsets/ztoolsetspch.h"
@@ -86,7 +84,7 @@ project "zSpace_Toolsets"
     removefiles {"**backup*.cpp"}
 
     --Exclude From Build
-    filter {"files:**SDFSlicer*.* or **KMeans*.* or **OSM*.* or **RobotFab*.* or **Polyhedra*.* or **Mesh2Pix*.* or **Paneling*.* or **Remesh*.* or **SDFBridge*.* or **Spectral*.* or **VariableExtrude*.* or **/pathNetworks/** or **Spatial*.* or **TopOpt*.*"}
+    filter {"files:**SDFSlicer*.* or **KMeans*.* or **OSM*.* or **Configurator*.* or **Robot*.* or **Polyhedra*.* or **Mesh2Pix*.* or **Paneling*.* or **Remesh*.* or **SDFBridge*.* or **Spectral*.* or **VariableExtrude*.* or **/pathNetworks/** or **Spatial*.* or **TopOpt*.* or **NatPower.*"}
         flags {"ExcludeFromBuild"}
     filter {}
 
@@ -111,6 +109,7 @@ project "zSpace_Toolsets"
         "igl.lib",
         "zSpace_Core.lib",
         "zSpace_Interface.lib",
+        "zSpace_InterOp.lib"
     }
     --##############
 
@@ -133,3 +132,30 @@ project "zSpace_Toolsets"
         -- Add omniverse links
         links {get_omniverse_links()}
     --###################
+
+    --###__RHINO__###
+    filter {"platforms:Rhino or Both"}
+
+        includedirs
+        {
+            "%{rhino_dir}/inc"
+        }
+
+        libdirs
+        {
+            "%{rhino_dir}/lib/Release"
+        }
+
+        delayloaddlls
+        {
+            "opennurbs.dll",
+            "RhinoCore.dll",
+            "RhinoLibrary.dll",
+        }
+
+        links
+        {
+            "opennurbs.lib",
+            "RhinoCore.lib",
+            "RhinoLibrary.lib", --This lib should be in Rhino 7 SDK, if it's not ask Vishu
+        }
