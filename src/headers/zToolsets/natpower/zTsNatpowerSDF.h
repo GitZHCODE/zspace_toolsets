@@ -123,6 +123,9 @@ namespace zSpace
 		const float cableWidth = 0.045;
 		//iterating offset for slots
 		const float slotIterating = 0.024;
+		//slot start point from the edge (a specific color is set in the method)
+		const float slotStart = offset_1st_interior + offset_2nd_interior  +(printWidthInterior * 2);
+		//const float slotStart = offset_1st_interior + 0.024;// +(printWidthInterior);
 		//offset value for split trim graph
 		const float splitTrimOffset = offset_1st_exterior + (offset_2nd_exterior);
 		const float splitTrimTimming = offset_1st_interior + offset_2nd_interior;
@@ -725,7 +728,7 @@ namespace zSpace
 		void setPtMesh(zObjMesh& o_Mesh, zPoint& refPt, bool setX, bool setY, bool setZ);
 		void getBoundaryOffset(zObjMesh& _oMesh, bool keepExistingFaces, float offset, zObjMesh& outMesh);
 		void closestPointsToMesh(zPointArray& inPoints, zObjMesh oMesh, zIntArray& faceIDs, zPointArray& closestPoints, zVectorArray& printNorms);
-		void getPrintHeight(zPointArray& pPoints, zVectorArray& pNorms, zObjMesh& o_Mesh, zFloatArray pHeights, zObjGraph& outPrintHeightLines);
+		void getPrintHeight(zPointArray& pPoints, zVectorArray& pNorms, zObjMesh& o_Mesh, zFloatArray& pHeights, zObjGraph& outPrintHeightLines);
 		void projectToMesh(zPointArray& pPoints, zObjMesh& o_Mesh, zPointArray& updatePts, zVectorArray& pNorm);
 		void UVParametrisation(zObjMesh& oMesh, zObjMesh& oParamMesh); 
 		void getBaryCentricCoordinates_triangle(zPoint& pt, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& baryCoordinates);
@@ -772,9 +775,9 @@ namespace zSpace
 		/// <param name="inPoly"></param>
 		/// <param name="innerHE"></param>
 		/// <param name="innerLength"></param>
-		void slotGraph_1(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph);
-		void splitGraph_1(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph);
-		void splitGraph_world(zObjGraph& inPoly, zObjGraph& outGraph);
+		void util_computeSlotGraph(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph);
+		void util_computeSplitGraph_plane(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph);
+		void util_computeSplitGraph_xy(zObjGraph& inPoly, zObjGraph& outGraph);
 		
 		
 
@@ -806,6 +809,7 @@ namespace zSpace
 		
 
 
+		void getScalars_3dp_cable_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, bool iterateChk, zScalarArray& scalar_cableBracingSlots, zScalarArray& scalar_cableBracing, zScalarArray& scalar_interiorBracing);
 		void getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots);
 		void getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray & outScalar_triangles);
 
