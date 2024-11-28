@@ -124,7 +124,8 @@ namespace zSpace
 		//iterating offset for slots
 		const float slotIterating = 0.024;
 		//slot start point from the edge (a specific color is set in the method)
-		const float slotStart = offset_1st_interior + offset_2nd_interior  +(printWidthInterior * 2);
+		//const float slotStart = offset_1st_interior + offset_2nd_interior  +(printWidthInterior * 2);
+		const float slotStart = 0.5;
 		//const float slotStart = offset_1st_interior + 0.024;// +(printWidthInterior);
 		//offset value for split trim graph
 		const float splitTrimOffset = offset_1st_exterior + (offset_2nd_exterior);

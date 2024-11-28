@@ -11,7 +11,7 @@
 // Author : Heba Eiz <heba.eiz@zaha-hadid.com>
 //
 
-#include <limits>
+
 #include "zToolsets/natpower/zTsNatpowerSDF.h"
 
 namespace zSpace
@@ -1393,7 +1393,7 @@ namespace zSpace
 				{
 					break;
 				}
-				safetyCounter++;
+				//counter++;
 			}
 		}
 
@@ -1618,9 +1618,6 @@ namespace zSpace
 		sdfCHECKS = true;
 
 		printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
-
-		neopreneOffset.min = 0.0f;
-		neopreneOffset.max = 0.0f;
 
 		sectionFrames.clear();
 		compute_PrintBlock_Frames(printPlaneSpacing, true, neopreneOffset.min, neopreneOffset.max);
@@ -2448,52 +2445,7 @@ namespace zSpace
 		{
 			zPoint p;
 			float d;
-			int half_edge_index = util_getHeArrayClosestPoint(hes0, cablePoint, p, d);
-
-			zObjGraph graph;
-			zItGraphVertexArray valence1vertices;
-			util_createGraphFromHEArray(hes0, graph);
-
-			for (zItGraphVertex v(graph); !v.end(); v++)
-			{
-				if (!v.checkValency(1))
-				{
-					valence1vertices.push_back(v);
-				}
-			}
-
-			//Stop if this is wrong
-			if (valence1vertices.size() != 2)
-				__debugbreak();
-
-			size_t closest_index = 0;
-			float current_distance = 0.0f;
-			float min_distance = std::numeric_limits<float>::max();
-
-			//Get distances
-			for (size_t i = 0; i < 2u; ++i) 
-			{
-				current_distance = p.distanceTo(valence1vertices[i].getPosition());
-
-				if (current_distance < min_distance)
-				{
-					min_distance = current_distance;
-					closest_index = i;
-				}
-			}
-
-			//Check if distance under threshold	
-
-
-			//get all graph points with valence of 1
-			//check the distance between p and points (should only have 2 points)
-			//get the smallest one of the two
-			//if the smallest one is less that threshold
-			//evaluate the graph at the threshold distance from the chosen point | util_getGraphPointAtParameter()
-			//use that as p 
-
-
-
+			util_getHeArrayClosestPoint(hes0, cablePoint, p, d);
 			if (blockType == zBlockType::Bottom)
 			{
 				zObjGraph tg;
@@ -2725,7 +2677,7 @@ namespace zSpace
 
 		zPointArray posittions;
 		zIntArray eConnect;
-		float length = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior + (_printParameters.printWidthInterior * 3);
+		float length = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior + (_printParameters.printWidthInterior * 4.5);
 		float angleThreshold = 30;
 		float lengthTolerance = 0.05;
 		zItGraphVertexArray features_hard;
@@ -2733,6 +2685,7 @@ namespace zSpace
 		//check if there is another point that has already been added within the tolerance
 		//check the next vertex, if it is within the same tolerance, combine the two together and skip the next vertex
 		//To do that, probably since we don't know if there are some points in between, better to iterate through all the vertices first, and then oterate through the ones that passes that check.
+
 
 		for (zItGraphVertex v(o_sectionGraphs[graphId]); !v.end(); v++)
 		{
@@ -2755,12 +2708,6 @@ namespace zSpace
 			{
 				zItGraphHalfEdgeArray hes;
 				v.getConnectedHalfEdges(hes);
-				if (hes.size() < 2)
-				{
-					printf("\n trimGraph hes size %i", hes.size());
-
-					continue;
-				}
 				zVector v0 = hes[0].getVector();
 				zVector v1 = hes[1].getVector();
 				v0.normalize();
@@ -2802,6 +2749,7 @@ namespace zSpace
 			}
 
 			result *= length;
+
 			zPoint p0 = pt + result;
 			zPoint p1 = pt - result;
 			posittions.push_back(p0);
@@ -3024,6 +2972,7 @@ namespace zSpace
 		if (innerVertx.size() != outerVertx.size())
 		{
 			printf("\n ERROR!  inner and outer vertices are not the same size! inner | outer  %i | %i", innerVertx.size(), outerVertx.size());
+			__debugbreak();
 			return;
 		}
 
@@ -3961,7 +3910,6 @@ namespace zSpace
 
 		return true;
 	}
-
 	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_graphID_contours(string folderName, string extName, int graphId)
 	{
 		zFnGraph fnGraph(o_contourGraphs[graphId]);
@@ -4923,7 +4871,8 @@ namespace zSpace
 
 		//}
 		
-		startV += (edgeVector * ptOffset);
+		//startV += (edgeVector * ptOffset);
+		startV += (edgeVector * edgeLength * ptOffset);
 
 		util_getPerpendicularVector(plane, edgeVector, startV, graphLength * 2, outGraph);
 
@@ -5085,6 +5034,7 @@ namespace zSpace
 		vector<zItGraphHalfEdgeArray> tempHEsArray;
 		zFloatArray lengths;
 		zFnGraph fng(graph);
+
 		for (zItGraphVertex v(graph); !v.end(); v++)
 		{
 			if (v.getColor() == startColor)
@@ -5107,12 +5057,13 @@ namespace zSpace
 						if (he.getVertex().getColor() == endColor) break;
 						he = he.getNext();
 						safetyCounter++;
-
 					}
-					/*if (safetyCounter >= fng.numEdges())
-					{
-						printf("\n heColor was not found");
-					}*/
+
+					//if (safetyCounter >= fng.numEdges())
+					//{
+					//	printf("\n heColor was not found");
+					//}
+
 					tempHEsArray.push_back(innerHE);
 					lengths.push_back(length);
 					//printf("\n slotGraph_Arch index-size %i | %i", innerHEs.size(), innerHE.size());
@@ -5125,6 +5076,7 @@ namespace zSpace
 			printf("\n getShotestHEsBetweenColors no tempHEsArray found! RETURN");
 			return false;
 		}
+
 		int index = 0;
 		int minCount = INT_MAX;
 		float minLength = FLT_MAX;
@@ -6760,7 +6712,7 @@ namespace zSpace
 		for (int l = 0; l < oTmpMeshes.size(); l++)
 		{
 			float threshold = l * increments;
-		//	printf("\n threshold %1.4f ", threshold);
+			printf("\n threshold %1.4f ", threshold);
 
 			zFnMesh fnMesh(oTmpMeshes[l]);
 			zPoint* points = fnMesh.getRawVertexPositions();
