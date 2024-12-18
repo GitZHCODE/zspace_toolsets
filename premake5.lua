@@ -159,3 +159,12 @@ project "zSpace_Toolsets"
             "RhinoCore.lib",
             "RhinoLibrary.lib", --This lib should be in Rhino 7 SDK, if it's not ask Vishu
         }
+
+    filter{}
+
+    postbuildcommands
+    {
+        "{COPYFILE} %{!cfg.targetdir}/zSpace_Toolsets.dll %{wks.location}%{exe_path}\\%{zSpace_Libs_Folder}\\zSpace_Toolsets.dll"
+    }
+    --###############
+

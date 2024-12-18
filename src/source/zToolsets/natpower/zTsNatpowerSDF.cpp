@@ -1582,7 +1582,9 @@ namespace zSpace
 				computeGeodesicScalars(o_SliceMesh_Left, vLoops, scalars, true);
 
 				o_sectionMeshes.clear();
-				computeGeodesicContours(vLoops, scalars, 0.01, oMesh_top, oMesh_bottom, o_sectionMeshes);;
+
+		 //Layer height
+				computeGeodesicContours(vLoops, scalars, 0.0085, oMesh_top, oMesh_bottom, o_sectionMeshes);;
 				createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
 				o_sectionMeshesPar.clear();
 				o_sectionMeshesPar.assign(o_sectionMeshes.size(), zObjMesh());
@@ -2405,10 +2407,6 @@ namespace zSpace
 			
 
 			util_combineMultipleGraphs(allTrimGraphs, o_trimGraphs[i]);
-
-
-
-
 		}
 		printf("\n trims finished");
 
@@ -3611,12 +3609,11 @@ namespace zSpace
 		unrollMesh(o_projectionMesh, oUnrolledMesh, oDualGraph, oriVertex_UnrollVertex_map, oriFaceVertex_UnrollVertex, bsf_vertexPairs, newFrame);
 		mergeMesh(oUnrolledMesh);
 
+
 		zObjGraph oFlatGraph;// = o_sectionGraphs[graphId];
 		//setPtGraph(oFlatGraph, refPt, false, false, true);
 
 		createBoundaryEdgeGraph(oUnrolledMesh, true, oFlatGraph);
-
-
 
 		//sectionFrames[graphId] = newFrame;
 		zTransform t = newFrame;
@@ -5559,6 +5556,7 @@ namespace zSpace
 
 		zItMeshHalfEdge he;
 
+		//Find boundary edge
 		for (zItMeshHalfEdge tmpHE(o_mesh); !tmpHE.end(); tmpHE++)
 		{
 			if (tmpHE.onBoundary())
@@ -6385,9 +6383,8 @@ namespace zSpace
 		// breadth search first sorting
 
 		v_MaxValence.getBSF(bsf_Vertices, bsf_vertexPairs);
-
-
 	}
+
 	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::mergeMesh(zObjMesh& o_mesh)
 	{
 		zObjMesh oTmpMesh = o_mesh;
@@ -6396,19 +6393,36 @@ namespace zSpace
 		zIntArray pCounts, pConnects;
 		zColorArray colors;
 
+		//For every face
 		for (zItMeshFace f(o_mesh); !f.end(); f++)
 		{
 			zPointArray fVPositions;
 			f.getVertexPositions(fVPositions);
 			zItMeshVertexArray fVertices;
 			f.getVertices(fVertices);
+
+			float avg_edge_length_square = 0;
+			//Find Avg Edge Length
+			for (int i = 0; i < fVPositions.size()-1; i+=2)
+			{
+				avg_edge_length_square += (fVPositions[i] - fVPositions[i + 1]).length2();
+			}
+			//Add last one
+			avg_edge_length_square += (fVPositions[fVPositions.size() - 1] - fVPositions[0]).length2();
+
+			//Get Avg
+			avg_edge_length_square /= fVPositions.size();
+
+			//Iterate over the vertices of that face
 			for (auto& p : fVertices)
 			{
-
 				int id = -1;
 				zPoint pPos = p.getPosition();
-				if (!core.checkRepeatVector(pPos, positions, id, 2))
+
+				//Check if the position is duplicated 
+				if (!core.FindDuplicateVector(pPos, positions, id, avg_edge_length_square * 0.02))
 				{
+					//If unique add to positions
 					id = positions.size();
 					positions.push_back(p.getPosition());
 					colors.push_back(p.getColor());
@@ -6418,15 +6432,14 @@ namespace zSpace
 			}
 
 			pCounts.push_back(fVPositions.size());
-
 		}
 
 		zFnMesh fnMesh(o_mesh);
 		fnMesh.clear();
 		fnMesh.create(positions, pCounts, pConnects);
 		fnMesh.setVertexColors(colors);
-
 	}
+
 	ZSPACE_TOOLSETS_INLINE zIntPair zTsNatpowerSDF::getCommonEdge(zItMeshFace& f1, zItMeshFace& f2)
 	{
 		zIntPair out;

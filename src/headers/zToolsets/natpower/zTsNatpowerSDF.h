@@ -131,7 +131,7 @@ namespace zSpace
 		const float splitTrimOffset = offset_1st_exterior + (offset_2nd_exterior);
 		const float splitTrimTimming = offset_1st_interior + offset_2nd_interior;
 		//wall bracing - triangle offset percentage/factor of the edge length (starting from inner side)
-		const float wall_triangleOffsetFactor = 0.4;
+		const float wall_triangleOffsetFactor = 0.3;
 
 
 	};
