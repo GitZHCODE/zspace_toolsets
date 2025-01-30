@@ -12,7 +12,6 @@
 //
 
 #ifndef ZSPACE_TS_NATPOWER_SDF_H
-#define ZSPACE_TS_NATPOWER_SDF_H
 
 
 
@@ -99,7 +98,7 @@ namespace zSpace
 	{
 	public:
 		const float printWidthInterior = 0.048;
-		const float printWidthExterior = 0.036;
+		const float printWidthExterior = 0.024;
 		const float printOverlap = 0.002; //2mm overlap total
 	private:
 		const float targetInteriorGap = 0.044; //layer width - overlapping 
@@ -113,16 +112,18 @@ namespace zSpace
 		const float offset_2nd_interior = (targetInteriorGap - offset_1st_interior);
 		const float offset_2nd_exterior = (targetExteriorGap - offset_1st_exterior);
 
-	
+		const float bracingEdgeWidth = 0.011;//(printWidthExterior - printOverlap)/2.0f;
+		const float bracingEdgeSlotWidth = 0.0075; // 15mm gap
 
-		const float bracingEdgeWidth = 0.012;
+		const int horiz_bracing_num = 2;
+
 		//slots width
-		const float slotStartWidth = 0.022 / 2.0;
-		const float slotBracingWidth = 0.018 / 2.0;
+		const float slotStartWidth = 0.044 / 2.0;
+		const float slotBracingWidth = 0.022 / 2.0;
 		//cable
-		const float cableWidth = 0.045;
+		const float cableWidth = 0.07;
 		//iterating offset for slots
-		const float slotIterating = 0.024;
+		const float slotIterating = 0.06;
 		//slot start point from the edge (a specific color is set in the method)
 		//const float slotStart = offset_1st_interior + offset_2nd_interior  +(printWidthInterior * 2);
 		const float slotStart = 0.5;
@@ -216,6 +217,7 @@ namespace zSpace
 		/// </summary>
 		zObjGraphArray o_trimGraphs_bracing;
 		zObjGraphArray o_trimGraphs_bracing_flat;
+		zObjGraphArray o_trimGraphs_bracing_slots;
 
 		/// <summary>
 		/// Used to align seam in the post-processing
@@ -229,6 +231,14 @@ namespace zSpace
 		zObjMeshArray o_sectionMeshes;
 		zObjMeshArray o_sectionMeshesPar;
 
+		//DEBUG
+		zObjGraph o_debug_sectiongraph;
+		zObjGraph o_debug_slotgraph;
+		zObjGraph o_debug_splitgraph;
+		zObjGraph o_debug_bracinggraph;
+		zObjGraph o_debug_bracingslotsgraph;
+		zObjGraph o_debug_trims;
+		zObjGraph o_debug_cutout;
 
 		zObjGraphArray o_CableGraphs;
 
@@ -239,7 +249,6 @@ namespace zSpace
 		bool checkMagentas = true;
 
 		int runningType = 0; //< 0 running both planes, 1 running left planes only, 2 running right planes only
-
 
 		vector<zVectorArray> o_contourNormals;
 
@@ -305,6 +314,7 @@ namespace zSpace
 		bool isCorner;
 		bool isRegular;
 		bool isFront;
+		bool isCableBlock = false;
 
 		int StartCornerVID = -1;
 		bool _interpolateFramesOrigins = false;
@@ -605,7 +615,7 @@ namespace zSpace
 		*	\param		[in]	guideMesh_vertex			- input guide mesh vertex.
 		*	\since version 0.0.4
 		*/
-		void compute_PrintBlock_Frames(float printPlaneSpacing, bool left, float neopreneOffset_start = 0, float neopreneOffset_end = 0);
+		void compute_PrintBlock_Frames(float printPlaneSpacing, bool left, float neopreneOffset_start = 0.0f, float neopreneOffset_end = 0.0f);
 
 		/*! \brief This method compute the block frames.
 		*
@@ -690,6 +700,7 @@ namespace zSpace
 		void compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts, float threshold = 0.0);
 		int compute_cable_CableGraphIndexPerGraph(int graphId);
 
+		void compute_cutout(zObjGraph& section_graph, zObjGraph& bracing_trims, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield);
 
 		zPoint util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh);
 		void util_isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints);
@@ -779,6 +790,7 @@ namespace zSpace
 		void util_computeSlotGraph(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph);
 		void util_computeSplitGraph_plane(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph);
 		void util_computeSplitGraph_xy(zObjGraph& inPoly, zObjGraph& outGraph);
+		void util_computeSplitGraph_corner(zObjGraph& inPoly, zPoint& startV, zPoint& endV, zObjGraph& outGraph);
 		
 		
 
@@ -802,22 +814,17 @@ namespace zSpace
 
 		int util_getHeArrayClosestPoint(zItGraphHalfEdgeArray& hes, zPoint& samplePoint, zPoint& outPoint, float& dist);
 		
-		
-		
-		
-		
-
-		
+		void util_getHEsColorLen(zObjGraph& graph, zColor& startCol, zColor& endCol, float len, zItGraphHalfEdgeArray& out);
 
 
-		void getScalars_3dp_cable_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, bool iterateChk, zScalarArray& scalar_cableBracingSlots, zScalarArray& scalar_cableBracing, zScalarArray& scalar_interiorBracing);
+		void getScalars_3dp_cable_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracingSlotsGraph, bool iterateChk, zScalarArray& scalar_cableBracingSlots, zScalarArray& scalar_cableBracing, zScalarArray& scalar_interiorBracing);
 		void getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots);
 		void getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray & outScalar_triangles);
 
 		void getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner);
 
 
-		void readJSON(string path, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false);
+		void readJSON(string path, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false, bool flip = false);
 		void get2DArrayFromTransform(zTransform& transform, vector<zDoubleArray>& arr);
 	};
 
