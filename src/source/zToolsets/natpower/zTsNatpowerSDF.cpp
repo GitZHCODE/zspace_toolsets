@@ -1589,7 +1589,7 @@ namespace zSpace
 				o_sectionMeshes.clear();
 
 		 //Layer height
-				computeGeodesicContours(vLoops, scalars, 0.01, oMesh_top, oMesh_bottom, o_sectionMeshes);;
+				computeGeodesicContours(vLoops, scalars, 0.008, oMesh_top, oMesh_bottom, o_sectionMeshes);;
 				createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
 				o_sectionMeshesPar.clear();
 				o_sectionMeshesPar.assign(o_sectionMeshes.size(), zObjMesh());
@@ -3238,7 +3238,7 @@ namespace zSpace
 		float graphLength = (_printParameters.offset_1st_interior + _printParameters.offset_2nd_interior + _printParameters.printWidthInterior + _printParameters.bracingEdgeWidth);
 
 		// Outer slot
-		util_computeSlotGraph(planeXY, o_sectionGraphs[graphId], graphLength,graphId %2 == 0 , slotGraph);
+		util_computeSlotGraph(planeXY, o_sectionGraphs[graphId], graphLength, graphId % 2 == 0, slotGraph);
 		//splitGraph_1(planeXY, o_sectionGraphs[graphId], _printParameters.offset_2nd_exterior, pWidth*1.5, splitGraph);
 		util_computeSplitGraph_xy(o_sectionGraphs[graphId], splitGraph);
 
@@ -4031,17 +4031,7 @@ namespace zSpace
 		zObjGraph o_trimGraphs_slotSide_flat;
 		compute_TrimGraphs_SlotSide(oFlatGraph, o_trimGraphs_slotSide_flat);
 
-
-
-
-
 		zFnMeshScalarField fnField(o_field);
-
-
-
-
-		
-
 
 		zFnGraph fnGraph(oFlatGraph);
 		zPoint o(t(3, 0), t(3, 1), t(3, 2));
@@ -4050,9 +4040,6 @@ namespace zSpace
 		//Polygon and offset
 		zScalarArray polyField, scalar_offset_outer, scalar_offset_inner;
 		getScalars_offset(oFlatGraph, numSmooth, polyField, scalar_offset_outer, scalar_offset_inner);
-
-
-		
 		
 		zPlane planeXY;
 		planeXY.setIdentity();
@@ -4097,8 +4084,6 @@ namespace zSpace
 			if (numSmooth > 0) fnField.smoothField(scalar_boolean_trianglesInner, numSmooth); // smooth field
 			fnField.boolean_subtract(scalar_boolean_trianglesInner, scalar_interiorBracing, booleanField_0, false);
 		}
-
-
 
 		zScalarArray booleanField_1;
 		if (funcNum >= 5) fnField.boolean_subtract(scalar_offset_outer, booleanField_0, booleanField_1, false);
@@ -4169,27 +4154,66 @@ namespace zSpace
 		//project contour back to section mesh
 		barycentericProjection_triMesh(o_contourGraphs[graphId], oUnrolledMesh, o_projectionMesh, pNorms);
 
-		//project splitGraph back to section mesh
-		barycentericProjection_triMesh(splitGraph, oUnrolledMesh, o_projectionMesh, pNormsTemp);
-		o_trimGraphs_SlotSide[graphId] = splitGraph;
+		auto project_slot = [this](zObjGraph& graph, zObjMesh& inMesh, zObjMesh& projMesh)
+		{
+			zFnGraph fnGraph(graph);
 
+			zPointArray positions;
+			fnGraph.getVertexPositions(positions);
+
+			bool done = false;
+
+			for (int i = 0; i < 2; ++i)
+			{
+				zPoint& pos = positions[i];
+
+				for (zItMeshFace face(inMesh); !face.end(); face++)
+				{
+					zPointArray fVerts;
+					face.getVertexPositions(fVerts);
+					if (core.pointInTriangle(pos, fVerts[0], fVerts[1], fVerts[2]))
+					{
+						zPoint pos1_bary, pos2_bary;
+						getBaryCentricCoordinates_triangle(pos, fVerts[0], fVerts[1], fVerts[2], pos1_bary);
+						getBaryCentricCoordinates_triangle(positions[i^1], fVerts[0], fVerts[1], fVerts[2], pos2_bary);
+
+						zItMeshFace fProjection(projMesh, face.getId());
+
+						zPointArray fVerts_projection;
+						fProjection.getVertexPositions(fVerts_projection);
+
+						zPoint projectionPt1, projectionPt2;
+						getProjectionPoint_triangle(pos1_bary, fVerts_projection[0], fVerts_projection[1], fVerts_projection[2], projectionPt1);
+						getProjectionPoint_triangle(pos2_bary, fVerts_projection[0], fVerts_projection[1], fVerts_projection[2], projectionPt2);
+
+						positions[i] = projectionPt1;
+						positions[i ^ 1] = projectionPt2;
+
+						done = true;
+
+						break;
+					}
+				}
+
+				if (done)
+					break;
+			}
+
+			fnGraph.setVertexPositions(positions);
+		};
+
+		//project splitGraph back to section mesh
+		project_slot(slotGraph, oUnrolledMesh, o_projectionMesh);
+		o_trimGraphs_SlotSide[graphId] = slotGraph;
 
 		//fnContour.setVertexPositions(projectedPositions);
 		fnContour.getVertexPositions(contourPositions);
-
-		if (graphId > 0)
-		{
-			//zFloatArray pHeights;
-			//getPrintHeight(contourPositions, pNorms, o_sectionMeshes[graphId - 1], pHeights, o_contourHeightLines[graphId]);
-
-		}
 
 		fnContour.setEdgeColor(zBLUE);
 		fnContour.setEdgeWeight(3);
 
 		o_sectionMeshesPar[graphId] = oUnrolledMesh;
 		o_contourGraphs_flatten[graphId] = oFlatGraph;
-		
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_cutout(zObjGraph& section_graph, zObjGraph& bracing_trims, int numSmooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
@@ -5336,10 +5360,8 @@ namespace zSpace
 		/*float ptOffset = edgeLength / 2.0 ;
 		if (iterate) ptOffset += graphLength;*/
 
-		float ptOffset = _printParameters.slotStart;
-		if (isCableBlock)
-			ptOffset = 0.3;
-		if (iterate) ptOffset += _printParameters.slotIterating;
+		float ptOffset = isCableBlock ? 0.3f : _printParameters.slotStart;
+		float iterOffset = iterate ? 0.0f : _printParameters.slotIterating;
 
 		//if (blockType != zBlockType::Arch)
 		//{
@@ -5360,7 +5382,7 @@ namespace zSpace
 		//}
 		
 		//startV += (edgeVector * ptOffset);
-		startV += (edgeVector * (edgeLength * ptOffset));
+		startV += (edgeVector * ((edgeLength * ptOffset) + iterOffset));
 
 		if (isCorner)
 			graphLength = graphLength * 3.0f;
@@ -6006,19 +6028,49 @@ namespace zSpace
 			float min_tri_length = 0.45f;
 			zPoint tri_bottom_mid = get_midpoint(tri_bracing[0].getVertex().getPosition(), tri_bracing[1].getVertex().getPosition());
 
-			if ((tri_bottom_mid.distanceTo(vCenter.getPosition()) < min_tri_length) || isCorner)
+			if (isCorner)
 			{
 				// Remove all but the top horizontal bracing
 				horiz_bracing.resize(1);
 
-				// Move cable bracing to yellow green edge
-				zItGraphHalfEdgeArray yellow_green;
-				util_getShortestHEsBetweenColors(sectionGraph, zYELLOW, zGREEN, yellow_green);
-				zPoint yellow_green_point; float d;
-				util_getHeArrayClosestPoint(yellow_green, vCenter.getPosition(), yellow_green_point, d);
+				if ((tri_bottom_mid.distanceTo(vCenter.getPosition()) < min_tri_length))
+				{
+					zItGraphHalfEdgeArray yellow_red;
+					util_getShortestHEsBetweenColors(sectionGraph, zYELLOW, zRED, yellow_red);
 
-				//Should be the green cable point
-				cable_bracing[0].getVertex().setPosition(yellow_green_point);
+					//Count the number of MAGENTA vertices
+					int magenta = 0;
+					for (auto& he : yellow_red)
+					{
+						if (he.getVertex().getColor() == zMAGENTA || he.getStartVertex().getColor() == zMAGENTA)
+							++magenta;
+					}
+
+					// 3 nodes counted twice == 6
+					if (magenta == 6)
+					{
+						// Move cable bracing to yellow magenta edge
+						zItGraphHalfEdgeArray yellow_magenta;
+						util_getShortestHEsBetweenColors(sectionGraph, zYELLOW, zMAGENTA, yellow_magenta);
+						zPoint yellow_magenta_point; float d;
+						util_getHeArrayClosestPoint(yellow_magenta, vCenter.getPosition(), yellow_magenta_point, d);
+
+						//Should be the green cable point
+						cable_bracing[0].getVertex().setPosition(yellow_magenta_point);
+					}
+					else
+					{
+
+						// Move cable bracing to yellow green edge
+						zItGraphHalfEdgeArray yellow_green;
+						util_getShortestHEsBetweenColors(sectionGraph, zYELLOW, zGREEN, yellow_green);
+						zPoint yellow_green_point; float d;
+						util_getHeArrayClosestPoint(yellow_green, vCenter.getPosition(), yellow_green_point, d);
+
+						//Should be the green cable point
+						cable_bracing[0].getVertex().setPosition(yellow_green_point);
+					}
+				}
 			}
 
 			// ####--Compute Slots--####
