@@ -700,7 +700,7 @@ namespace zSpace
 		void compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts, float threshold = 0.0);
 		int compute_cable_CableGraphIndexPerGraph(int graphId);
 
-		void compute_cutout(zObjGraph& section_graph, zObjGraph& bracing_trims, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield);
+		void compute_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield);
 
 		zPoint util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh);
 		void util_isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints);

@@ -3480,8 +3480,18 @@ namespace zSpace
 		zScalarArray polyField, scalar_offset_outer, scalar_offset_inner;
 		getScalars_offset(o_sectionGraphs[graphId], numSmooth, polyField, scalar_offset_outer, scalar_offset_inner);
 
+		zObjGraph section_original, section_changed;
+
 		if (isCableBlock)
-			compute_cutout(o_sectionGraphs[graphId], o_trimGraphs_bracing[graphId], numSmooth, polyField, scalar_offset_outer, scalar_offset_inner);
+		{
+			//Make a copy
+			section_original = o_sectionGraphs[graphId];
+			compute_cutout(graphId, numSmooth, polyField, scalar_offset_outer, scalar_offset_inner);
+
+			//Save the changed version
+			section_changed = o_sectionGraphs[graphId];
+			o_sectionGraphs[graphId] = section_original;
+		}
 
 		zPlane planeXY;
 		planeXY.setIdentity();
@@ -3521,6 +3531,10 @@ namespace zSpace
 			getScalars_3dp_cable_bracing(o_sectionGraphs[graphId], o_trimGraphs_bracing[graphId], o_trimGraphs_bracing_slots[graphId], graphId % 2 == 0, scalar_cableBracingSlots,
 				scalar_cableBracing, scalar_interiorBracing);
 		}
+
+		// Reset to changed section
+		if (isCableBlock)
+			o_sectionGraphs[graphId] = section_changed;
 
 		//fnField.smoothField(scalar_offset_inner, numSmooth);
 		//fnField.smoothField(scalar_offset_outer, numSmooth);
@@ -3954,10 +3968,6 @@ namespace zSpace
 
 		fnIsoGraph.setTransform(t, true, true);
 		transformAllGraphs_planar(graphId, false);
-
-
-
-
 	}	
 
 	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_BlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate )
@@ -4216,19 +4226,42 @@ namespace zSpace
 		o_contourGraphs_flatten[graphId] = oFlatGraph;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_cutout(zObjGraph& section_graph, zObjGraph& bracing_trims, int numSmooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
+	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
 	{
 		zPrintParamSDF _printParameters;
-		zFnMeshScalarField fnField(o_field);
 
+		// References to graph objects
+		zObjGraph& section_graph = o_sectionGraphs[graphId];
+		zObjGraph& bracing_trims = o_trimGraphs_bracing[graphId];
+		zObjGraph& hard_features = o_trimGraphs_features_hard[graphId];
+
+		// Additional section lines
+		zObjGraph additional_section;
+		zFnGraph fn_add_section(additional_section);
+		zPointArray add_section_pos; add_section_pos.reserve(4);
+		zIntArray add_section_con; add_section_con.reserve(4);
+
+		// Additional trims storage
+		zObjGraph additional_trims;
+		zFnGraph fn_add_trims(additional_trims);
+		zPointArray add_trims_pos; add_trims_pos.reserve(12); // 7 edges in total
+		zIntArray add_trims_con; add_trims_con.reserve(12);
+
+		float add_trim_length = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior + (_printParameters.printWidthInterior * 4.5);
+
+		// Scalars
+		zFnMeshScalarField fnField(o_field);
 		zScalarArray scalar_cutout;
+
+		// Polygon graph storage
 		zPointArray polygon_pos; polygon_pos.reserve(4);
 		zIntArray polygon_con; polygon_pos.reserve(8);
 
 		zPoint cablePoint = zItGraphVertex(bracing_trims, 0).getPosition();
 
-		zItGraphHalfEdgeArray green_yellow_hes;
+		zItGraphHalfEdgeArray green_yellow_hes, red_cyan_hes;
 		util_getShortestHEsBetweenColors(section_graph, zGREEN, zYELLOW, green_yellow_hes);
+		util_getShortestHEsBetweenColors(section_graph, zRED, zCYAN, red_cyan_hes);
 
 		zPoint green_yellow_cable_pt;
 		float d;
@@ -4257,6 +4290,8 @@ namespace zSpace
 
 		// Bottom left
 		polygon_pos.emplace_back(last_he.getStartVertex().getPosition() + (last_he_vector * (last_he_len * param)));
+
+		zPoint green_yellow_point = polygon_pos.back();
 
 		// Back Direction
 		zVector back_dir = green_yellow_cable_pt - polygon_pos[0]; back_dir.normalize();
@@ -4302,9 +4337,92 @@ namespace zSpace
 		fnField.getScalarsAsEdgeDistance(scalar_cutout, cutout_polygon, inner_offset, false);
 		fnField.boolean_subtract(innerfield, scalar_cutout, innerfield, false);
 
-		//smooth fields
-		fnField.smoothField(outerfield, numSmooth);
-		fnField.smoothField(innerfield, numSmooth);
+		// Smooth fields
+		fnField.smoothField(outerfield, smooth);
+		fnField.smoothField(innerfield, smooth);
+
+		// ##############################################################
+
+		auto create_trim = [&](zPoint& pt, zVector& vec1, zVector& vec2) {
+			zVector res = (vec1 + vec2) * 0.5f; res.normalize(); res *= add_trim_length;
+			add_trims_pos.emplace_back(pt + res); add_trims_con.push_back(add_trims_pos.size() - 1);
+			add_trims_pos.emplace_back(pt - res); add_trims_con.push_back(add_trims_pos.size() - 1);
+		};
+
+		// Add hard trims
+		zVector offset_vec = back_dir * inner_offset;
+
+		zVector vec1 = last_he_vector; vec1.normalize();
+		zVector vec2 = polygon_pos[1] - polygon_pos[0]; vec2.normalize();
+		zPoint& pt = polygon_pos[0] + offset_vec;
+
+		zVector section_offset_vec = back_dir * (outer_offset - 0.03);
+		zVector section_side_vec = side_vector * (outer_offset - 0.03);
+
+		// Add to section
+		add_section_pos.emplace_back(polygon_pos[0] - section_offset_vec); add_section_con.push_back(add_section_pos.size() - 1);
+		add_section_pos.emplace_back((polygon_pos[1] - section_offset_vec) + section_side_vec); add_section_con.push_back(add_section_pos.size() - 1);
+		add_section_con.push_back(add_section_pos.size() - 1); // connect to next one
+
+		// 1
+		create_trim(pt, vec1, vec2);
+
+		vec1 = polygon_pos[1] - polygon_pos[2]; vec1.normalize();
+		pt = polygon_pos[1];
+
+		// 2
+		create_trim(pt, vec1, vec2);
+
+		// Find intersection between cutout polygon and red_cyan hes
+		for (auto& he : red_cyan_hes)
+		{
+			auto& he_start = he.getStartVertex().getPosition();
+			auto& he_end = he.getVertex().getPosition();
+
+			double uA, uB;
+
+			if (core.line_lineClosestPoints(he_start, he_end, polygon_pos[1], polygon_pos[2], uA, uB))
+			{
+				if (uA >= 0.0f && uA <= 1.0f)
+				{
+					pt = he_start + ((he_end - he_start) * uA);
+					vec2 = he.getVector(); vec2.normalize();
+					break;
+				}
+			}
+		}
+
+		// 3
+		create_trim(pt, vec1, vec2);
+		add_section_pos.emplace_back(pt + section_side_vec); add_section_con.push_back(add_section_pos.size() - 1);
+
+		// Get rid of the Green and Red hard trims
+		int skip = 2;
+		zPointArray temp_points; temp_points.reserve(2);
+
+		for (zItGraphEdge e(hard_features); !e.end(); e++)
+		{
+			if (skip <= 0)
+			{
+				temp_points.clear();
+				e.getVertexPositions(temp_points);
+				add_trims_pos.emplace_back(temp_points[0]); add_trims_con.push_back(add_trims_pos.size() - 1);
+				add_trims_pos.emplace_back(temp_points[1]); add_trims_con.push_back(add_trims_pos.size() - 1);
+			}
+			--skip;
+		}
+
+		fn_add_trims.create(add_trims_pos, add_trims_con);
+		fn_add_trims.setEdgeColor(zRED);
+
+		hard_features = additional_trims;
+
+		fn_add_section.create(add_section_pos, add_section_con);
+		fn_add_section.setEdgeColor(zMAGENTA);
+
+
+		zObjGraphArray temp{ section_graph, additional_section };
+		util_combineMultipleGraphs(temp, section_graph);
 	}
 
 	//EXPORT MAIN method
@@ -5769,6 +5887,7 @@ namespace zSpace
 		zPrintParamSDF _printParameters;
 
 		zFnGraph fnGraph(sectionGraph);
+		zFnGraph fnBracingGraph(bracingGraph);
 		zFnMeshScalarField fnField(o_field);
 
 		zScalarArray scalar_cable;
@@ -6261,7 +6380,7 @@ namespace zSpace
 		}
 
 		if (isCableBlock)
-			bracingGraph = bracing_graph_copy;
+			fnBracingGraph.setEdgeColor(zBLUE);
 
 		bracing_slotsGraph = cableBracingSlots;
 		o_debug_bracingslotsgraph = cableBracingSlots;
