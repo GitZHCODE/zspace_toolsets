@@ -11,7 +11,7 @@
 // Author : Heba Eiz <heba.eiz@zaha-hadid.com>
 //
 
-#ifndef ZSPACE_TS_NATPOWER_SDF_H
+#ifndef ZSPACE_TS_3DPSLICER_H
 
 
 
@@ -159,7 +159,7 @@ namespace zSpace
 
 	/** @}*/
 
-	class ZSPACE_TOOLSETS zTsNatpowerSDF
+	class ZSPACE_TOOLSETS zTs3DPSlicer
 	{
 		//protected:
 	public:
@@ -354,7 +354,7 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		zTsNatpowerSDF();
+		zTs3DPSlicer();
 
 		//--------------------------
 		//---- DESTRUCTOR
@@ -364,7 +364,7 @@ namespace zSpace
 		*
 		*	\since version 0.0.4
 		*/
-		~zTsNatpowerSDF();
+		~zTs3DPSlicer();
 
 		//--------------------------
 		//---- CREATE METHODS
@@ -862,7 +862,7 @@ namespace zSpace
 #if defined(ZSPACE_TOOLSETS_STATIC_LIBRARY)  || defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include<source/zToolsets/natpower/zTsNatpowerSDF.cpp>
+#include<source/zToolsets/natpower/zTs3DPSlicer.cpp>
 #endif
 
 #endif

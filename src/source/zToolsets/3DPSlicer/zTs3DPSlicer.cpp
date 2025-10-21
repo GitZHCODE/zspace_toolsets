@@ -12,7 +12,7 @@
 //
 
 
-#include "zToolsets/natpower/zTsNatpowerSDF.h"
+#include "zToolsets/3DPSlicer/zTs3DPSlicer.h"
 //#include "zCore/base/zColor.h"
 //#include "zCore/base/zEnumerators.h"
 //#include "zCore/base/zTypeDef.h"
@@ -25,7 +25,7 @@ namespace zSpace
 {
 	//---- CONSTRUCTOR
 
-	ZSPACE_TOOLSETS_INLINE zTsNatpowerSDF::zTsNatpowerSDF()
+	ZSPACE_TOOLSETS_INLINE zTs3DPSlicer::zTs3DPSlicer()
 	{
 
 
@@ -36,11 +36,11 @@ namespace zSpace
 
 	//---- DESTRUCTOR
 
-	ZSPACE_TOOLSETS_INLINE zTsNatpowerSDF::~zTsNatpowerSDF() {}
+	ZSPACE_TOOLSETS_INLINE zTs3DPSlicer::~zTs3DPSlicer() {}
 
 	//---- CREATE METHODS
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::createFieldMeshFromMeshBounds(float cellSize, float offset)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::createFieldMeshFromMeshBounds(float cellSize, float offset)
 	{
 		// Transform
 		//zTransform t = sectionFrames[0];
@@ -84,7 +84,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::createFieldMeshFromSectionBounds(float cellSize, float offset)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::createFieldMeshFromSectionBounds(float cellSize, float offset)
 	{
 		
 
@@ -165,7 +165,7 @@ namespace zSpace
 
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::createFieldMesh(zDomain<zPoint>& bb, int resX, int resY)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::createFieldMesh(zDomain<zPoint>& bb, int resX, int resY)
 	{
 		zFnMeshScalarField fnField(o_field);
 
@@ -182,7 +182,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::createFieldMeshCellSize(zDomain<zPoint>& bb, float cellSizeX, float cellSizeY)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::createFieldMeshCellSize(zDomain<zPoint>& bb, float cellSizeX, float cellSizeY)
 	{
 		zFnMeshScalarField fnField(o_field);
 		int resX = ceil((bb.max.x - bb.min.x) / cellSizeX);
@@ -197,7 +197,7 @@ namespace zSpace
 
 	//--- SET METHODS 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setFromJSON(string dir, int _blockID, bool runBothPlanes, bool runPlaneLeft)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setFromJSON(string dir, int _blockID, bool runBothPlanes, bool runPlaneLeft)
 	{
 		string path = dir + "blockMesh_" + to_string(_blockID) + ".json";
 		/*bool pathExist = coreUtils.fileExists(path);
@@ -229,19 +229,19 @@ namespace zSpace
 		readJSON(path, _blockID, runBothPlanes, runPlaneLeft, flip);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setSliceMesh(zObjMesh& _o_SliceMesh, bool left)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setSliceMesh(zObjMesh& _o_SliceMesh, bool left)
 	{
 		(left) ? o_SliceMesh_Left = _o_SliceMesh : o_SliceMesh_Right = _o_SliceMesh;
 
 		//(left) ? leftPlaneExists = true : rightPlaneExists = true;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setMedialGraph(zObjGraph& _o_MedialGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setMedialGraph(zObjGraph& _o_MedialGraph)
 	{
 		o_MedialGraph = _o_MedialGraph;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left)
 	{
 		(left) ? leftPlanes[0] = _sPlane : rightPlanes[0] = _sPlane;
 		(left) ? leftPlanes[1] = _ePlane : rightPlanes[1] = _ePlane;
@@ -249,7 +249,7 @@ namespace zSpace
 		//(left) ? leftPlaneExists = true : rightPlaneExists = true;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setGradientTriMesh(zObjMesh& _o_gradientTriMesh)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setGradientTriMesh(zObjMesh& _o_gradientTriMesh)
 	{
 
 		zFnMesh fnGradMesh(o_gradientTriMesh);
@@ -313,12 +313,12 @@ namespace zSpace
 		gradientTriMesh_FTris = FTris;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setOffsetDomain(zDomainFloat& _offsetDomain)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setOffsetDomain(zDomainFloat& _offsetDomain)
 	{
 		offsetDomain = _offsetDomain;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setTransforms(bool toLocal)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setTransforms(bool toLocal)
 	{
 		if (toLocal)
 		{
@@ -439,7 +439,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setFrames(vector<zPlane>& _sectionFrames)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setFrames(vector<zPlane>& _sectionFrames)
 	{
 		sectionFrames.clear();
 		sectionFrames = _sectionFrames;
@@ -447,7 +447,7 @@ namespace zSpace
 		o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setCableGraph(string folderDir)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setCableGraph(string folderDir)
 	{
 		//read all files in directory
 
@@ -490,7 +490,7 @@ namespace zSpace
 
 	//---- GET METHODS
 
-	ZSPACE_TOOLSETS_INLINE zTransform* zTsNatpowerSDF::getRawBlockStartEnd(bool left)
+	ZSPACE_TOOLSETS_INLINE zTransform* zTs3DPSlicer::getRawBlockStartEnd(bool left)
 	{
 		/*if (left && leftPlaneExists) return &leftPlanes[0];
 		else if (!left && rightPlaneExists) return &rightPlanes[0];
@@ -500,12 +500,12 @@ namespace zSpace
 		else return nullptr;
 	}
 
-	ZSPACE_TOOLSETS_INLINE vector<zTransform> zTsNatpowerSDF::getBlockFrames()
+	ZSPACE_TOOLSETS_INLINE vector<zTransform> zTs3DPSlicer::getBlockFrames()
 	{
 		return sectionFrames;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsNatpowerSDF::getBlockSectionGraphs(int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTs3DPSlicer::getBlockSectionGraphs(int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -522,7 +522,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsNatpowerSDF::getBlockRaftGraphs(int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTs3DPSlicer::getBlockRaftGraphs(int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -539,7 +539,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsNatpowerSDF::getBlockCableProfileGraphs(int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTs3DPSlicer::getBlockCableProfileGraphs(int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -556,7 +556,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTsNatpowerSDF::getBlockCableMeshes(int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjMeshPointerArray zTs3DPSlicer::getBlockCableMeshes(int& numGraphs)
 	{
 		zObjMeshPointerArray out;
 		numGraphs = 0;
@@ -573,7 +573,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsNatpowerSDF::getBlockContourGraphs(int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTs3DPSlicer::getBlockContourGraphs(int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -591,7 +591,7 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getBlockContourGraphsSequence(int& numGraphs, int* vSequence)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getBlockContourGraphsSequence(int& numGraphs, int* vSequence)
 	{
 
 		float minLayerHeight = 10;
@@ -707,7 +707,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE zIntArray zTsNatpowerSDF::getGraphSequence(zObjGraph graph)
+	ZSPACE_TOOLSETS_INLINE zIntArray zTs3DPSlicer::getGraphSequence(zObjGraph graph)
 	{
 		zIntArray sequence;
 		zItGraphVertexArray vArray;
@@ -773,7 +773,7 @@ namespace zSpace
 		return sequence;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTsNatpowerSDF::getBlockTrimGraphs(int& numGraphs)
+	ZSPACE_TOOLSETS_INLINE zObjGraphPointerArray zTs3DPSlicer::getBlockTrimGraphs(int& numGraphs)
 	{
 		zObjGraphPointerArray out;
 		numGraphs = 0;
@@ -792,46 +792,46 @@ namespace zSpace
 		return out;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjPointCloud* zTsNatpowerSDF::getRawCriticalPoints(bool minHeight)
+	ZSPACE_TOOLSETS_INLINE zObjPointCloud* zTs3DPSlicer::getRawCriticalPoints(bool minHeight)
 	{
 		return (minHeight) ? &criticalMinLayer_pts : &criticalMaxLayer_pts;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjMeshScalarField* zTsNatpowerSDF::getRawFieldMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMeshScalarField* zTs3DPSlicer::getRawFieldMesh()
 	{
 		return &o_field;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjGraph* zTsNatpowerSDF::getRawMedialGraph()
+	ZSPACE_TOOLSETS_INLINE zObjGraph* zTs3DPSlicer::getRawMedialGraph()
 	{
 		return &o_MedialGraph;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjMesh* zTsNatpowerSDF::getRawLeftMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMesh* zTs3DPSlicer::getRawLeftMesh()
 	{
 		return &o_SliceMesh_Left;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjMesh* zTsNatpowerSDF::getRawRightMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMesh* zTs3DPSlicer::getRawRightMesh()
 	{
 		return &o_SliceMesh_Right;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zObjMesh* zTsNatpowerSDF::getRawGuideMesh()
+	ZSPACE_TOOLSETS_INLINE zObjMesh* zTs3DPSlicer::getRawGuideMesh()
 	{
 		return &o_GuideMesh;
 	}
 
-	ZSPACE_INLINE zObjMesh* zTsNatpowerSDF::getRawGradientMesh()
+	ZSPACE_INLINE zObjMesh* zTs3DPSlicer::getRawGradientMesh()
 	{
 		return &o_gradientTriMesh;
 	}
 
-	ZSPACE_INLINE zObjMeshScalarField* zTsNatpowerSDF::getRawMeshScalarField()
+	ZSPACE_INLINE zObjMeshScalarField* zTs3DPSlicer::getRawMeshScalarField()
 	{
 		return &o_field;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::isPlanarBlock()
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::isPlanarBlock()
 	{
 		return planarBlock;
 	}
@@ -839,7 +839,7 @@ namespace zSpace
 	//---- COMPUTE METHODS 
 
 	//---------SLICE MESH----------------
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_SliceMesh_Pentagon(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_SliceMesh_Pentagon(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left)
 	{
 		unordered_map<string, int> positionVertex;
 		zPointArray positions;
@@ -1249,7 +1249,7 @@ namespace zSpace
 
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_SliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_SliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides)
 	{
 		unordered_map<string, int> positionVertex;
 		zPointArray positions;
@@ -1463,7 +1463,7 @@ namespace zSpace
 	}
 
 	//Slice mesh: helper methods
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_MedialGraph(zObjMesh& o_Mesh, int startVID, int endVID)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_MedialGraph(zObjMesh& o_Mesh, int startVID, int endVID)
 	{
 
 		zFnMesh fnMesh(o_Mesh);
@@ -1521,7 +1521,7 @@ namespace zSpace
 		fnMedial.setEdgeWeight(5);
 		fnMedial.setEdgeColor(zGREEN, false);
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_Medial_BraceEdges(zObjMesh& o_Mesh, int startVID, int endVID, int blockStride, int braceStride)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_Medial_BraceEdges(zObjMesh& o_Mesh, int startVID, int endVID, int blockStride, int braceStride)
 	{
 		//compute start half edge
 		zItMeshHalfEdge heStart = util_getStartHalfEdge(o_Mesh, startVID, endVID);
@@ -1576,7 +1576,7 @@ namespace zSpace
 
 
 	//----------PRINT BLOCKS----------
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_PrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, bool compFrames, bool compSDF)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_PrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, bool compFrames, bool compSDF)
 	{
 	
 
@@ -1672,7 +1672,7 @@ namespace zSpace
 	}
 
 	//Print blocks: helper methods
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_PrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_PrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS)
 	{
 		frameCHECKS = false;
 		geomCHECKS = true;
@@ -1709,7 +1709,7 @@ namespace zSpace
 
 
 	//Print blocks: frame methods
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_PrintBlock_Frames(float printPlaneSpacing, bool leftBlock, float neopreneOffset_start, float neopreneOffset_end)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_PrintBlock_Frames(float printPlaneSpacing, bool leftBlock, float neopreneOffset_start, float neopreneOffset_end)
 	{
 		// getLength of guide graph
 		zDoubleArray eLens;
@@ -2011,7 +2011,7 @@ namespace zSpace
 	}
 
 	//Print blocks: section methods
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_PrintBlock_Sections(bool left, bool& outGeomChk)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_PrintBlock_Sections(bool left, bool& outGeomChk)
 	{
 		zScalarArray scalars;
 
@@ -2099,7 +2099,7 @@ namespace zSpace
 	}
 
 	//Print blocks: check methods
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::check_PrintLayerHeights(bool& checkSDF, bool& checkGeometry)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::check_PrintLayerHeights(bool& checkSDF, bool& checkGeometry)
 	{
 		float minLayerHeight = 10;
 		float maxLayerHeight = 0;
@@ -2285,7 +2285,7 @@ namespace zSpace
 
 		return out;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::check_SDF_LayerHeights()
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::check_SDF_LayerHeights()
 	{
 		float minLayerHeight = 10;
 		float maxLayerHeight = 0;
@@ -2421,7 +2421,7 @@ namespace zSpace
 
 		return out;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::check_InterfacePoints(bool left, float distTolerance)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::check_InterfacePoints(bool left, float distTolerance)
 	{
 		zObjMesh* oMesh = (left) ? &o_SliceMesh_Left : &o_SliceMesh_Right;
 		zTransform* starEnd = (left) ? &leftPlanes[0] : &rightPlanes[0];
@@ -2493,7 +2493,7 @@ namespace zSpace
 
 		return out;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::check_sectionGraphGeomCheck(zObjGraph& graph)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::check_sectionGraphGeomCheck(zObjGraph& graph)
 	{
 		//checks if the graph pass all geometry checks
 		//Check 1 : check if the graph is closed
@@ -2539,7 +2539,7 @@ namespace zSpace
 
 	//Print blocks: trim methods
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_PrintBlock_ComputeTrimGraphs()
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_PrintBlock_ComputeTrimGraphs()
 	{
 		o_trimGraphs.clear();
 		o_trimGraphs.assign(o_sectionGraphs.size(), zObjGraph());
@@ -2635,7 +2635,7 @@ namespace zSpace
 
 	}
 	
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_TrimGraphs_BracingCable(int graphId, zObjGraph& outGraph, zObjGraph& o_cableProfileGraph, float hori_wt)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_TrimGraphs_BracingCable(int graphId, zObjGraph& outGraph, zObjGraph& o_cableProfileGraph, float hori_wt)
 	{
 		///some && blockType != zBlockType::Bottom is to remove chickenfeet graph
 
@@ -3137,7 +3137,7 @@ namespace zSpace
 		//coreUtils.checkRepeatVector()
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph& outGraph_hardFeature, zObjGraph& outGraph_softFeature)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph& outGraph_hardFeature, zObjGraph& outGraph_softFeature)
 	{
 		//create a trim graph at each trim points. Trim points are all feature curves and corner
 		//The graph will be made by avg the two outgoing vector from the feature vertex
@@ -3329,7 +3329,7 @@ namespace zSpace
 
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_TrimGraphs_SlotSide(zObjGraph& sectionGraph, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_TrimGraphs_SlotSide(zObjGraph& sectionGraph, zObjGraph& outGraph)
 	{
 		zFnGraph inFnGraph(sectionGraph);
 
@@ -3377,12 +3377,12 @@ namespace zSpace
 		fnG.create(gPts, gEdges);
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_TrimGraphs_SlotSide(int graphId, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_TrimGraphs_SlotSide(int graphId, zObjGraph& outGraph)
 	{
 		compute_TrimGraphs_SlotSide(o_sectionGraphs[graphId], outGraph);
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph, bool remove_firstLast)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph, bool remove_firstLast)
 	{
 		zFnGraph fnSectionG(sectionGraph);
 		printf("\n remove_firstLast %i \n", remove_firstLast);
@@ -3418,13 +3418,13 @@ namespace zSpace
 		//printf("\n graph[%i] %i | %i", graphId, gPositions.size(), gEdgeCOnnects.size());
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph)
 	{
 		compute_TrimGraphs_BracingWall(o_sectionGraphs[graphId], outGraph);
 	}
 
 	
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_innerOuter(zObjGraph& sectionGraph, bool addEndStart, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_innerOuter(zObjGraph& sectionGraph, bool addEndStart, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx)
 	{
 		innerVertx.clear();
 		outerVertx.clear();
@@ -3475,7 +3475,7 @@ namespace zSpace
 	}
 
 	//SDF MAIN method
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_SDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_SDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth)
 	{
 
 		o_contourGraphs.clear();
@@ -3544,7 +3544,7 @@ namespace zSpace
 	}
 
 	//SDF sub methods
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_BlockSDF_Planar_regular(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_BlockSDF_Planar_regular(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth)
 	{
 		zPrintParamSDF _printParameters;
 
@@ -3840,7 +3840,7 @@ namespace zSpace
 		fng.setTransform(t, true, true);*/
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_BlockSDF_Planar_pentagon(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_BlockSDF_Planar_pentagon(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth)
 	{
 		if (graphId >= o_sectionGraphs.size())return;
 		//if (graphId < 125)return;
@@ -4007,7 +4007,7 @@ namespace zSpace
 		transformAllGraphs_planar(graphId, false);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_BlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_BlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth)
 	{
 
 		if (graphId >= o_sectionGraphs.size())return;
@@ -4156,7 +4156,7 @@ namespace zSpace
 
 	}	
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_BlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate )
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_BlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate )
 	{
 		zPrintParamSDF _printParameters;
 
@@ -4427,7 +4427,7 @@ namespace zSpace
 		o_contourGraphs_flatten[graphId] = oFlatGraph;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
 	{
 		zPrintParamSDF _printParameters;
 
@@ -4629,7 +4629,7 @@ namespace zSpace
 	
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_arch_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_arch_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield)
 	{
 		zPrintParamSDF _printParameters;
 
@@ -4847,7 +4847,7 @@ namespace zSpace
 	}
 
 	//EXPORT MAIN method
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_update(string pathCurrent, string dir)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::exportJSON_update(string pathCurrent, string dir)
 	{
 		string folderName = dir + "/" + to_string(blockId);
 
@@ -4865,7 +4865,7 @@ namespace zSpace
 		return true;
 	}
 	//EXPORT sub method
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_sliceMesh(string pathCurrent, string folderName)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::exportJSON_sliceMesh(string pathCurrent, string folderName)
 	{
 		zFnMesh fn;
 		json j;
@@ -4901,7 +4901,7 @@ namespace zSpace
 		return true;
 	}
 
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_graphID(string folderName, int graphId, bool left)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::exportJSON_graphID(string folderName, int graphId, bool left)
 	{
 		//string blockID_padded = coreUtils.getPaddedIndexString(blockId, 3);
 
@@ -4925,7 +4925,7 @@ namespace zSpace
 		return true;
 	}
 
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_graphID_trims(string folderName, string extName, int graphId)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::exportJSON_graphID_trims(string folderName, string extName, int graphId)
 	{
 		zFnGraph fnTrimGraph;
 		string outName;
@@ -4956,7 +4956,7 @@ namespace zSpace
 
 		return true;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_graphID_contours(string folderName, string extName, int graphId)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::exportJSON_graphID_contours(string folderName, string extName, int graphId)
 	{
 		zFnGraph fnGraph(o_contourGraphs[graphId]);
 		if (fnGraph.numVertices() == 0) return false;
@@ -5038,7 +5038,7 @@ namespace zSpace
 
 		return true;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::exportJSON_graphID_section(string folderName, string extName, int graphId)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::exportJSON_graphID_section(string folderName, string extName, int graphId)
 	{
 		json sectionJson;
 		zFnGraph fnGraph(o_sectionGraphs[graphId]);
@@ -5062,7 +5062,7 @@ namespace zSpace
 		return true;
 	}	
 	
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::check_PrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset, bool runBothPlanes, bool runPlaneLeft)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::check_PrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset, bool runBothPlanes, bool runPlaneLeft)
 	{
 		printHeightDomain = _printHeightDomain;
 		neopreneOffset = zDomainFloat(0.0f, 0.0f);
@@ -5356,7 +5356,7 @@ namespace zSpace
 	
 	
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& outputPoints, float threshold )
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& outputPoints, float threshold )
 	{
 		
 
@@ -5437,7 +5437,7 @@ namespace zSpace
 
 		//}
 	}
-	ZSPACE_TOOLSETS_INLINE int zTsNatpowerSDF::compute_cable_CableGraphIndexPerGraph(int graphId)
+	ZSPACE_TOOLSETS_INLINE int zTs3DPSlicer::compute_cable_CableGraphIndexPerGraph(int graphId)
 	{
 		//iterate through all the graphs to get the graph the block belongs to
 		int index = -1;
@@ -5540,7 +5540,7 @@ namespace zSpace
 
 
 
-	ZSPACE_TOOLSETS_INLINE zPoint zTsNatpowerSDF::util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh)
+	ZSPACE_TOOLSETS_INLINE zPoint zTs3DPSlicer::util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh)
 	{
 		float scaleVal = core.ofMap(threshold, thresholdLow, thresholdHigh, 0.0000f, 1.0000f);
 		zVector e = vertex_higher - vertex_lower;
@@ -5548,7 +5548,7 @@ namespace zSpace
 		e.normalize();
 		return (vertex_lower + (e * edgeLen * scaleVal));
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints)
 	{
 		zFnGraph fnGraph(o_graph);
 		zPoint* vPositions = fnGraph.getRawVertexPositions();
@@ -5569,7 +5569,7 @@ namespace zSpace
 			contourPoints.push_back(pos1);
 		}
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_intersect_graphPlane(zObjGraph& o_graph, zPlane& inPlane, bool closestPoint, zPointArray& outPoints, float threshold)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_intersect_graphPlane(zObjGraph& o_graph, zPlane& inPlane, bool closestPoint, zPointArray& outPoints, float threshold)
 	{
 		outPoints.clear();
 		zScalarArray vertexScalars;
@@ -5607,7 +5607,7 @@ namespace zSpace
 	//---- PROTECTED UTILITY METHODS
 
 
-	ZSPACE_TOOLSETS_INLINE zItMeshHalfEdge zTsNatpowerSDF::util_getStartHalfEdge(zObjMesh& o_Mesh, int startVID, int endVID)
+	ZSPACE_TOOLSETS_INLINE zItMeshHalfEdge zTs3DPSlicer::util_getStartHalfEdge(zObjMesh& o_Mesh, int startVID, int endVID)
 	{
 
 		zFnMesh fnMesh(o_Mesh);
@@ -5643,7 +5643,7 @@ namespace zSpace
 		return heStart;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_createGraphFromHEArray(zItGraphHalfEdgeArray& heArray, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_createGraphFromHEArray(zItGraphHalfEdgeArray& heArray, zObjGraph& outGraph)
 	{
 		zPointArray positions;
 		zIntArray eConnects;
@@ -5705,7 +5705,7 @@ namespace zSpace
 		fnGraph.create(positions, eConnects);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_getPerpendicularVector(zPlane& plane, zVector edgeVector, zPoint midPoint, float graphLength, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_getPerpendicularVector(zPlane& plane, zVector edgeVector, zPoint midPoint, float graphLength, zObjGraph& outGraph)
 	{
 		zVector planeNormal(plane(2, 0), plane(2, 1), plane(2, 2));
 		zVector vector = planeNormal ^ edgeVector;
@@ -5723,7 +5723,7 @@ namespace zSpace
 		fnG.create(gPts, gEdges);
 	}
 
-	ZSPACE_TOOLSETS_INLINE zVector zTsNatpowerSDF::util_averageVectorsAtGraphVertex(zItGraphVertex& v)
+	ZSPACE_TOOLSETS_INLINE zVector zTs3DPSlicer::util_averageVectorsAtGraphVertex(zItGraphVertex& v)
 	{
 		zItGraphHalfEdgeArray hes;
 		v.getConnectedHalfEdges(hes);
@@ -5740,7 +5740,7 @@ namespace zSpace
 		return result;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_combineMultipleGraphs(zObjGraphArray& inGraphs, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_combineMultipleGraphs(zObjGraphArray& inGraphs, zObjGraph& outGraph)
 	{
 		zPointArray positions;
 		zIntArray eConnects;
@@ -5789,7 +5789,7 @@ namespace zSpace
 		fng.setEdgeColors(eColors, false);
 	}
 
-	ZSPACE_TOOLSETS_INLINE zPoint zTsNatpowerSDF::util_getGraphPointAtParameter(zObjGraph& inGraph, int startVertexID, float normalizedPar, int& outEdgeIndex)
+	ZSPACE_TOOLSETS_INLINE zPoint zTs3DPSlicer::util_getGraphPointAtParameter(zObjGraph& inGraph, int startVertexID, float normalizedPar, int& outEdgeIndex)
 	{
 		zFnGraph fnGraph(inGraph);
 		zDoubleArray eLengths;
@@ -5866,7 +5866,7 @@ namespace zSpace
 		return point;
 	}
 
-	ZSPACE_TOOLSETS_INLINE zPoint zTsNatpowerSDF::util_getPointAtParameterHalfEdge(zItGraphHalfEdge& he, float normalizedPar)
+	ZSPACE_TOOLSETS_INLINE zPoint zTs3DPSlicer::util_getPointAtParameterHalfEdge(zItGraphHalfEdge& he, float normalizedPar)
 	{
 		double length = he.getLength();
 		double parLength = length * normalizedPar;
@@ -5878,19 +5878,19 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE double zTsNatpowerSDF::util_normalise(double value, double min, double max)
+	ZSPACE_TOOLSETS_INLINE double zTs3DPSlicer::util_normalise(double value, double min, double max)
 	{
 		return (value - min) / (max - min);
 	}
 
-	ZSPACE_TOOLSETS_INLINE double zTsNatpowerSDF::util_denormalise(double value, double min, double max)
+	ZSPACE_TOOLSETS_INLINE double zTs3DPSlicer::util_denormalise(double value, double min, double max)
 	{
 		return value * (max - min) + min;
 	}
 
 	
 	
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_computeSlotGraph(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_computeSlotGraph(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph)
 	{
 		zPrintParamSDF _printParameters;
 
@@ -5983,7 +5983,7 @@ namespace zSpace
 		util_getPerpendicularVector(plane, edgeVector, startV, graphLength*1.5, outGraph);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_computeSplitGraph_plane(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_computeSplitGraph_plane(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph)
 	{
 		zFnGraph inFnGraph(inPoly);
 
@@ -6043,7 +6043,7 @@ namespace zSpace
 		fnG.create(gPts, gEdges);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_computeSplitGraph_corner(zObjGraph& inPoly, zPoint& mid, zVector& edgeVector, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_computeSplitGraph_corner(zObjGraph& inPoly, zPoint& mid, zVector& edgeVector, zObjGraph& outGraph)
 	{
 		zPrintParamSDF _printParameters;
 
@@ -6096,7 +6096,7 @@ namespace zSpace
 		fnG.create(gPts, gEdges);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_computeSplitGraph_xy(zObjGraph& inPoly, zObjGraph& outGraph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_computeSplitGraph_xy(zObjGraph& inPoly, zObjGraph& outGraph)
 	{
 		zPrintParamSDF _printParameters;
 
@@ -6191,7 +6191,7 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE bool zTsNatpowerSDF::util_getShortestHEsBetweenColors(zObjGraph& graph, zColor startColor, zColor endColor, zItGraphHalfEdgeArray& outHEs)
+	ZSPACE_TOOLSETS_INLINE bool zTs3DPSlicer::util_getShortestHEsBetweenColors(zObjGraph& graph, zColor startColor, zColor endColor, zItGraphHalfEdgeArray& outHEs)
 	{
 		outHEs.clear();
 		vector<zItGraphHalfEdgeArray> tempHEsArray;
@@ -6270,7 +6270,7 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_getHEsColorLen(zObjGraph& graph, zColor& startCol, zColor& endCol, float len, zItGraphHalfEdgeArray& out)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_getHEsColorLen(zObjGraph& graph, zColor& startCol, zColor& endCol, float len, zItGraphHalfEdgeArray& out)
 	{
 		out.clear();
 		zItGraphVertex start_vert(graph);
@@ -6324,7 +6324,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE int zTsNatpowerSDF::util_getGraphClosestPoint(zObjGraph& graph, zPoint& samplePoint, zPoint& outPoint, float& dist)
+	ZSPACE_TOOLSETS_INLINE int zTs3DPSlicer::util_getGraphClosestPoint(zObjGraph& graph, zPoint& samplePoint, zPoint& outPoint, float& dist)
 	{
 		int index = -1;
 		double minDist = DBL_MAX;
@@ -6347,7 +6347,7 @@ namespace zSpace
 		return index;
 	}
 
-	ZSPACE_TOOLSETS_INLINE int zTsNatpowerSDF::util_getHeArrayClosestPoint(zItGraphHalfEdgeArray& hes, zPoint& samplePoint, zPoint& outPoint, float& dist)
+	ZSPACE_TOOLSETS_INLINE int zTs3DPSlicer::util_getHeArrayClosestPoint(zItGraphHalfEdgeArray& hes, zPoint& samplePoint, zPoint& outPoint, float& dist)
 	{
 		int index = -1;
 		double minDist = DBL_MAX;
@@ -6372,7 +6372,7 @@ namespace zSpace
 		return index;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_3dp_cable_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracing_slotsGraph, zObjGraph& cableProfileGraph, bool iterateChk, zScalarArray& scalar_cableBracingSlots, zScalarArray& scalar_cableBracing, zScalarArray& scalar_interiorBracing, float wt )
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getScalars_3dp_cable_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracing_slotsGraph, zObjGraph& cableProfileGraph, bool iterateChk, zScalarArray& scalar_cableBracingSlots, zScalarArray& scalar_cableBracing, zScalarArray& scalar_interiorBracing, float wt )
 	{
 
 
@@ -7256,7 +7256,7 @@ namespace zSpace
 		o_debug_bracingslotsgraph = bracing_slotsGraph;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracing_slotsGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracing_slotsGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots)
 	{
 		/// This method create the bracing
 		/// 1. get the scalar of the bracing graph
@@ -7331,7 +7331,7 @@ namespace zSpace
 		o_debug_bracingslotsgraph = o_bracingSlots;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray& outScalar_triangles, bool remove_firstLast)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray& outScalar_triangles, bool remove_firstLast)
 	{
 
 		zPrintParamSDF _printParameters;
@@ -7403,7 +7403,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner)
 	{
 		zPrintParamSDF _printParameters;
 		zFnMeshScalarField fnField(o_field);
@@ -7558,7 +7558,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE int zTsNatpowerSDF:: util_get_corrected_id(std::unordered_map<int, int>& map, int id_to_check, int id_to_set)
+	ZSPACE_TOOLSETS_INLINE int zTs3DPSlicer:: util_get_corrected_id(std::unordered_map<int, int>& map, int id_to_check, int id_to_set)
 		{
 			if (map.count(id_to_check))
 				return map[id_to_check];
@@ -7569,7 +7569,7 @@ namespace zSpace
 			}
 		};
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF:: util_merge_graph(zObjGraph& oGraph, double tol)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer:: util_merge_graph(zObjGraph& oGraph, double tol)
 		{
 			zIntArray new_Connects, eConnects;
 			zPointArray new_Positions, vPositions;
@@ -7705,7 +7705,7 @@ namespace zSpace
 			fnGraph.create(new_Positions, new_Connects);
 		};
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::util_graph_graphIntersect(zObjGraph gEg0, zItGraphHalfEdge gEg1, double &uA, double &uB, int &id0)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::util_graph_graphIntersect(zObjGraph gEg0, zItGraphHalfEdge gEg1, double &uA, double &uB, int &id0)
 	{
 		bool hasIntersection = false;
 		int counter = 0;
@@ -7757,7 +7757,7 @@ namespace zSpace
 
 	//-------------------------- Non planar UTILS ------------------------------
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getPokeMesh(zObjMesh& o_mesh, zObjMesh& o_TriMesh)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getPokeMesh(zObjMesh& o_mesh, zObjMesh& o_TriMesh)
 	{
 		zFnMesh fnMesh(o_mesh);
 
@@ -7805,7 +7805,7 @@ namespace zSpace
 		fnPokeMesh.setVertexColors(vColors);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getLoop(zItMeshHalfEdge& heStart, bool forward, bool corner, int vCounter, vector<zItMeshHalfEdgeArray>& v_Loops)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getLoop(zItMeshHalfEdge& heStart, bool forward, bool corner, int vCounter, vector<zItMeshHalfEdgeArray>& v_Loops)
 	{
 		zItMeshHalfEdge he_U = (forward) ? heStart.getNext() : heStart.getPrev();
 		if (corner) he_U = heStart;
@@ -7839,7 +7839,7 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getFaceVerticesFromHalfedge(zItMeshHalfEdge& heStart, bool forward, zPointArray& fVerts, zColorArray& fVColors)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getFaceVerticesFromHalfedge(zItMeshHalfEdge& heStart, bool forward, zPointArray& fVerts, zColorArray& fVColors)
 	{
 		fVerts.clear();
 		fVColors.clear();
@@ -7865,7 +7865,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getFaceVerticesFromHalfedge(zItMeshHalfEdge& heStart, bool forward, zIntArray& fVerts)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getFaceVerticesFromHalfedge(zItMeshHalfEdge& heStart, bool forward, zIntArray& fVerts)
 	{
 		fVerts.clear();
 
@@ -7887,7 +7887,7 @@ namespace zSpace
 		} while (he != heStart);
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::createBoundaryEdgeGraph(zObjMesh& o_mesh, bool closeGraph, zObjGraph& o_Graph)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::createBoundaryEdgeGraph(zObjMesh& o_mesh, bool closeGraph, zObjGraph& o_Graph)
 	{
 		zPointArray positions;
 		zIntArray eConnects;
@@ -7934,7 +7934,7 @@ namespace zSpace
 		;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::colorMesh(zObjMesh& o_mesh, zFloatArray& scalars)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::colorMesh(zObjMesh& o_mesh, zFloatArray& scalars)
 	{
 		zFnMesh fnMesh(o_mesh);
 
@@ -7956,7 +7956,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setPtGraph(zObjGraph& o_Graph, zPoint& refPt, bool setX, bool setY, bool setZ)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setPtGraph(zObjGraph& o_Graph, zPoint& refPt, bool setX, bool setY, bool setZ)
 	{
 		zFnGraph fnGraph(o_Graph);
 		zPoint* positions = fnGraph.getRawVertexPositions();
@@ -7969,7 +7969,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::setPtMesh(zObjMesh& o_Mesh, zPoint& refPt, bool setX, bool setY, bool setZ)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::setPtMesh(zObjMesh& o_Mesh, zPoint& refPt, bool setX, bool setY, bool setZ)
 	{
 		zFnMesh fnMesh(o_Mesh);
 		zPoint* positions = fnMesh.getRawVertexPositions();
@@ -7981,7 +7981,7 @@ namespace zSpace
 			if (setZ) positions[i].z = refPt.z;
 		}
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getBoundaryOffset(zObjMesh& _oMesh, bool keepExistingFaces, float offset, zObjMesh& outMesh)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getBoundaryOffset(zObjMesh& _oMesh, bool keepExistingFaces, float offset, zObjMesh& outMesh)
 	{
 		zFnMesh fnMesh(_oMesh);
 
@@ -8230,7 +8230,7 @@ namespace zSpace
 
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::closestPointsToMesh(zPointArray& inPoints, zObjMesh oMesh, zIntArray& faceIDs, zPointArray& closestPoints, zVectorArray& printNorms)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::closestPointsToMesh(zPointArray& inPoints, zObjMesh oMesh, zIntArray& faceIDs, zPointArray& closestPoints, zVectorArray& printNorms)
 	{
 
 		//zObjMesh oTmpMesh;
@@ -8283,7 +8283,7 @@ namespace zSpace
 		}
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getPrintHeight(zPointArray& pPoints, zVectorArray& pNorms, zObjMesh& o_Mesh, zFloatArray& pHeights, zObjGraph& outPrintHeightLines)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getPrintHeight(zPointArray& pPoints, zVectorArray& pNorms, zObjMesh& o_Mesh, zFloatArray& pHeights, zObjGraph& outPrintHeightLines)
 	{
 		zFnGraph fnGraph(outPrintHeightLines);
 		zIntArray eConnects;
@@ -8334,7 +8334,7 @@ namespace zSpace
 		printf("\n printHeightGraph v %i - e %i ", fnGraph.numVertices(), fnGraph.numEdges());
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::projectToMesh(zPointArray& pPoints, zObjMesh& o_Mesh, zPointArray& updatePts, zVectorArray& pNorm)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::projectToMesh(zPointArray& pPoints, zObjMesh& o_Mesh, zPointArray& updatePts, zVectorArray& pNorm)
 	{
 		updatePts.clear();
 		updatePts.assign(pPoints.size(), zPoint());
@@ -8370,7 +8370,7 @@ namespace zSpace
 
 		}
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::UVParametrisation(zObjMesh& oTmpMesh, zObjMesh& oParamMesh)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::UVParametrisation(zObjMesh& oTmpMesh, zObjMesh& oParamMesh)
 	{
 		//zObjMesh oTmpMesh;
 		//getPokeMesh(oMesh, oTmpMesh);
@@ -8425,7 +8425,7 @@ namespace zSpace
 		}
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getBaryCentricCoordinates_triangle(zPoint& pt, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& baryCoordinates)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getBaryCentricCoordinates_triangle(zPoint& pt, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& baryCoordinates)
 	{
 		zVector v0 = t1 - t0;
 		zVector v1 = t2 - t0;
@@ -8446,12 +8446,12 @@ namespace zSpace
 		baryCoordinates = zPoint(u, v, w);
 
 	}
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::getProjectionPoint_triangle(zPoint& baryCoordinates, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& projectionPt)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::getProjectionPoint_triangle(zPoint& baryCoordinates, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& projectionPt)
 	{
 		projectionPt = t0 * baryCoordinates.x + t1 * baryCoordinates.y + t2 * baryCoordinates.z;
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::barycentericProjection_triMesh(zObjGraph& o_graph, zObjMesh& o_inMesh, zObjMesh& o_projectionMesh, zVectorArray& outNotmals)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::barycentericProjection_triMesh(zObjGraph& o_graph, zObjMesh& o_inMesh, zObjMesh& o_projectionMesh, zVectorArray& outNotmals)
 	{
 		zFnGraph fnGraph(o_graph);
 
@@ -8501,7 +8501,7 @@ namespace zSpace
 		fnGraph.setVertexPositions(positions);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::unrollMesh(zObjMesh& o_mesh, zObjMesh& o_mesh_unroll, zObjGraph& o_dualgraph, zInt2DArray& oriVertex_UnrollVertex_map, unordered_map<zIntPair, int, zPair_hash>& oriFaceVertex_UnrollVertex, zIntPairArray& bsf_vertexPairs, zTransform& outTransformStart)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::unrollMesh(zObjMesh& o_mesh, zObjMesh& o_mesh_unroll, zObjGraph& o_dualgraph, zInt2DArray& oriVertex_UnrollVertex_map, unordered_map<zIntPair, int, zPair_hash>& oriFaceVertex_UnrollVertex, zIntPairArray& bsf_vertexPairs, zTransform& outTransformStart)
 	{
 		zFnMesh fnMesh(o_mesh);
 		zPoint* vPositions = fnMesh.getRawVertexPositions();
@@ -8650,7 +8650,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::creatUnrollMesh(zObjMesh& o_mesh, zObjMesh& o_mesh_unroll, zObjGraph& o_dualgraph, zInt2DArray& oriVertex_UnrollVertex_map, unordered_map<zIntPair, int, zPair_hash>& oriFaceVertex_UnrollVertex, zItGraphVertexArray& bsf_Vertices, zIntPairArray& bsf_vertexPairs)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::creatUnrollMesh(zObjMesh& o_mesh, zObjMesh& o_mesh_unroll, zObjGraph& o_dualgraph, zInt2DArray& oriVertex_UnrollVertex_map, unordered_map<zIntPair, int, zPair_hash>& oriFaceVertex_UnrollVertex, zItGraphVertexArray& bsf_Vertices, zIntPairArray& bsf_vertexPairs)
 	{
 		zFnMesh fnMesh(o_mesh);
 
@@ -8694,7 +8694,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeDualGraph_BST(zObjMesh& o_mesh, zObjGraph& o_graph, zItGraphVertexArray& bsf_Vertices, zIntPairArray& bsf_vertexPairs)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::computeDualGraph_BST(zObjMesh& o_mesh, zObjGraph& o_graph, zItGraphVertexArray& bsf_Vertices, zIntPairArray& bsf_vertexPairs)
 	{
 		zFnMesh fnMesh(o_mesh);
 
@@ -8724,7 +8724,7 @@ namespace zSpace
 		v_MaxValence.getBSF(bsf_Vertices, bsf_vertexPairs);
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::mergeMesh(zObjMesh& o_mesh)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::mergeMesh(zObjMesh& o_mesh)
 	{
 		zObjMesh oTmpMesh = o_mesh;
 
@@ -8779,7 +8779,7 @@ namespace zSpace
 		fnMesh.setVertexColors(colors);
 	}
 
-	ZSPACE_TOOLSETS_INLINE zIntPair zTsNatpowerSDF::getCommonEdge(zItMeshFace& f1, zItMeshFace& f2)
+	ZSPACE_TOOLSETS_INLINE zIntPair zTs3DPSlicer::getCommonEdge(zItMeshFace& f1, zItMeshFace& f2)
 	{
 		zIntPair out;
 
@@ -8809,7 +8809,7 @@ namespace zSpace
 
 	///NON-PLANAR BLOCKS
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeVLoops(zObjMesh& oMesh, zIntArray& medialIDS, zIntArray& featuredNumStrides, zVector& norm, vector<zItMeshHalfEdgeArray>& v_Loops, zObjMesh& oMesh_top, zObjMesh& oMesh_bottom)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::computeVLoops(zObjMesh& oMesh, zIntArray& medialIDS, zIntArray& featuredNumStrides, zVector& norm, vector<zItMeshHalfEdgeArray>& v_Loops, zObjMesh& oMesh_top, zObjMesh& oMesh_bottom)
 	{
 		int stride = 0;
 
@@ -8979,7 +8979,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeGeodesicScalars(zObjMesh& oMesh, vector<zItMeshHalfEdgeArray>& v_Loops, zScalarArray& scalars, bool normalise)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::computeGeodesicScalars(zObjMesh& oMesh, vector<zItMeshHalfEdgeArray>& v_Loops, zScalarArray& scalars, bool normalise)
 	{
 		zFnMesh fnMesh(oMesh);
 
@@ -9042,7 +9042,7 @@ namespace zSpace
 		//fnMesh.computeFaceColorfromVertexColor();
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeGeodesicContours(vector<zItMeshHalfEdgeArray>& v_Loops, zScalarArray& scalars, float spacing, zObjMesh& oMesh_top, zObjMesh& oMesh_bottom, zObjMeshArray& oMeshes)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::computeGeodesicContours(vector<zItMeshHalfEdgeArray>& v_Loops, zScalarArray& scalars, float spacing, zObjMesh& oMesh_top, zObjMesh& oMesh_bottom, zObjMeshArray& oMeshes)
 	{
 
 		zScalar minScalar = core.zMin(scalars);
@@ -9107,7 +9107,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::computeGeodesicContours(zObjMesh& o_mesh, zFloatArray& scalars, float spacing, zObjGraphArray& o_contourGraphs)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::computeGeodesicContours(zObjMesh& o_mesh, zFloatArray& scalars, float spacing, zObjGraphArray& o_contourGraphs)
 	{
 
 		zScalar minScalar = core.zMin(scalars);
@@ -9147,7 +9147,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::createSectionGraphs(zObjMeshArray& oMeshes, zObjGraphArray& o_sectionsGraphs)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::createSectionGraphs(zObjMeshArray& oMeshes, zObjGraphArray& o_sectionsGraphs)
 	{
 		o_sectionsGraphs.clear();
 		o_sectionsGraphs.assign(oMeshes.size(), zObjGraph());
@@ -9165,7 +9165,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::transformAllGraphs_planar(int graphId, bool toLocal)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::transformAllGraphs_planar(int graphId, bool toLocal)
 	{
 		zTransform t = sectionFrames[graphId];
 		zFnGraph fng;
@@ -9227,7 +9227,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::transformAllGraphs(int graphId, zTransform t , bool toLocal)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::transformAllGraphs(int graphId, zTransform t , bool toLocal)
 	{
 		zFnGraph fng;
 		if (toLocal)
@@ -9285,7 +9285,7 @@ namespace zSpace
 		}
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::cleanContourGraph(int graphId)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::cleanContourGraph(int graphId)
 	{
 		zFnGraph fnGraph(o_contourGraphs[graphId]);
 		//check for bourndary verticies
@@ -9446,7 +9446,7 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::readJSON(string path, int _blockID, bool runBothPlanes, bool runPlaneLeft, bool flip)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::readJSON(string path, int _blockID, bool runBothPlanes, bool runPlaneLeft, bool flip)
 	{
 		printf("\n readJSON 0");
 
@@ -9569,7 +9569,7 @@ namespace zSpace
 	}
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsNatpowerSDF::get2DArrayFromTransform(zTransform& transform, vector<zDoubleArray>& arr)
+	ZSPACE_TOOLSETS_INLINE void zTs3DPSlicer::get2DArrayFromTransform(zTransform& transform, vector<zDoubleArray>& arr)
 	{
 		//vector<zDoubleArray> arr;
 		arr.clear();
