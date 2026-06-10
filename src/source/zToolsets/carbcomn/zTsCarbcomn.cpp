@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <vector>
 //#include "zCore/base/zColor.h"
 //#include "zCore/base/zEnumerators.h"
 //#include "zCore/base/zTypeDef.h"
@@ -28,6 +29,7 @@
 #if defined ZSPACE_USD_INTEROP
 #include <pxr/base/gf/matrix4d.h>
 #include <pxr/base/gf/vec3f.h>
+#include <pxr/base/plug/registry.h>
 #include <pxr/base/vt/array.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/sdf/valueTypeName.h>
@@ -240,6 +242,8 @@ namespace zSpace
 			out << "int[] curveVertexCounts = ";
 			writeIntArray(out, curveVertexCounts);
 			out << "\n";
+			writeIndent(out, indent + 8);
+			out << "float[] widths = [0.01]\n";
 
 			if (vertexSequence && !vertexSequence->empty())
 			{
@@ -292,6 +296,7 @@ namespace zSpace
 			writeWorldClose(out);
 			return true;
 		}
+
 	}
 #else
 	namespace
@@ -499,7 +504,6 @@ namespace zSpace
 		if (!jsonCheck)
 		{
 			printf("\n %s doesnt exists", path.c_str());
-			throw std::invalid_argument(" error: invalid outPath. ");
 			return;
 		}
 
@@ -3751,7 +3755,6 @@ namespace zSpace
 		if (innerVertx.size() != outerVertx.size())
 		{
 			printf("\n ERROR!  inner and outer vertices are not the same size! inner | outer  %i | %i", innerVertx.size(), outerVertx.size());
-			__debugbreak();
 			return;
 		}
 
@@ -5232,7 +5235,7 @@ namespace zSpace
 		}
 
 		writeWorldClose(out);
-		return true;
+		return out.good();
 	}
 	//EXPORT sub method
 	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::exportUSD_sliceMesh(string pathCurrent, string folderName)
@@ -6598,7 +6601,8 @@ namespace zSpace
 		if (start_vert.end())
 		{
 			//Could not find the start color
-			__debugbreak();
+			printf("\n ERROR! Could not find start color in graph.");
+			return;
 		}
 
 		zItGraphHalfEdgeArray hes, copy;
@@ -9769,7 +9773,7 @@ namespace zSpace
 
 		if (!fileChk)
 		{
-			throw std::invalid_argument(" error: invalid outPath. ");
+			printf("\n error: invalid outPath %s", path.c_str());
 			return;
 		}
 
