@@ -1,10 +1,10 @@
-// This file is part of zspace, a simple C++ collection of geometry data-structures & algorithms, 
+// This file is part of zspace, a simple C++ collection of geometry data-structures & algorithms,
 // data analysis & visualization framework.
 //
-// Copyright (C) 2019 ZSPACE 
-// 
-// This Source Code Form is subject to the terms of the MIT License 
-// If a copy of the MIT License was not distributed with this file, You can 
+// Copyright (C) 2019 ZSPACE
+//
+// This Source Code Form is subject to the terms of the MIT License
+// If a copy of the MIT License was not distributed with this file, You can
 // obtain one at https://opensource.org/licenses/MIT.
 //
 // Author : Vishu Bhooshan <vishu.bhooshan@zaha-hadid.com>
@@ -101,7 +101,7 @@ namespace zSpace
 		const float printWidthExterior = 0.028;
 		const float printOverlap = 0.002; //2mm overlap total
 	public:
-		const float targetInteriorGap = 0.038; //layer width - overlapping 
+		const float targetInteriorGap = 0.038; //layer width - overlapping
 		const float targetExteriorGap = 0.024; //layer width - overlapping
 	public:
 		//1st offset (exterior side and interior side)
@@ -117,7 +117,7 @@ namespace zSpace
 		//const float bracingEdgeSlotWidth = 0.009;
 		const int horiz_bracing_num = 2;
 
-		//slots width 
+		//slots width
 		//const float slotStartWidth = 0.018;
 		const float slotStartWidth = (printWidthInterior - 0.006f) * 0.5f; // final width would be slotStartWidth * 2
 		//const float slotBracingWidth = 0.009;
@@ -205,7 +205,7 @@ namespace zSpace
 
 		/*!	\brief container of trim graph objects  */
 		zObjGraphArray o_trimGraphs;
-		
+
 		/// <summary>
 		/// Used to identify hard feature points in the post-processing
 		/// </summary>
@@ -218,8 +218,8 @@ namespace zSpace
 		/// <summary>
 		/// Used in the SDF and in the post-processing
 		/// </summary>
-		/// 
-		
+		///
+
 		zObjGraphArray o_trimGraphs_bracing;
 		zObjGraphArray o_trimGraphs_bracing_flat;
 		zObjGraphArray o_trimGraphs_bracing_slots;
@@ -331,7 +331,7 @@ namespace zSpace
 		zIntArray FeaturedNumStrides;
 		zIntArray medialIDS;
 	private:
-		//color settings 
+		//color settings
 		zColor _col_in_corner_st = zRED;
 		zColor _col_out_corner_st = zCYAN;
 		zColor _col_in_corner = zGREEN;
@@ -382,10 +382,9 @@ namespace zSpace
 		*/
 		void createFieldMesh(zDomain<zPoint>& bb, int resX, int resY);
 
-		void createFieldMeshCellSize(zDomain<zPoint>& bb, float cellSizeX, float cellSizeY);
 
 		//--------------------------
-		//--- SET METHODS 
+		//--- SET METHODS
 		//--------------------------
 
 		/*! \brief This method sets mesh from json.
@@ -404,14 +403,12 @@ namespace zSpace
 		* 	\param		[in]	left				- input boolean indicating if the planes for the left or right side meshes.
 		*	\since version 0.0.4
 		*/
-		void setSliceMesh(zObjMesh& _o_SliceMesh, bool left);
 
 		/*! \brief This method sets the medial graph object.
 		*
 		*	\param		[in]	_o_MedialGraph			- input graph object.
 		*	\since version 0.0.4
 		*/
-		void setMedialGraph(zObjGraph& _o_MedialGraph);
 
 		/*! \brief This method sets the start and end plane.
 		*
@@ -422,9 +419,7 @@ namespace zSpace
 		*/
 		void setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left);
 
-		void setGradientTriMesh(zObjMesh& _o_gradientTriMesh);
 
-		void setOffsetDomain(zDomainFloat& _offsetDomain);
 
 		void setTransforms(bool toLocal);
 
@@ -433,7 +428,6 @@ namespace zSpace
 		*	\param		[in]	_sectionFrames			- input container of planes.
 		*	\since version 0.0.4
 		*/
-		void setFrames(vector<zPlane>& _sectionFrames);
 
 		//--------------------------
 		//---- GET METHODS
@@ -445,7 +439,6 @@ namespace zSpace
 		*	\return				vector<zTransform>	    - cantainer of transforms if they exist.
 		*	\since version 0.0.2
 		*/
-		zTransform* getRawBlockStartEnd(bool left);
 
 
 		/*! \brief This method gets the block frames.
@@ -470,7 +463,6 @@ namespace zSpace
 		*	\return				zObjGraphPointerArray	-  pointer conatiner of graphs if they exist.
 		*	\since version 0.0.2
 		*/
-		zObjGraphPointerArray getBlockRaftGraphs(int& numGraphs);
 
 		/*! \brief This method gets the block cable profile graphs
 		*
@@ -480,7 +472,6 @@ namespace zSpace
 		*/
 		zObjGraphPointerArray getBlockCableProfileGraphs(int& numGraphs);
 
-		zObjMeshPointerArray getBlockCableMeshes(int& numGraphs);
 
 
 		/*! \brief This method gets the block SDF contour graphs
@@ -491,9 +482,7 @@ namespace zSpace
 		*/
 		zObjGraphPointerArray getBlockContourGraphs(int& numGraphs);
 
-		void getBlockContourGraphsSequence(int& numGraphs, int* vSequence);
 
-		static zIntArray getGraphSequence(zObjGraph graph);
 
 		/*! \brief This method gets the block trim graphs
 		*
@@ -523,7 +512,6 @@ namespace zSpace
 		*	\return				zObjGraph*					- pointer to internal graph object.
 		*	\since version 0.0.4
 		*/
-		zObjGraph* getRawMedialGraph();
 
 		/*! \brief This method gets pointer to the internal left mesh object.
 		*
@@ -544,24 +532,21 @@ namespace zSpace
 		*	\return				zObjMesh*					- pointer to internal mesh object.
 		*	\since version 0.0.4
 		*/
-		zObjMesh* getRawGuideMesh();
 
 		/*! \brief This method gets pointer to the internal guide mesh object.
 		*
 		*	\return				zObjMesh*					- pointer to internal mesh object.
 		*	\since version 0.0.4
 		*/
-		zObjMesh* getRawGradientMesh();
 
 		/*! \brief This method gets pointer to the internal mesh scalar field  object.
 		*
 		*	\return				zObjMeshScalarField*					- pointer to internal mesh scalar field object.
 		*	\since version 0.0.4
 		*/
-		zObjMeshScalarField* getRawMeshScalarField();
 
 		//--------------------------
-		//---- COMPUTE METHODS 
+		//---- COMPUTE METHODS
 		//--------------------------
 
 		bool isPlanarBlock();
@@ -602,7 +587,6 @@ namespace zSpace
 		*	\param		[in]	braceStride			- input stride for edges for braces.
 		*	\since version 0.0.4
 		*/
-		void compute_Medial_BraceEdges(zObjMesh& o_Mesh, int startVID, int endVID, int blockStride, int braceStride);
 
 
 		///----------PRINT BLOCKS METHODS
@@ -672,7 +656,7 @@ namespace zSpace
 		void compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph & outGraph_hardFeature, zObjGraph& outGraph_softFeature);
 		void compute_TrimGraphs_SlotSide(int graphId, zObjGraph& outGraph_splitGraph);
 		void compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph);
-		
+
 		void compute_TrimGraphs_SlotSide(zObjGraph& sectionGraph, zObjGraph& outGraph_splitGraph);
 		void compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph,  bool remove_firstLast = false);
 
@@ -685,12 +669,8 @@ namespace zSpace
 		void util_getPerpendicularVector(zPlane& plane, zVector edgeVector, zPoint midPoint, float graphLength, zObjGraph& outGraph);
 		zVector util_averageVectorsAtGraphVertex(zItGraphVertex& v);
 		void util_combineMultipleGraphs(zObjGraphArray& inGraphs, zObjGraph& outGraph);
-		zPoint util_getGraphPointAtParameter(zObjGraph& inGraph, int startVertexID, float normalizedPar, int& outEdgeIndex);
-		zPoint util_getPointAtParameterHalfEdge(zItGraphHalfEdge& he, float normalizedPar);
-		
 
-		double util_normalise(double value, double min, double max);
-		double util_denormalise(double value, double min, double max);
+
 		/*! \brief This method computes the SDF for the blocks.
 		*
 		*	\since version 0.0.4
@@ -698,16 +678,7 @@ namespace zSpace
 		void compute_SDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth);
 
 
-		/*! \brief This method compute the block SDF for the deck.
-		*
-		*	\param		[in]	_block						- input block.
-		*	\param		[in]	graphId						- input index of section graph.
-		*	\since version 0.0.4
-		*/
-		void compute_BlockSDF_Planar_wall(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth);
-		
-		void compute_BlockSDF_Planar_regular(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth);
-		void compute_BlockSDF_Planar_pentagon(int funcNum, int numSmooth, int graphId, bool alternate, float printWidth);
+
 
 		/*! \brief This method compute the block SDF for the balustrade.
 		*
@@ -720,9 +691,7 @@ namespace zSpace
 		void compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts, float threshold = 0.0);
 		int compute_cable_CableGraphIndexPerGraph(int graphId);
 
-		//create a 
-		void compute_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield);
-		void compute_arch_cutout(int graphId, int smooth, zScalarArray& polyfield, zScalarArray& outerfield, zScalarArray& innerfield);
+		//create a
 
 		zPoint util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh);
 		void util_isoContour(zObjGraph& o_graph, zScalarArray& vertexScalars, float threshold, zPointArray& contourPoints);
@@ -730,13 +699,8 @@ namespace zSpace
 
 
 		bool exportUSD_update(string pathCurrent, string dir);
-		bool exportUSD_sliceMesh(string pathCurrent, string dir);
 
 
-		bool exportUSD_graphID(string dir, int graphId, bool left);
-		bool exportUSD_graphID_trims(string folderName, string extName, int graphId);
-		bool exportUSD_graphID_contours(string folderName, string extName, int graphId);
-		bool exportUSD_graphID_section(string folderName, string extName, int graphId);
 
 
 
@@ -757,14 +721,8 @@ namespace zSpace
 		void getFaceVerticesFromHalfedge(zItMeshHalfEdge& heStart, bool forward, zPointArray& fVerts, zColorArray& fVColors);
 		void getFaceVerticesFromHalfedge(zItMeshHalfEdge& heStart, bool forward, zIntArray& fVerts);
 		void createBoundaryEdgeGraph(zObjMesh& o_mesh, bool closeGraph, zObjGraph& o_Graph);
-		void colorMesh(zObjMesh& o_mesh, zFloatArray& scalars);
 		void setPtGraph(zObjGraph& o_Graph, zPoint& refPt, bool setX, bool setY, bool setZ);
-		void setPtMesh(zObjMesh& o_Mesh, zPoint& refPt, bool setX, bool setY, bool setZ);
-		void getBoundaryOffset(zObjMesh& _oMesh, bool keepExistingFaces, float offset, zObjMesh& outMesh);
-		void closestPointsToMesh(zPointArray& inPoints, zObjMesh oMesh, zIntArray& faceIDs, zPointArray& closestPoints, zVectorArray& printNorms);
 		void getPrintHeight(zPointArray& pPoints, zVectorArray& pNorms, zObjMesh& o_Mesh, zFloatArray& pHeights, zObjGraph& outPrintHeightLines);
-		void projectToMesh(zPointArray& pPoints, zObjMesh& o_Mesh, zPointArray& updatePts, zVectorArray& pNorm);
-		void UVParametrisation(zObjMesh& oMesh, zObjMesh& oParamMesh); 
 		void getBaryCentricCoordinates_triangle(zPoint& pt, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& baryCoordinates);
 		void getProjectionPoint_triangle(zPoint& baryCoordinates, zPoint& t0, zPoint& t1, zPoint& t2, zPoint& projectionPt);
 		void barycentericProjection_triMesh(zObjGraph& o_graph, zObjMesh& o_inMesh, zObjMesh& o_projectionMesh, zVectorArray& outNotmals);
@@ -781,7 +739,6 @@ namespace zSpace
 		void computeGeodesicContours(zObjMesh& o_mesh, zFloatArray& scalars, float spacing, zObjGraphArray& o_contourGraphs);
 		void createSectionGraphs(zObjMeshArray& oMeshes, zObjGraphArray& o_sectionsGraphs);
 
-		void transformAllGraphs_planar(int graphId, bool toLocal);
 		void transformAllGraphs(int graphId, zTransform t,  bool toLocal);
 
 
@@ -789,7 +746,7 @@ namespace zSpace
 		//---- POST-PROCESSING METHODS
 		//--------------------------
 		void cleanContourGraph(int graphId);
-		 
+
 
 
 		void graphIntersection(zObjGraph& graph, zObjGraphArray& trims, zObjGraph& outGraph);
@@ -804,53 +761,48 @@ namespace zSpace
 		zItMeshHalfEdge util_getStartHalfEdge(zObjMesh& o_mesh, int startVID, int endVID);
 		void util_createGraphFromHEArray(zItGraphHalfEdgeArray& heArray, zObjGraph& outGraph);
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="inPoly"></param>
 		/// <param name="innerHE"></param>
 		/// <param name="innerLength"></param>
 		void util_computeSlotGraph(zPlane plane, zObjGraph& inPoly, float graphLength, bool iterate, zObjGraph& outGraph);
-		void util_computeSplitGraph_plane(zPlane plane, zObjGraph& inPoly, float offset, float trim, zObjGraph& outGraph);
 		void util_computeSplitGraph_xy(zObjGraph& inPoly, zObjGraph& outGraph);
-		void util_computeSplitGraph_corner(zObjGraph& inPoly, zPoint& startV, zPoint& endV, zObjGraph& outGraph);
-		
-		
+
+
 
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="graph"></param>
 		/// <param name="startColor"></param>
 		/// <param name="endColor"></param>
 		bool util_getShortestHEsBetweenColors(zObjGraph& graph, zColor startColor, zColor endColor, zItGraphHalfEdgeArray& outHEs);
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="graph"></param>
 		/// <param name="samplePoint"></param>
 		/// <param name="outPoint"></param>
 		/// <param name="dist"></param>
 		/// <returns>Edge index if closest point</returns>
-		/// 
+		///
 		bool util_getShortestHEsBetweenCorlorsForLoopGraph(zObjGraph& graph, zColor startColor, zColor endColor, zItGraphHalfEdgeArray& outHEs);
 		int util_getGraphClosestPoint(zObjGraph& graph, zPoint& samplePoint, zPoint& outPoint, float& dist);
 
 		int util_getHeArrayClosestPoint(zItGraphHalfEdgeArray& hes, zPoint& samplePoint, zPoint& outPoint, float& dist);
-		
+
 		void util_getHEsColorLen(zObjGraph& graph, zColor& startCol, zColor& endCol, float len, zItGraphHalfEdgeArray& out);
 
 
-		void getScalars_3dp_cable_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracingSlotsGraph, zObjGraph& cableProfileGraph, bool iterateChk, zScalarArray& scalar_cableBracingSlots, zScalarArray& scalar_cableBracing, zScalarArray& scalar_interiorBracing,float wt =0.1f);
 		void getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracingSlotsGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots);
 		void getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray& outScalar_triangles, bool remove_firstLast = false);
 
 		void getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner);
 		int util_get_corrected_id(std::unordered_map<int, int>& map, int id_to_check, int id_to_set);
 		void util_merge_graph(zObjGraph& oGraph, double tol);
-		void util_graph_graphIntersect(zObjGraph gEg1, zItGraphHalfEdge gEg2, double& outPt1, double& outPt2, int& id1);
 		void readJSON(string path, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false, bool flip = false);
-		void get2DArrayFromTransform(zTransform& transform, vector<zDoubleArray>& arr);
 	};
 
 }
