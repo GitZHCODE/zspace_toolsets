@@ -69,14 +69,6 @@
 
 namespace zSpace
 {
-	enum zBlockType
-	{
-		Bottom,
-		Top,
-		Wall,
-		Arch
-	};
-
 	struct zPair_hash
 	{
 		template <class T1, class T2>
@@ -182,12 +174,6 @@ namespace zSpace
 
 		/*!	\brief medial graph object  */
 		zObjGraph o_MedialGraph;
-
-		/*!	\brief left start & end planes  */
-		zTransform leftPlanes[2];
-
-		/*!	\brief right start & end planes  */
-		zTransform rightPlanes[2];
 
 		/*!	\brief container of section frames  */
 		vector<zTransform> sectionFrames;
@@ -309,9 +295,6 @@ namespace zSpace
 
 		zColorArray blockColors;
 
-		//bool leftPlaneExists = false;
-		//bool rightPlaneExists = false;
-
 		int blockId = 1;
 
 		int numMagentaLoops = 1;
@@ -326,8 +309,6 @@ namespace zSpace
 
 		int StartCornerVID = -1;
 		bool _interpolateFramesOrigins = false;
-
-		zBlockType blockType;
 		zIntArray FeaturedNumStrides;
 		zIntArray medialIDS;
 	private:
@@ -409,17 +390,6 @@ namespace zSpace
 		*	\param		[in]	_o_MedialGraph			- input graph object.
 		*	\since version 0.0.4
 		*/
-
-		/*! \brief This method sets the start and end plane.
-		*
-		*	\param		[in]	_sTransform			- input start plane.
-		*	\param		[in]	_eTransform			- input end plane.
-		* 	\param		[in]	left				- input boolean indicating if the planes for the left or right side meshes.
-		*	\since version 0.0.4
-		*/
-		void setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left);
-
-
 
 		void setTransforms(bool toLocal);
 
@@ -565,7 +535,6 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 
-		void compute_SliceMesh_Pentagon(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left);
 		void compute_SliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides);
 		//Slice mesh: helper methods
 
@@ -607,7 +576,6 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 
-		void compute_PrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS);
 
 
 		/*! \brief This method compute the block frames.
@@ -617,14 +585,12 @@ namespace zSpace
 		*	\param		[in]	guideMesh_vertex			- input guide mesh vertex.
 		*	\since version 0.0.4
 		*/
-		void compute_PrintBlock_Frames(float printPlaneSpacing, bool left, float neopreneOffset_start = 0.0f, float neopreneOffset_end = 0.0f);
 
 		/*! \brief This method compute the block frames.
 		*
 		*	\param		[in]	_block						- input block.
 		*	\since version 0.0.4
 		*/
-		void compute_PrintBlock_Sections(bool left, bool& outGeomChk);
 
 
 
@@ -633,7 +599,6 @@ namespace zSpace
 		*	\param		[in]	_block						- input block.
 		*	\since version 0.0.4
 		*/
-		bool check_PrintLayerHeights(bool& checkSDF, bool& checkGeometry);
 
 		bool check_SDF_LayerHeights();
 
@@ -642,7 +607,6 @@ namespace zSpace
 		*	\param		[in]	_block						- input block.
 		*	\since version 0.0.4
 		*/
-		bool check_InterfacePoints(bool left, float distTolerance);
 
 		bool check_sectionGraphGeomCheck(zObjGraph& graph);
 
@@ -652,7 +616,6 @@ namespace zSpace
 		void compute_PrintBlock_ComputeTrimGraphs();
 
 
-		void compute_TrimGraphs_BracingCable(int graphId, zObjGraph& outGraph, zObjGraph &o_cableProfileGraph, float hori_wt = 0.0f);
 		void compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph & outGraph_hardFeature, zObjGraph& outGraph_softFeature);
 		void compute_TrimGraphs_SlotSide(int graphId, zObjGraph& outGraph_splitGraph);
 		void compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph);
@@ -688,8 +651,6 @@ namespace zSpace
 		*/
 		void compute_BlockSDF_NonPlanar(int funcNum, int numSmooth, int graphId, bool alternate);
 
-		void compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& intersectionPts, float threshold = 0.0);
-		int compute_cable_CableGraphIndexPerGraph(int graphId);
 
 		//create a
 
@@ -818,5 +779,3 @@ namespace zSpace
 #endif
 
 #endif
-
-

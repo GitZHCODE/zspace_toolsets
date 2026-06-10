@@ -273,6 +273,20 @@ namespace zSpace
 			out << "}\n";
 		}
 
+		void writeGroupOpen(std::ofstream& out, const std::string& groupName, int indent)
+		{
+			writeIndent(out, indent);
+			out << "def Xform \"" << tokenFromName(groupName) << "\"\n";
+			writeIndent(out, indent);
+			out << "{\n";
+		}
+
+		void writeGroupClose(std::ofstream& out, int indent)
+		{
+			writeIndent(out, indent);
+			out << "}\n";
+		}
+
 		bool exportMeshUsd(zUtilsCore& core, const std::string& path, zObjMesh& meshObj, const std::string& primName, const zTransform* frame = nullptr)
 		{
 			std::ofstream out;
@@ -331,10 +345,6 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::createFieldMeshFromMeshBounds(float cellSize, float offset)
 	{
-		// Transform
-		//zTransform t = sectionFrames[0];
-		zTransform t = leftPlanes[0]; //<given that start left and right planes are the same
-
 		zFnMesh fnMesh(o_GuideMesh);
 		fnMesh.setTransform(base_world, true, false);
 		fnMesh.setTransform(base_local, true, true);
@@ -495,21 +505,13 @@ namespace zSpace
 		}
 
 		blockId = _blockID;
-		planarBlock = j["IsPlanar"];
+		planarBlock = false;
 		printf("\n is planar %s ", to_string(planarBlock));
 
 		//bool flip = j["IsCorner"];
 		bool flip = false;
 
 		readJSON(path, _blockID, runBothPlanes, runPlaneLeft, flip);
-	}
-
-			ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::setStartEndPlanes(zTransform& _sPlane, zTransform& _ePlane, bool left)
-	{
-		(left) ? leftPlanes[0] = _sPlane : rightPlanes[0] = _sPlane;
-		(left) ? leftPlanes[1] = _ePlane : rightPlanes[1] = _ePlane;
-
-		//(left) ? leftPlaneExists = true : rightPlaneExists = true;
 	}
 
 			ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::setTransforms(bool toLocal)
@@ -563,30 +565,6 @@ namespace zSpace
 			zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
 			fnCritical_max.setTransform(base_world, true, false);
 			fnCritical_max.setTransform(base_local, true, true);
-
-			/*if (leftPlaneExists)
-			{
-				for (int i = 0; i < 2; i++)
-				{
-					zTransform transform = coreUtils.PlanetoPlane(leftPlanes[i], base_local);
-					leftPlanes[i] *= transform;
-				}
-			}
-
-			if (rightPlaneExists)
-			{
-
-					zTransformationMatrix tMat;
-					tMat.setTransform(rightPlanes[0]);
-
-					zTransformationMatrix tLocal;
-					tLocal.setTransform(base_local);
-					zTransform t = tMat.getToMatrix(tLocal).transpose();
-
-					rightPlanes[0] *= t;
-					rightPlanes[1] *= t;
-
-			}*/
 
 		}
 		else
@@ -780,417 +758,7 @@ namespace zSpace
 	//---- COMPUTE METHODS
 
 	//---------SLICE MESH----------------
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Pentagon(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides, bool left)
-	{
-		unordered_map<string, int> positionVertex;
-		zPointArray positions;
-		zIntArray pCounts;
-		zIntArray pConnects;
-
-		//compute start half edge
-		zItMeshHalfEdge heStart = util_getStartHalfEdge(o_Mesh, startVID, endVID);
-
-		//get end he
-		zItMeshHalfEdge heEnd = heStart;
-		//int sideDivisionCount = 1;
-		while (heEnd.getVertex().getId() != endVID)
-		{
-			heEnd = heEnd.getNext().getSym().getNext();
-			//sideDivisionCount++;
-		}
-
-		//printf("\n sideDivisionCount %i ", sideDivisionCount);
-
-
-		// walk along spine
-		bool exit = false;
-		zItMeshHalfEdge he = heStart;
-
-		int featureWalkNum1 = (FeaturedNumStrides.size() - 1) / 2;
-		int featureStart = 0;
-
-
-		do
-		{
-			//right
-			if (!left)
-			{
-				//for (int ff = FeaturedNumStrides.size()-1; ff >= 0; ff--)
-				//{
-					//int blockStride = FeaturedNumStrides[ff];
-				zItMeshHalfEdge he_Left = he.getPrev();
-
-				//for (int& blockStride : FeaturedNumStrides)
-				for (int k = featureStart; k < featureWalkNum1; k++)
-				{
-					int blockStride = FeaturedNumStrides[k];
-					for (int i = 0; i < blockStride; i++)
-					{
-
-						zItMeshHalfEdge heTmp = he_Left;
-						int pCount = 0;
-						do
-						{
-							zPoint p = heTmp.getVertex().getPosition();
-							int vID;
-							bool chkRepeat = core.vertexExists(positionVertex, p, PRECISION, vID);
-
-							if (!chkRepeat)
-							{
-								vID = positions.size();
-								core.addToPositionMap(positionVertex, p, vID, PRECISION);
-								positions.push_back(p);
-							}
-
-							pConnects.push_back(vID);
-							pCount++;
-
-							heTmp = heTmp.getNext();
-
-							//heTmp = heTmp.getPrev();
-
-						} while (heTmp != he_Left);
-
-						pCounts.push_back(pCount);
-
-						he_Left = he_Left.getPrev().getSym().getPrev();
-
-
-					}
-
-				}
-			}
-
-			//sideCounter++;
-			//if (sideCounter < sideDivisionCount)
-			//{
-			//	heTmp.getEdge().setColor(zCYAN);
-			//}
-
-			//left
-			else
-			{
-				zItMeshHalfEdge he_Right = he.getSym().getNext();
-				//for (int& blockStride : FeaturedNumStrides)
-				for (int k = featureStart; k < featureWalkNum1; k++)
-				{
-					int blockStride = FeaturedNumStrides[k];
-
-					for (int i = 0; i < blockStride; i++)
-					{
-						zItMeshHalfEdge heTmp = he_Right;
-						int pCount = 0;
-						do
-						{
-							zPoint p = heTmp.getStartVertex().getPosition();
-							int vID;
-							bool chkRepeat = core.vertexExists(positionVertex, p, PRECISION, vID);
-
-							if (!chkRepeat)
-							{
-								vID = positions.size();
-								core.addToPositionMap(positionVertex, p, vID, PRECISION);
-								positions.push_back(p);
-							}
-							pConnects.push_back(vID);
-							pCount++;
-
-							heTmp = heTmp.getNext();
-
-						} while (heTmp != he_Right);
-
-						pCounts.push_back(pCount);
-
-						he_Right = he_Right.getNext().getSym().getNext();
-
-					}
-
-				}
-
-			}
-
-
-			//spine walk
-			he = he.getNext().getSym().getNext();
-
-			if (he == heStart) exit = true;
-			//if(he.getStartVertex().getId() == )
-
-
-
-		} while (!exit);
-
-		//printf("\n sliceMesh input %i %i %i ", positions.size(), pCounts.size(), pConnects.size());
-
-
-		// cap faces
-		//right
-		if (!left)
-		{
-			zItMeshHalfEdge heTop = heStart;
-			zItMeshHalfEdge heBottom = heStart;
-			heBottom = heBottom.getPrev().getSym().getPrev();
-			heBottom = heBottom.getPrev().getSym().getPrev();
-
-			zItMeshHalfEdge heTop_corner = heTop;
-			zItMeshHalfEdge heBottom_corner = heBottom;
-
-			for (int k = featureStart; k < featureWalkNum1; k++)
-			{
-				int blockStride = FeaturedNumStrides[k];
-				//for (int& blockStride : FeaturedNumStrides)
-				//{
-
-				for (int i = 0; i < blockStride; i++)
-				{
-					heTop_corner = heTop_corner.getPrev().getPrev().getSym();
-					heBottom_corner = heBottom_corner.getPrev().getPrev().getSym();
-				}
-			}
-
-
-			exit = false;
-			do
-			{
-				if (heTop.getVertex().getId() == endVID) exit = true;
-
-				zPoint p0 = heTop.getVertex().getPosition();
-				int v0;
-				core.vertexExists(positionVertex, p0, PRECISION, v0);
-
-				zPoint p1 = heTop.getStartVertex().getPosition();
-				int v1;
-				core.vertexExists(positionVertex, p1, PRECISION, v1);
-
-				zPoint p2 = heBottom.getVertex().getPosition();
-				int v2;
-				core.vertexExists(positionVertex, p2, PRECISION, v2);
-
-				zPoint p3 = heBottom.getStartVertex().getPosition();
-				int v3;
-				core.vertexExists(positionVertex, p3, PRECISION, v3);
-
-				pConnects.push_back(v0);
-				pConnects.push_back(v1);
-				pConnects.push_back(v2);
-				pConnects.push_back(v3);
-
-				pCounts.push_back(4);
-
-				// corner
-				zPoint p4 = heTop_corner.getStartVertex().getPosition();
-				int v4;
-				core.vertexExists(positionVertex, p4, PRECISION, v4);
-
-				zPoint p5 = heTop_corner.getVertex().getPosition();
-				int v5;
-				core.vertexExists(positionVertex, p5, PRECISION, v5);
-
-				zPoint p6 = heBottom_corner.getStartVertex().getPosition();
-				int v6;
-				core.vertexExists(positionVertex, p6, PRECISION, v6);
-
-				zPoint p7 = heBottom_corner.getVertex().getPosition();
-				int v7;
-				core.vertexExists(positionVertex, p7, PRECISION, v7);
-
-				pConnects.push_back(v4);
-				pConnects.push_back(v5);
-				pConnects.push_back(v6);
-				pConnects.push_back(v7);
-
-				pCounts.push_back(4);
-
-				//
-				heTop = heTop.getNext().getSym().getNext();
-				heBottom = heBottom.getPrev().getSym().getPrev();
-
-				heTop_corner = heTop_corner.getNext().getSym().getNext();
-				heBottom_corner = heBottom_corner.getPrev().getSym().getPrev();
-
-			} while (!exit);
-		}
-		else
-		{
-			zItMeshHalfEdge heTop = heStart.getSym();
-			zItMeshHalfEdge heBottom = heStart.getSym();
-			heBottom = heBottom.getNext().getSym().getNext();
-			heBottom = heBottom.getNext().getSym().getNext();
-
-			zItMeshHalfEdge heTop_corner = heTop;
-			zItMeshHalfEdge heBottom_corner = heBottom;
-
-			for (int k = 0; k < featureWalkNum1; k++)
-			{
-				int blockStride = FeaturedNumStrides[k];
-				//for (int& blockStride : FeaturedNumStrides)
-				//{
-
-				for (int i = 0; i < blockStride; i++)
-				{
-					heTop_corner = heTop_corner.getPrev().getPrev().getSym();
-					heBottom_corner = heBottom_corner.getPrev().getPrev().getSym();
-				}
-			}
-
-			exit = false;
-			do
-			{
-				if (heTop.getStartVertex().getId() == endVID) exit = true;
-
-				zPoint p0 = heTop.getVertex().getPosition();
-				int v0;
-				core.vertexExists(positionVertex, p0, PRECISION, v0);
-
-				zPoint p1 = heTop.getStartVertex().getPosition();
-				int v1;
-				core.vertexExists(positionVertex, p1, PRECISION, v1);
-
-				zPoint p2 = heBottom.getVertex().getPosition();
-				int v2;
-				core.vertexExists(positionVertex, p2, PRECISION, v2);
-
-				zPoint p3 = heBottom.getStartVertex().getPosition();
-				int v3;
-				core.vertexExists(positionVertex, p3, PRECISION, v3);
-
-				pConnects.push_back(v0);
-				pConnects.push_back(v1);
-				pConnects.push_back(v2);
-				pConnects.push_back(v3);
-
-				pCounts.push_back(4);
-
-				// corner
-				zPoint p4 = heTop_corner.getStartVertex().getPosition();
-				int v4;
-				core.vertexExists(positionVertex, p4, PRECISION, v4);
-
-				zPoint p5 = heTop_corner.getVertex().getPosition();
-				int v5;
-				core.vertexExists(positionVertex, p5, PRECISION, v5);
-
-				zPoint p6 = heBottom_corner.getStartVertex().getPosition();
-				int v6;
-				core.vertexExists(positionVertex, p6, PRECISION, v6);
-
-				zPoint p7 = heBottom_corner.getVertex().getPosition();
-				int v7;
-				core.vertexExists(positionVertex, p7, PRECISION, v7);
-
-				pConnects.push_back(v4);
-				pConnects.push_back(v5);
-				pConnects.push_back(v6);
-				pConnects.push_back(v7);
-
-				pCounts.push_back(4);
-
-				//
-				heTop = heTop.getPrev().getSym().getPrev();
-				heBottom = heBottom.getNext().getSym().getNext();
-
-				heTop_corner = heTop_corner.getPrev().getSym().getPrev();
-				heBottom_corner = heBottom_corner.getNext().getSym().getNext();
-
-			} while (!exit);
-
-		}
-
-
-
-		zObjMesh* o_sliceMesh = (left) ? &o_SliceMesh_Left : &o_SliceMesh_Right;
-		zFnMesh fnMesh(*o_sliceMesh);
-
-		fnMesh.create(positions, pCounts, pConnects);
-
-		(left) ? fnMesh.setFaceColor(zGREEN) : fnMesh.setFaceColor(zMAGENTA);
-
-		fnMesh.setFaceColor(zGREY);
-		fnMesh.setVertexColor(zBLACK);
-
-		//get start and end HE of the medial graph
-		zFnMesh fnGuide(o_Mesh);
-		zPointArray guidePts;
-		fnGuide.getVertexPositions(guidePts);
-		int vSIDSlice, vEIDSlice;
-		vSIDSlice = core.getClosest_PointCloud(guidePts[startVID], positions);
-		vEIDSlice = core.getClosest_PointCloud(guidePts[endVID], positions);
-		zItMeshHalfEdge heStartSlice = util_getStartHalfEdge(*o_sliceMesh, vSIDSlice, vEIDSlice);
-		zItMeshHalfEdge heEndSlice = heStartSlice;
-		int sideDivisionCount = 1;
-		while (heEndSlice.getVertex().getId() != vEIDSlice)
-		{
-			heEndSlice = heEndSlice.getNext().getSym().getNext();
-			sideDivisionCount++;
-		}
-		heEndSlice = heEndSlice.getNext();
-
-		//get connected he for the updated cornerVertex
-		//find the he which, is not heStartSlice and end valency is not 3 (given that the inner face is only one stride)
-		zItMeshVertex vCornerStart(*o_sliceMesh, vSIDSlice);
-		zItMeshHalfEdge heCornerStartSection, heWalkSection;
-		zItMeshHalfEdgeArray hesCTemp;
-		vCornerStart.getConnectedHalfEdges(hesCTemp);
-		for (zItMeshHalfEdge e : hesCTemp)
-		{
-			if (!e.getVertex().checkValency(3) && e.getId() != heStartSlice.getId())
-			{
-				heCornerStartSection = e;
-				break;
-			}
-		}
-		//walk on the slice mesh to color the edges
-		//color the feature edges using numFeaturesStrides
-		//color the corner edges using the corner vertex
-		//color the bridging edges using the bridging stride
-		//the walk changes based if it is the left or right slice mesh. To go to the next loop edge
-		//For the left slice mesh, the walk goes sym.next.next
-		//For the right slice mesh, the walk goes prev.prev.sym
-		//Lets start by adding all the feature edges, when reaching the middle stride, change the color to the outer colors
-		zItMeshHalfEdge heTemp1 = heStartSlice;
-		zItMeshHalfEdgeArray hesFeatures;
-		const int featureWalkNum = (FeaturedNumStrides.size()) + 1;
-		for (int i = 0; i < featureWalkNum; i++)
-		{
-			int blockStride = i < FeaturedNumStrides.size()? FeaturedNumStrides[i] : 1;
-			zColor edgeColor;
-			if (i == 0) edgeColor = _col_in_corner;
-			else if (i == featureWalkNum - 1) edgeColor = _col_out_corner;
-			else if (i == (featureWalkNum / 2) - 1) edgeColor = _col_in_corner_st;
-			else if (i == (featureWalkNum / 2)) edgeColor = _col_out_corner_st;
-			else if (i < featureWalkNum / 2) edgeColor = _col_in_feature;
-			else edgeColor = _col_out_feature;
-			heTemp1.getEdge().setColor(edgeColor);
-			heTemp1.getStartVertex().setColor(edgeColor);
-			heTemp1.getVertex().setColor(edgeColor);
-
-			zItMeshHalfEdge heRest = heTemp1;
-			for (int k = 0; k < sideDivisionCount - 1; k++)
-			{
-				heRest = heRest.getNext().getSym().getNext();
-				heRest.getEdge().setColor(edgeColor);
-				heRest.getStartVertex().setColor(edgeColor);
-				heRest.getVertex().setColor(edgeColor);
-
-			}
-
-			hesFeatures.push_back(heTemp1);
-			for (int j = 0; j < blockStride; j++)
-			{
-				if (left)
-				{
-					heTemp1 = heTemp1.getSym().getNext().getNext();
-				}
-				else
-				{
-					heTemp1 = heTemp1.getPrev().getPrev().getSym();
-				}
-			}
-		}
-
-
-	}
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides)
+ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_Mesh, int startVID, int endVID, zIntArray& FeaturedNumStrides)
 	{
 		unordered_map<string, int> positionVertex;
 		zPointArray positions;
@@ -1369,37 +937,6 @@ namespace zSpace
 
 		//walk on the corner edges till you reach the next corner edge. Ignore edges that are colored
 
-		if (blockType == zBlockType::Top)
-		{
-
-
-
-			zItMeshHalfEdge heWalk = heCornerEnd.getNext();
-			bool flip = heWalk.getVertex().checkValency(3);
-			if (flip) heWalk = heWalk.getSym().getNext();
-			int safetyCounter = 0;
-			while (safetyCounter < 10000)
-			{
-				heWalk.getEdge().setColor(_col_in_corner);
-				heWalk.getVertex().setColor(_col_in_corner);
-
-				zItMeshHalfEdge heOuter = heWalk.getSym().getNext().getNext();
-				if (flip) heOuter = heWalk.getNext().getNext();
-
-				heOuter.getEdge().setColor(_col_out_corner);
-				heOuter.getVertex().setColor(_col_out_corner);
-
-				heWalk = heWalk.getNext().getSym().getNext();
-				if (heWalk.getStartVertex().checkValency(3))
-				{
-					break;
-				}
-				//counter++;
-			}
-		}
-
-
-
 		printf("\n sliceMesh %i %i %i ", fnMesh.numVertices(), fnMesh.numEdges(), fnMesh.numPolygons());
 	}
 
@@ -1477,76 +1014,28 @@ namespace zSpace
 
 		if (compFrames)
 		{
-			if (planarBlock)
-			{
-				for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
-				{
-					compute_PrintSectionFromPlaneSpacing(printPlaneSpacing, printHeightDomain, frameCHECKS, sdfCHECKS, geomCHECKS);
+			zVector norm(0, 0, 1);
+			vector<zItMeshHalfEdgeArray> vLoops;
+			zObjMesh oMesh_top, oMesh_bottom;
 
-					if (frameCHECKS) break;
+			computeVLoops(o_SliceMesh_Left, medialIDS, FeaturedNumStrides, norm, vLoops, oMesh_top, oMesh_bottom);
 
-					zFnPointCloud fnCritical_min(criticalMinLayer_pts);
-					zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
+			zScalarArray scalars;
+			computeGeodesicScalars(o_SliceMesh_Left, vLoops, scalars, true);
 
-					if (minCriticalPtsCount > fnCritical_min.numVertices() + fnCritical_max.numVertices())
-					{
-						minCriticalPtsCount = fnCritical_min.numVertices() + fnCritical_max.numVertices();
-						bestPlaneSpacing = printPlaneSpacing;
-					}
+			o_sectionMeshes.clear();
 
-					if (actualPrintHeightDomain.min < printHeightDomain.min && actualPrintHeightDomain.max < printHeightDomain.max)
-					{
-						printf("\n minimum print height was reached and no solution was found.");
-						break;
-					}
+			computeGeodesicContours(vLoops, scalars, 0.008, oMesh_top, oMesh_bottom, o_sectionMeshes);;
+			createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
+			o_sectionMeshesPar.clear();
+			o_sectionMeshesPar.assign(o_sectionMeshes.size(), zObjMesh());
 
-				}
+			sectionFrames.clear();
+			sectionFrames.assign(o_sectionGraphs.size(), zTransform());
+			compute_PrintBlock_ComputeTrimGraphs();
 
-				if (!frameCHECKS)
-				{
-					printf("\n Layer height check FALSE!  Choose best planeXY spacing %1.4f", bestPlaneSpacing);
-
-					compute_PrintSectionFromPlaneSpacing(bestPlaneSpacing, printHeightDomain, frameCHECKS, sdfCHECKS, geomCHECKS);
-				}
-
-				printf("\n frameCHECKS %s ", (frameCHECKS) ? "T" : "F");
-				printf("\n layerCheck %i | geomChk %i | sdCheck %i ", (frameCHECKS), geomCHECKS, sdfCHECKS);
-				printf("\n sectionFrames %i | o_sectionGraphs %i", sectionFrames.size(), o_sectionGraphs.size());
-
-
-				compute_PrintBlock_ComputeTrimGraphs();
-
-
-			}
-			else
-			{
-				int numBlendFrames;
-				zVector norm(0, 0, 1);
-				vector<zItMeshHalfEdgeArray> vLoops;
-				zObjMesh oMesh_top, oMesh_bottom;
-				//vector<zObjMesh> oSectionMeshes;
-
-				computeVLoops(o_SliceMesh_Left, medialIDS, FeaturedNumStrides, norm, vLoops, oMesh_top, oMesh_bottom);
-
-				zScalarArray scalars;
-				computeGeodesicScalars(o_SliceMesh_Left, vLoops, scalars, true);
-
-				o_sectionMeshes.clear();
-
-		 //Layer height
-				computeGeodesicContours(vLoops, scalars, 0.008, oMesh_top, oMesh_bottom, o_sectionMeshes);;
-				createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
-				o_sectionMeshesPar.clear();
-				o_sectionMeshesPar.assign(o_sectionMeshes.size(), zObjMesh());
-
-				sectionFrames.clear();
-				sectionFrames.assign(o_sectionGraphs.size(), zTransform());
-				compute_PrintBlock_ComputeTrimGraphs();
-
-				o_contourHeightLines.clear();
-				o_contourHeightLines.assign(o_sectionGraphs.size(), zObjGraph());
-
-			}
+			o_contourHeightLines.clear();
+			o_contourHeightLines.assign(o_sectionGraphs.size(), zObjGraph());
 		}
 
 		if (compSDF)
@@ -1559,434 +1048,10 @@ namespace zSpace
 	}
 
 	//Print blocks: helper methods
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_PrintSectionFromPlaneSpacing(float printPlaneSpacing, zDomainFloat& _printHeightDomain, bool& frameCHECKS, bool& sdfCHECKS, bool& geomCHECKS)
-	{
-		frameCHECKS = false;
-		geomCHECKS = true;
-		sdfCHECKS = true;
-
-		printf("\n printPlaneSpace %1.4f\n", printPlaneSpacing);
-
-		sectionFrames.clear();
-		compute_PrintBlock_Frames(printPlaneSpacing, true, neopreneOffset.min, neopreneOffset.max);
-
-		if (!isRegular)
-			compute_PrintBlock_Frames(printPlaneSpacing, false, neopreneOffset.min, neopreneOffset.max);
-
-		o_sectionGraphs.clear();
-		o_sectionGraphs.assign(sectionFrames.size(), zObjGraph());
-
-		bool geomChk0 = true;
-		bool geomChk1 = true;
-		//geomChk0 =
-		compute_PrintBlock_Sections(true, geomChk0);
-
-		if (!isRegular)
-			 compute_PrintBlock_Sections(false, geomChk1);
-
-		frameCHECKS = check_PrintLayerHeights(sdfCHECKS, geomCHECKS);
-
-		if (!geomChk0 && !geomChk1)
-		{
-			printf("planeSpacing did not pass geometry check. Skip!\n");
-		}
-
-		printf("\n");
-	}
-
-
-	//Print blocks: frame methods
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_PrintBlock_Frames(float printPlaneSpacing, bool leftBlock, float neopreneOffset_start, float neopreneOffset_end)
-	{
-		// getLength of guide graph
-		zDoubleArray eLens;
-		zFnGraph fnGraph(o_MedialGraph);
-		float totalLength = fnGraph.getEdgeLengths(eLens);
-
-		zFloatArray weights = { 0.0, 0.35, 0.70, 1.0 };
-		zFloatArray multVals = { 0.0, 0.45, 0.80, 1.0 };
-
-		float len = totalLength;// -(neopreneOffset_start + neopreneOffset_end);
-		int numLayers = floor(len / printPlaneSpacing);
-		float equalisedPlaneSpacing = len / numLayers;
-
-		zVector startNorm = (leftBlock) ? zVector(leftPlanes[0](2, 0), leftPlanes[0](2, 1), leftPlanes[0](2, 2)) : zVector(rightPlanes[0](2, 0), rightPlanes[0](2, 1), rightPlanes[0](2, 2));
-		zVector endNorm = (leftBlock) ? zVector(leftPlanes[1](2, 0), leftPlanes[1](2, 1), leftPlanes[1](2, 2)) : zVector(rightPlanes[1](2, 0), rightPlanes[1](2, 1), rightPlanes[1](2, 2));
-
-		zPoint startOrig = (leftBlock) ? zVector(leftPlanes[0](3, 0), leftPlanes[0](3, 1), leftPlanes[0](3, 2)) : zVector(rightPlanes[0](3, 0), rightPlanes[0](3, 1), rightPlanes[0](3, 2));
-		zPoint endOrig = (leftBlock) ? zVector(leftPlanes[1](3, 0), leftPlanes[1](3, 1), leftPlanes[1](3, 2)) : zVector(rightPlanes[1](3, 0), rightPlanes[1](3, 1), rightPlanes[1](3, 2));
-
-		zItGraphVertex v(o_MedialGraph, 0);
-		zItGraphHalfEdge startHe = v.getHalfEdge();
-
-		zItGraphVertex vEnd(o_MedialGraph, fnGraph.numVertices() - 1);
-		zItGraphHalfEdge endHe = vEnd.getHalfEdge();
-
-		// START
-		zPoint start, end;
-		float dIncrement = 0.0001;
-
-		zItGraphHalfEdge walkHe = startHe;
-		walkHe = walkHe.getSym();
-
-		zPoint pOnCurve = v.getPosition();;
-
-		bool exit = false;
-
-		bool left = true;
-		bool right = !isRegular;
-
-		float dStart = 0;
-		float dEnd = 0;
-
-		while (!exit)
-		{
-			zPoint eEndPoint = walkHe.getVertex().getPosition();
-			dStart += dIncrement;
-			float distance_increment = dIncrement;
-
-			while (pOnCurve.distanceTo(eEndPoint) < distance_increment)
-			{
-				distance_increment = distance_increment - pOnCurve.distanceTo(eEndPoint);
-				pOnCurve = eEndPoint;
-
-				walkHe = walkHe.getNext();
-				eEndPoint = walkHe.getVertex().getPosition();
-			}
-
-			zVector he_vec = walkHe.getVector();
-			he_vec.normalize();
-
-			start = pOnCurve + he_vec * distance_increment;
-			pOnCurve = start;
-			// check
-
-
-
-			if (!right)
-			{
-				zPoint startPlanePoint = zVector(rightPlanes[0](3, 0), rightPlanes[0](3, 1), rightPlanes[0](3, 2));
-				zPoint startPlaneNormal = zVector(rightPlanes[0](2, 0), rightPlanes[0](2, 1), rightPlanes[0](2, 2));
-
-				float dStart = core.minDist_Point_Plane(pOnCurve, startPlanePoint, startPlaneNormal);
-
-				if (abs(dStart) >= neopreneOffset_start)  right = true;
-			}
-
-			if (!left)
-			{
-				zPoint startPlanePoint = zVector(leftPlanes[0](3, 0), leftPlanes[0](3, 1), leftPlanes[0](3, 2));
-				zPoint startPlaneNormal = zVector(leftPlanes[0](2, 0), leftPlanes[0](2, 1), leftPlanes[0](2, 2));
-
-				float dStart = core.minDist_Point_Plane(pOnCurve, startPlanePoint, startPlaneNormal);
-				if (abs(dStart) >= neopreneOffset_start)  left = true;
-			}
-
-			if (right && left) exit = true;
-
-		}
-
-
-		// END
-
-		walkHe = endHe;
-		walkHe = walkHe.getSym();
-		pOnCurve = vEnd.getPosition();;
-
-		exit = false;
-		left = true;
-		right = !isRegular;
-
-		while (!exit)
-		{
-			zPoint eEndPoint = walkHe.getVertex().getPosition();
-			dEnd += dIncrement;
-			float distance_increment = dIncrement;
-
-			while (pOnCurve.distanceTo(eEndPoint) < distance_increment)
-			{
-				distance_increment = distance_increment - pOnCurve.distanceTo(eEndPoint);
-				pOnCurve = eEndPoint;
-
-				walkHe = walkHe.getNext();
-				eEndPoint = walkHe.getVertex().getPosition();
-			}
-
-			zVector he_vec = walkHe.getVector();
-			he_vec.normalize();
-
-			end = pOnCurve + he_vec * distance_increment;
-			pOnCurve = end;
-			// check
-
-
-
-			if (!right)
-			{
-				zPoint endPlanePoint = zVector(rightPlanes[1](3, 0), rightPlanes[1](3, 1), rightPlanes[1](3, 2));
-				zPoint endPlaneNormal = zVector(rightPlanes[1](2, 0), rightPlanes[1](2, 1), rightPlanes[1](2, 2));
-
-				float dEnd = core.minDist_Point_Plane(pOnCurve, endPlanePoint, endPlaneNormal);
-
-				if (abs(dEnd) >= neopreneOffset_end)  right = true;
-
-			}
-
-			if (!left)
-			{
-				zPoint endPlanePoint = zVector(leftPlanes[1](3, 0), leftPlanes[1](3, 1), leftPlanes[1](3, 2));
-				zPoint endPlaneNormal = zVector(leftPlanes[1](2, 0), leftPlanes[1](2, 1), leftPlanes[1](2, 2));
-
-				float dEnd = core.minDist_Point_Plane(pOnCurve, endPlanePoint, endPlaneNormal);
-
-				if (abs(dEnd) >= neopreneOffset_end)  left = true;
-
-			}
-
-			if (right && left) exit = true;
-
-		}
-
-		bool interpolateOrigin = _interpolateFramesOrigins;
-
-		// Start point
-
-		zPoint O = start;
-		zVector Z = startNorm;
-
-		zVector tempZ = Z;
-		tempZ.normalize();
-
-		zPoint tempO;
-
-		zVector X;
-		zVector Y(0, 1, 0);
-
-		float weight = 0;
-
-		float mult;
-
-		for (int l = 0; l < weights.size() - 1; l++)
-		{
-			if (weight >= weights[l] && weight <= weights[l + 1])   mult = core.ofMap(weight, weights[l], weights[l + 1], multVals[l], multVals[l + 1]);
-		}
-
-		tempZ.x = (startNorm.x * (1 - mult)) + (endNorm.x * mult);
-		tempZ.y = (startNorm.y * (1 - mult)) + (endNorm.y * mult);
-		tempZ.z = (startNorm.z * (1 - mult)) + (endNorm.z * mult);
-		tempZ.normalize();
-
-		X = Y ^ tempZ;
-		X.normalize();
-
-		Y = tempZ ^ X;
-		Y.normalize();
-
-		//zTransform pFrame = setTransformFromVectors(O, X, Y, tempZ);
-		zTransform pFrame = core.getTransformFromOrigin_Normal(O, tempZ, zVector(1, 1, 0));
-		sectionFrames.push_back(pFrame);
-
-		pOnCurve = O;
-		dStart = core.minDist_Point_Plane(pOnCurve, startOrig, startNorm);
-
-
-		// in between points
-		walkHe = startHe;
-		for (int j = 0; j < numLayers; j++)
-		{
-			zPoint prevPoint = pOnCurve;
-
-			zPoint eEndPoint = walkHe.getVertex().getPosition();
-
-			float distance_increment = equalisedPlaneSpacing;
-
-			while (pOnCurve.distanceTo(eEndPoint) < distance_increment)
-			{
-				distance_increment = distance_increment - pOnCurve.distanceTo(eEndPoint);
-				pOnCurve = eEndPoint;
-
-				walkHe = (walkHe.onBoundary()) ? walkHe.getNext() : walkHe.getNext().getSym().getNext();
-				eEndPoint = walkHe.getVertex().getPosition();
-			}
-
-			zVector he_vec = walkHe.getVector();
-			he_vec.normalize();
-
-
-			//O
-			O = pOnCurve + he_vec * distance_increment;
-
-			if (j == numLayers - 1)
-			{
-				O = end;
-				Z = endNorm;
-			}
-
-			if (interpolateOrigin)
-			{
-
-				tempO = (startOrig * (1 - mult)) + (endOrig * mult);
-				O = tempO;
-			}
-
-			tempZ = Z;
-			tempZ.normalize();
-
-			Y = zVector(1, 1, 0);
-
-			weight = (float)(j + 1) / numLayers;
-
-			for (int l = 0; l < weights.size() - 1; l++)
-			{
-				if (weight >= weights[l] && weight <= weights[l + 1])   mult = core.ofMap(weight, weights[l], weights[l + 1], multVals[l], multVals[l + 1]);
-			}
-
-			tempZ.x = (startNorm.x * (1 - mult)) + (endNorm.x * mult);
-			tempZ.y = (startNorm.y * (1 - mult)) + (endNorm.y * mult);
-			tempZ.z = (startNorm.z * (1 - mult)) + (endNorm.z * mult);
-			tempZ.normalize();
-
-			X = Y ^ tempZ;
-			X.normalize();
-
-			Y = tempZ ^ X;
-			Y.normalize();
-
-			// add frame
-			//pFrame = setTransformFromVectors(O, X, Y, tempZ);
-			pFrame = core.getTransformFromOrigin_Normal(O, tempZ, zVector(1, 1, 0));
-			sectionFrames.push_back(pFrame);
-
-			pOnCurve = O;
-
-			if (j == numLayers - 1)
-			{
-				float dEnd = core.minDist_Point_Plane(pOnCurve, endOrig, endNorm);
-
-				if (leftBlock) printf(" \n left sD %1.4f eD %1.4f ", dStart, dEnd);
-				else printf(" \n right sD %1.4f eD %1.4f ", dStart, dEnd);
-			}
-		}
-
-
-
-
-		//supsitute frames in a new calculation way
-		//zPlane startPlane = coreUtils.getPlaneFromOrigin_Normal(startOrig, startNorm);
-		zPointArray origins;
-		numLayers += 1;// isRegular ? sectionFrames.size() : sectionFrames.size() / 2;
-
-		for (int i = 0; i < numLayers; i++)
-		{
-			origins.push_back(zVector(sectionFrames[i](3, 0), sectionFrames[i](3, 1), sectionFrames[i](3, 2)));
-		}
-
-		vector<zPlane> leftFrames, rightFrames;
-		//printf("\n numLayers %i | sectionFrames %i | origins %i", numLayers, sectionFrames.size(), origins.size());
-		core.interpolatePlanes_slerp(leftPlanes[0], leftPlanes[1], numLayers, origins, leftFrames);
-
-		if (!isRegular)
-			core.interpolatePlanes_slerp(rightPlanes[0], rightPlanes[1], numLayers, origins, rightFrames);
-
-		sectionFrames.clear();
-		sectionFrames.insert(sectionFrames.end(), leftFrames.begin(), leftFrames.end());
-
-		if (!isRegular)
-			sectionFrames.insert(sectionFrames.end(), rightFrames.begin(), rightFrames.end());
-
-		printf("\n numLayers %i | sectionFrames %i | origins %i \n", numLayers, sectionFrames.size(), origins.size());
-	}
-
-	//Print blocks: section methods
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_PrintBlock_Sections(bool left, bool& outGeomChk)
-	{
-		zScalarArray scalars;
-
-		int start = 0;
-		int end = sectionFrames.size();
-
-		if (!isRegular)
-		{
-			start = (left) ? 0 : floor(sectionFrames.size() * 0.5);
-			end = (left) ? floor(sectionFrames.size() * 0.5) : sectionFrames.size();
-		}
-
-		zObjMesh* o_SliceMesh = (left) ? &o_SliceMesh_Left : &o_SliceMesh_Right;
-		zFnMesh  fn_sliceMesh(*o_SliceMesh);
-		outGeomChk = true;
-		for (int i = start; i < end; i++)
-		{
-			scalars.clear();
-			zPoint O(sectionFrames[i](3, 0), sectionFrames[i](3, 1), sectionFrames[i](3, 2));
-			zVector N(sectionFrames[i](2, 0), sectionFrames[i](2, 1), sectionFrames[i](2, 2));
-
-			//changed for too big gap between corner and penta
-			if (i == start && isCorner )
-			{
-				O += N * 0.003f;
-
-				sectionFrames[i](3, 0) = O.x;
-				sectionFrames[i](3, 1) = O.y;
-				sectionFrames[i](3, 2) = O.z;
-			}
-			//else if (i == end - 1 && isCorner)
-			//{
-			//	O -= N * 0.0025f;
-
-			//	sectionFrames[i](3, 0) = O.x;
-			//	sectionFrames[i](3, 1) = O.y;
-			//	sectionFrames[i](3, 2) = O.z;
-			//}
-
-			zVector X(sectionFrames[i](0, 0), sectionFrames[i](0, 1), sectionFrames[i](0, 2));
-			X.normalize();
-
-			for (zItMeshVertex v(*o_SliceMesh); !v.end(); v++)
-			{
-				zPoint P = v.getPosition();
-				float minDist_Plane = core.minDist_Point_Plane(P, O, N);
-				scalars.push_back(minDist_Plane);
-			}
-			int startPres = 3;
-			int endPres = 6;
-			bool geomChk = false;
-			for (int pres = startPres; pres <= endPres; pres++)
-			{
-				zPointArray positions;
-				zIntArray edgeConnects;
-				zColorArray vColors;
-				//int pres = 3;
-				fn_sliceMesh.getIsoContour(scalars, 0.0, positions, edgeConnects, vColors, pres, pow(10, -1 * pres));
-
-				// create graphs
-				zFnGraph tempFn(o_sectionGraphs[i]);
-				tempFn.create(positions, edgeConnects);
-				//tempFn.setEdgeColor(zGREY);
-				tempFn.setVertexColors(vColors, false);
-				geomChk = check_sectionGraphGeomCheck(o_sectionGraphs[i]);
-				if (geomChk || i == 0)
-				{
-					break;
-				}
-				else
-				{
-					//printf("\n -- geom check failed for pres %i section [%i] ", pres,i);
-				}
-
-			}
-			if (!geomChk)
-			{
-				outGeomChk = false;
-				printf("\n outGeometryCheck FAILED for block[%i] section [%i]!", blockId, i);
-
-			}
-			//return true;
-		}
-		//outGeomChk = geom
-	}
-
-	//Print blocks: check methods
-	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::check_PrintLayerHeights(bool& checkSDF, bool& checkGeometry)
+		//Print blocks: frame methods
+		//Print blocks: section methods
+		//Print blocks: check methods
+		ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::check_SDF_LayerHeights()
 	{
 		float minLayerHeight = 10;
 		float maxLayerHeight = 0;
@@ -2011,10 +1076,8 @@ namespace zSpace
 		int r3 = (o_sectionGraphs.size()) - 1;
 		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
 
-		//bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
 		bool deckBlock = true;
 
-		//int end = (leftPlaneExists && rightPlaneExists) ? floor(o_sectionGraphs.size() * 0.5) : o_sectionGraphs.size();
 		int end = floor(o_sectionGraphs.size() * 0.5);
 
 		float printLength = 0;
@@ -2022,195 +1085,6 @@ namespace zSpace
 		// PRINT LAYERS
 		for (int j = 0; j < end; j++)
 		{
-			//int kStart = (!deckBlock && !rightPlaneExists) ? 1 : 0;
-			//int kEnd = (!deckBlock && !leftPlaneExists) ? 1 : 2;
-
-			int kStart = 0;
-			int kEnd = 2;
-
-			for (int k = kStart; k < kEnd; k++)
-			{
-				int i = (k == 0) ? j : j + end;
-
-				if (!deckBlock) i = j;
-
-				if (i == r0) continue;
-
-				if (deckBlock && i == r2) continue;
-
-
-				zVector norm(sectionFrames[i](2, 0), sectionFrames[i](2, 1), sectionFrames[i](2, 2));
-				norm *= -1;
-				norm.normalize();
-
-				zVector prevNorm(sectionFrames[i - 1](2, 0), sectionFrames[i - 1](2, 1), sectionFrames[i - 1](2, 2));
-				zVector prevOrigin(sectionFrames[i - 1](3, 0), sectionFrames[i - 1](3, 1), sectionFrames[i - 1](3, 2));
-
-				float layerWidth = 0.025;
-
-				int orangeCounter = 0;
-				int magentaCounter = 0;
-
-				int innerSideCounter = 0;
-				int outerSideCounter = 0;
-
-				//The following check to see if there is a problem with the geometry/section graph
-				//01-check if the graph is closed by checking if any vertex is boundary (val (1))
-
-
-				for (zItGraphVertex v(o_sectionGraphs[i]); !v.end(); v++)
-				{
-					/*if (v.checkValency(1))
-					{
-						printf("\n ")
-					}*/
-
-
-
-					zPoint p = v.getPosition();
-
-					if (v.getColor() == zORANGE) orangeCounter++;
-					if (v.getColor() == zMAGENTA) magentaCounter++;
-
-					if (v.getColor() == _col_in_feature) innerSideCounter++;
-					if (v.getColor() == _col_out_feature) outerSideCounter++;
-
-
-					zPoint p1 = p + norm * 1.0;
-
-					zPoint intPt;
-					bool check = core.line_PlaneIntersection(p, p1, prevNorm, prevOrigin, intPt);
-
-					float layerHeight = intPt.distanceTo(p);
-					maxLayerHeight = (layerHeight > maxLayerHeight) ? layerHeight : maxLayerHeight;
-					minHeightGraphID = (layerHeight < minLayerHeight) ? i : minHeightGraphID;
-					minLayerHeight = (layerHeight < minLayerHeight) ? layerHeight : minLayerHeight;
-
-					if (layerHeight < printHeightDomain.min)fnCritical_min.addPosition(p);
-					if (layerHeight > printHeightDomain.max)fnCritical_max.addPosition(p);
-
-				}
-
-				if (orangeCounter != 2)
-				{
-					//printf("\n checkOrange error Layer %i | %i ", i, orangeCounter);
-
-					zFnGraph fnGraph(o_sectionGraphs[i]);
-					//fnGraph.setEdgeColor(zORANGE);
-					//checkOranges = false;
-
-
-				}
-
-				if (magentaCounter != numMagentaLoops * 2)
-				{
-					//printf("\n checkMagenta error Layer %i | %i ", i, magentaCounter);
-					zFnGraph fnGraph(o_sectionGraphs[i]);
-					//fnGraph.setEdgeColor(zMAGENTA);
-					//checkMagentas = false;
-				}
-
-				if (innerSideCounter == outerSideCounter)
-				{
-					//printf("\n inner side and outer side has the same count %i", innerSideCounter);
-				}
-				else
-				{
-					//printf("\n inner side and outer side are NOT equal !!!  inner | outer  %i | %i", innerSideCounter, outerSideCounter);
-				}
-
-				for (zItGraphEdge e(o_sectionGraphs[i]); !e.end(); e++)
-				{
-					printLength += e.getLength();
-				}
-
-
-			}
-		}
-
-		fnCritical_min.setVertexColor(zORANGE);
-		fnCritical_max.setVertexColor(zMAGENTA);
-
-
-		bool out = true;
-
-		if (out)
-		{
-			if (minLayerHeight < printHeightDomain.min) out = false;
-			if (minLayerHeight > printHeightDomain.max) out = false;
-
-			if (maxLayerHeight < printHeightDomain.min) out = false;
-			if (maxLayerHeight > printHeightDomain.max) out = false;
-		}
-
-		actualPrintHeightDomain.min = minLayerHeight;
-		actualPrintHeightDomain.max = maxLayerHeight;
-		checkSDF = (!checkOranges || !checkMagentas) ? false : true;
-		if (!checkSDF) out = false;
-
-		int precision = 4;
-		bool checkLeftPlanar = check_InterfacePoints(true, pow(10, -1 * precision));
-		bool checkRightPlanar = isRegular ? true : check_InterfacePoints(false, pow(10, -1 * precision));
-
-		checkGeometry = (!checkLeftPlanar || !checkRightPlanar) ? false : true;
-		//if (!checkGeometry) out = false;
-
-
-
-
-
-
-
-		printf("\n block| %1.4f %1.4f| %1.1f | chkOrange %s | chkMagenta %s | pathExist %s | < min ht intersectionPts %i  | > max ht intersectionPts %i ", minLayerHeight, maxLayerHeight, printLength, (checkOranges) ? "T" : "F", (checkMagentas) ? "T" : "F", (checkGeometry) ? "T" : "F", fnCritical_min.numVertices(), fnCritical_max.numVertices());
-
-		/*zPointArray maxPts;
-		fnCritical_max.getVertexPositions(maxPts);
-		for (auto& p : maxPts)
-		{
-			cout << endl << p;
-		}*/
-
-		return out;
-	}
-	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::check_SDF_LayerHeights()
-	{
-		float minLayerHeight = 10;
-		float maxLayerHeight = 0;
-
-		//float minLayerHeight = 0.005;
-		//float maxLayerHeight = 0.015;
-		int minHeightGraphID = -1;
-		//bool
-		checkOranges = true;
-		//bool
-		checkMagentas = true;
-
-		zFnPointCloud fnCritical_min(criticalMinLayer_pts);
-		zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
-
-		fnCritical_min.clear();
-		fnCritical_max.clear();
-
-		int r0 = 0;
-		int r1 = floor(o_sectionGraphs.size() * 0.5) - 1;
-		int r2 = floor(o_sectionGraphs.size() * 0.5);
-		int r3 = (o_sectionGraphs.size()) - 1;
-		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
-
-		//bool deckBlock = (leftPlaneExists && rightPlaneExists) ? true : false;
-		bool deckBlock = true;
-
-		//int end = (leftPlaneExists && rightPlaneExists) ? floor(o_sectionGraphs.size() * 0.5) : o_sectionGraphs.size();
-		int end = floor(o_sectionGraphs.size() * 0.5);
-
-		float printLength = 0;
-
-		// PRINT LAYERS
-		for (int j = 0; j < end; j++)
-		{
-			//int kStart = (!deckBlock && !rightPlaneExists) ? 1 : 0;
-			//int kEnd = (!deckBlock && !leftPlaneExists) ? 1 : 2;
-
 			int kStart = 0;
 			int kEnd = 2;
 
@@ -2308,79 +1182,7 @@ namespace zSpace
 
 		return out;
 	}
-	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::check_InterfacePoints(bool left, float distTolerance)
-	{
-		zObjMesh* oMesh = (left) ? &o_SliceMesh_Left : &o_SliceMesh_Right;
-		zTransform* starEnd = (left) ? &leftPlanes[0] : &rightPlanes[0];
-
-		//if (left && !leftPlaneExists) return true;
-		//if (!left && !rightPlaneExists) return true;
-
-
-
-		zFnMesh fnMesh(*oMesh);
-		float tol = 0.02;
-		fnMesh.setFaceColor(zGREY);
-
-		// get face points
-		zIntArray interfaceVerts_start;
-		zIntArray interfaceVerts_end;
-
-		zPoint sPoint(starEnd[0](3, 0), starEnd[0](3, 1), starEnd[0](3, 2));
-		zVector sNorm(starEnd[0](2, 0), starEnd[0](2, 1), starEnd[0](2, 2));
-		sNorm.normalize();
-		sNorm *= -1;
-
-		zPoint ePoint(starEnd[1](3, 0), starEnd[1](3, 1), starEnd[1](3, 2));
-		zVector eNorm(starEnd[1](2, 0), starEnd[1](2, 1), starEnd[1](2, 2));
-		eNorm.normalize();
-
-		for (zItMeshFace f(*oMesh); !f.end(); f++)
-		{
-			zVector fNorm = f.getNormal();
-			fNorm.normalize();
-			if (fNorm * sNorm >= 1 - tol)
-			{
-				zIntArray fVerts;
-				f.getVertices(fVerts);
-				for (auto& fV : fVerts) interfaceVerts_start.push_back(fV);
-				f.setColor(zGREEN);
-			}
-			else if (fNorm * eNorm >= 1 - tol)
-			{
-				zIntArray fVerts;
-				f.getVertices(fVerts);
-				for (auto& fV : fVerts) interfaceVerts_end.push_back(fV);
-				f.setColor(zBLUE);
-			}
-		}
-
-		// check for in Plane
-		zPoint* vPositions = fnMesh.getRawVertexPositions();
-		bool chkStart = true;
-		bool chkEnd = true;
-
-
-		for (auto& vId : interfaceVerts_start)
-		{
-			float d = core.minDist_Point_Plane(vPositions[vId], sPoint, sNorm);
-			//printf("\n start %1.4f ", d);
-			if (d > distTolerance) chkStart = false;
-			if (!chkStart) break;
-		}
-		for (auto& vId : interfaceVerts_end)
-		{
-			float d = core.minDist_Point_Plane(vPositions[vId], ePoint, eNorm);
-			//printf("\n end %1.4f ", d);
-			if (d > distTolerance) chkEnd = false;
-			if (!chkEnd) break;
-		}
-		bool out = (!chkStart || !chkEnd) ? false : true;
-		if (!out) printf("\n checkGeom Fail! %s | start-End %s - %s ", left ? "Left" : "Right", chkStart ? "True" : "false", chkEnd ? "True" : "false");
-
-		return out;
-	}
-	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::check_sectionGraphGeomCheck(zObjGraph& graph)
+		ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::check_sectionGraphGeomCheck(zObjGraph& graph)
 	{
 		//checks if the graph pass all geometry checks
 		//Check 1 : check if the graph is closed
@@ -2407,7 +1209,6 @@ namespace zSpace
 			if(v.getColor() == _col_out_feature) featureOuter = true;
 
 			chkCorners = corner0 && corner1 && corner2 && corner3;
-			if(blockType == zBlockType::Bottom) chkCorners = chkCorners && featureInner && featureOuter;
 			/*if (chkCorners && chkClosed)
 			{
 				break
@@ -2464,8 +1265,7 @@ namespace zSpace
 			//The following check to see if there is a problem with the geometry/section graph
 				//01-check if the graph is closed by checking if any vertex is boundary (val (1))
 
-			if (i == 0 && !isCorner) continue;
-			if(!isRegular && i == floor(o_sectionGraphs.size() * 0.5)) continue;
+			if (i == 0) continue;
 
 			for (zItGraphVertex v(o_sectionGraphs[i]); !v.end(); v++)
 			{
@@ -2482,27 +1282,11 @@ namespace zSpace
 			compute_TrimGraphs_SlotSide(i, o_trimGraphs_SlotSide[i]);
 			//compute_TrimGraphs_SeamAlignment(i, o_trimGraphs_seamAlignment[i]);
 
-			if (blockType != zBlockType::Wall)
-			{
-				float wt = core.ofMap((float)i, 0.0f, (float)o_sectionGraphs.size(),0.5f,0.3f);
-
-				compute_TrimGraphs_BracingCable(i, o_trimGraphs_bracing[i], o_trimGraphs_cableprofile[i], wt);
-				fng = zFnGraph(o_trimGraphs_bracing[i]);
-				fng.setEdgeColor(zBLUE);
-				allTrimGraphs.push_back(o_trimGraphs_bracing[i]);
-			}
-			else
-			{
-				bool chk = false;
-				if(!isPlanarBlock())
-				{
-					chk = (i > (o_sectionGraphs.size() * 0.9));
-				}
-				compute_TrimGraphs_BracingWall(o_sectionGraphs[i], o_trimGraphs_bracing[i], chk);
-				fng = zFnGraph(o_trimGraphs_bracing[i]);
-				fng.setEdgeColor(zBLUE);
-				allTrimGraphs.push_back(o_trimGraphs_bracing[i]);
-			}
+			bool chk = (i > (o_sectionGraphs.size() * 0.9));
+			compute_TrimGraphs_BracingWall(o_sectionGraphs[i], o_trimGraphs_bracing[i], chk);
+			fng = zFnGraph(o_trimGraphs_bracing[i]);
+			fng.setEdgeColor(zBLUE);
+			allTrimGraphs.push_back(o_trimGraphs_bracing[i]);
 
 			fng = zFnGraph(o_trimGraphs_features_hard[i]);
 			fng.setEdgeColor(zRED);
@@ -2522,509 +1306,7 @@ namespace zSpace
 
 	}
 
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_TrimGraphs_BracingCable(int graphId, zObjGraph& outGraph, zObjGraph& o_cableProfileGraph, float hori_wt)
-	{
-		///some && blockType != zBlockType::Bottom is to remove chickenfeet graph
-
-		zPrintParamSDF print_params;
-
-		zFnGraph fnSectionG(o_sectionGraphs[graphId]);
-		//get intersection point with cable
-		int cableGraphId = compute_cable_CableGraphIndexPerGraph(graphId);
-		if (cableGraphId == -1) return;
-
-
-		//printf("\n cableGraphId %i ", cableGraphId);
-		//////////////////////////////// Make Method slice Mesh
-
-		int i = graphId;
-		zFnMesh fnMesh(o_CableMeshes[cableGraphId]);
-
-		zScalarArray scalars;
-		scalars.clear();
-		zPoint O(sectionFrames[i](3, 0), sectionFrames[i](3, 1), sectionFrames[i](3, 2));
-		zVector N(sectionFrames[i](2, 0), sectionFrames[i](2, 1), sectionFrames[i](2, 2));
-
-		zVector X(sectionFrames[i](0, 0), sectionFrames[i](0, 1), sectionFrames[i](0, 2));
-		X.normalize();
-
-		for (zItMeshVertex v(o_CableMeshes[cableGraphId]); !v.end(); v++)
-		{
-			zPoint P = v.getPosition();
-			float minDist_Plane = core.minDist_Point_Plane(P, O, N);
-			scalars.push_back(minDist_Plane);
-		}
-		int startPres = 3;
-		int endPres = 6;
-		bool geomChk = false;
-
-		zPointArray positions;
-		zIntArray edgeConnects;
-		zColorArray vColors;
-		int pres = 3;
-		fnMesh.getIsoContour(scalars, 0.0, positions, edgeConnects, vColors, pres, pow(10, -1 * pres));
-
-
-		// create graphs
-		zFnGraph tempFn(o_cableProfileGraph);
-		tempFn.create(positions, edgeConnects);
-		tempFn.setVertexColors(vColors, false);
-		geomChk = check_sectionGraphGeomCheck(o_cableProfileGraph);
-
-		printf("\n Before v %i e %i", tempFn.numVertices(), tempFn.numEdges());
-
-		// make sure only 1 profile
-		zPointArray sectionPts;
-		//zFnGraph(o_sectionGraphs[i]).getVertexPositions(sectionPts);
-
-		zItGraphHalfEdge heS(o_sectionGraphs[i], 0);
-		zItGraphHalfEdge heW(o_sectionGraphs[i], 0);
-
-		do
-		{
-			sectionPts.push_back(heS.getStartVertex().getPosition());
-			heS = heS.getNext();
-		} while (heW != heS);
-
-		zItGraphVertex vStart(o_cableProfileGraph, 0);
-
-		for (zItGraphVertex v(o_cableProfileGraph); !v.end(); v++)
-		{
-			zPoint p = v.getPosition();
-
-			if (core.pointInPlanarPolygon(p, sectionPts,N))
-			{
-				vStart = v;
-				break;
-			}
-		}
-
-		zItGraphHalfEdgeArray heSequence;
-		zItGraphHalfEdge he = vStart.getHalfEdge();
-
-		do
-		{
-			heSequence.push_back(he);
-			he = he.getNext();
-
-		} while (he.getStartVertex() != vStart);
-
-		util_createGraphFromHEArray(heSequence, o_cableProfileGraph);
-
-		//////////////////////////
-		tempFn = zFnGraph(o_cableProfileGraph);
-		printf("\n After v %i e %i", tempFn.numVertices(), tempFn.numEdges());
-		//tempFn.setEdgeColor(zGREY);
-
-
-
-
-		////////////////////////////////////////////////////////////////////
-		zPointArray pts;
-		compute_cable_CableSectionPoints(graphId, o_CableGraphs[cableGraphId], pts);
-		//cout << endl << "cableGraphId " << graphId << " | " << pts[0];
-		//we should have one point (will update method later)
-		zPoint cablePoint = pts[0];
-		//find closest pt from p to graph section points
-		//first we need to choose which graph segments we want to find closest point to
-		//then we create trim graph (these graphs will be the bracing as well)
-
-		bool found = false;
-		zItGraphHalfEdgeArray hes0, hes1, hes2;
-		zPointArray gPositions;
-		zIntArray gEdgeCOnnects;
-		zFloatArray distances;
-		gPositions.push_back(cablePoint);
-		//printf("\n section: ");
-
-		//00
-		found = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_in_corner_st, _col_out_corner_st, hes0);
-		if (found)
-		{
-			if ((blockType == zBlockType::Bottom) && !isCableBlock)
-			{
-				zObjGraph tg;
-				zFnGraph tgf(tg);
-				zPointArray tpts;
-				util_createGraphFromHEArray(hes0, tg);
-				tgf.getVertexPositions(tpts);
-
-
-				zVector v = tpts[tpts.size() - 1] - tpts[0];
-				v *= 0.3;
-
-				// Red
-				gPositions.push_back(tpts[0]);
-				gEdgeCOnnects.push_back(0);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-				distances.push_back(tpts[0].distanceTo(gPositions[0]));
-
-				// Cyan
-				gPositions.push_back(tpts[tpts.size() - 1]);
-				gEdgeCOnnects.push_back(0);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-				distances.push_back(tpts[tpts.size() - 1].distanceTo(gPositions[0]));
-			}
-			else
-			{
-				zObjGraph temp;
-				zFnGraph fn_temp(temp);
-				util_createGraphFromHEArray(hes0, temp);
-
-				float percentage_offset = 0.3f;
-
-				zPointArray red_cyan_points;
-				fn_temp.getVertexPositions(red_cyan_points);
-
-				zVector scaled_red_cyan_vector = (red_cyan_points.back() - red_cyan_points.front()) * percentage_offset;
-
-				zPoint offset_start = red_cyan_points.front() + scaled_red_cyan_vector;
-				zPoint offset_end = red_cyan_points.back() - scaled_red_cyan_vector;
-
-				gPositions.push_back(offset_start);
-				gEdgeCOnnects.push_back(0);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-
-				gPositions.push_back(offset_end);
-				gEdgeCOnnects.push_back(0);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-
-				// distances.push_back(d);
-				// if (d < 0.005) printf("\n [%i] not found 0 %i | %1.4f", graphId, hes0.size(), d);
-			}
-		}
-		else printf("\n [%i] not found 0 %i", graphId, hes0.size());
-
-		//01
-		found = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_in_corner_st, _col_in_corner, hes1);
-		if (blockType == zBlockType::Bottom) {
-			found = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_in_corner, _col_out_corner, hes1); //_col_in_corner = zGREEN;//_col_out_corner = zYELLOW
-			//add split back since && blockType != zBlockType::Bottom
-			for (zItGraphHalfEdge e : hes1)
-			{
-				e.getEdge().setColor(zCYAN);
-			}
-
-		}
-		if (found)
-		{
-			zPoint p;
-			float d;
-			//hes = split graph of penta??
-			//find closet point p to cable, dist is d
-			util_getHeArrayClosestPoint(hes1, cablePoint, p, d);
-
-			/*if (blockType == zBlockType::Bottom)
-			{
-				zObjGraph tg;
-				zFnGraph tgf(tg);
-				zPointArray tpts;
-				createGraphFromHEArray(hes1, tg);
-				tgf.getVertexPositions(tpts);
-				zVector v = tpts[tpts.size() - 1] - tpts[0];
-				v *= 0.3;
-				p = tpts[0] + v;
-
-			}*/
-
-			if (blockType != zBlockType::Bottom)
-			{
-				// Add horizontal bracing
-
-				zItGraphHalfEdgeArray cyan_orange;
-				found = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_out_corner_st, _col_out_feature, cyan_orange);
-				zPoint cyan_orange_cable_point, red_green_cable_point;
-				util_getHeArrayClosestPoint(cyan_orange, cablePoint, cyan_orange_cable_point, d);
-				util_getHeArrayClosestPoint(hes1, cablePoint, red_green_cable_point, d);
-
-				zObjGraph red_green_graph; util_createGraphFromHEArray(hes1, red_green_graph);
-				zObjGraph cyan_orange_graph; util_createGraphFromHEArray(cyan_orange, cyan_orange_graph);
-				zFnGraph fn_rg(red_green_graph);
-				zFnGraph fn_cy(cyan_orange_graph);
-
-				zPointArray red_green_points; fn_rg.getVertexPositions(red_green_points);
-				zPointArray cyan_orange_points; fn_cy.getVertexPositions(cyan_orange_points);
-
-				//Vector is in opposite direction
-				zVector green_red_vector = red_green_points.front() - red_green_cable_point;
-				zVector opposite_cyan_vector = red_green_points.front() - cyan_orange_cable_point;
-
-				//maybe change the direction for easier cutout
-				zVector bracing_vector = cyan_orange_cable_point - red_green_cable_point;
-
-
-
-				int bracing_num = (isCorner) ? 1 : print_params.horiz_bracing_num;
-
-
-				float div_percentage = (isCorner) ? hori_wt : 1.0f/(bracing_num + 1);
-
-				for(int i = 1; i <= bracing_num; ++i)
-				{
-					float offset = div_percentage * (float)i;
-					zPoint bracing_start = red_green_cable_point + (green_red_vector * offset);
-					zPoint bracing_end = bracing_start + bracing_vector;
-
-					gPositions.push_back(bracing_start);
-					gEdgeCOnnects.push_back(gPositions.size() - 1);
-					gPositions.push_back(bracing_end);
-					gEdgeCOnnects.push_back(gPositions.size() - 1);
-				}
-
-				 //Add green to cable point
-				 gPositions.push_back(red_green_cable_point);
-				 gEdgeCOnnects.push_back(0);
-				 gEdgeCOnnects.push_back(gPositions.size() - 1);
-
-				 //Add opposite to cable point
-				 gPositions.push_back(cyan_orange_cable_point);
-				 gEdgeCOnnects.push_back(0);
-				 gEdgeCOnnects.push_back(gPositions.size() - 1);
-			}
-
-			else
-			{
-				// Find point 0.25 away from Green
-				const float required_len = 0.25f;
-				float current_len = 0.0f;
-
-				auto& he = hes1.begin();
-
-				// Find halfedge
-				while ((current_len + (*he).getLength()) <= required_len)
-				{
-					current_len += (*he).getLength();
-					++he;
-				}
-				zItGraphHalfEdge last_he = *he;
-
-				float param = (required_len - current_len) / last_he.getLength();
-
-				zVector last_he_vector = last_he.getVector();
-				float last_he_len = last_he_vector.length(); last_he_vector.normalize();
-
-				// Point at distance
-				p = last_he.getStartVertex().getPosition() + (last_he_vector * (last_he_len * param));
-
-				//pt 1 : point on cyan edge 0.25 away from green pt
-				gPositions.push_back(p);
-				gEdgeCOnnects.push_back(0);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-				distances.push_back(d);
-			}
-
-			for (zItGraphHalfEdge e : hes1)
-			{
-				e.getEdge().setColor(zCYAN);
-			}
-
-			if (d < 0.005) printf("\n [%i] not found 1 %i | %1.4f", graphId, hes1.size(), d);
-
-
-
-		}
-		else printf("\n [%i] not found 1 %i", graphId, hes1.size());
-
-		//02
-		if(blockType == zBlockType::Bottom) found = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_out_corner_st, _col_out_feature, hes2);//_col_out_corner_st = zCYAN; _col_out_feature = zORANGE;
-		else found = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_out_corner, _col_out_feature, hes2);
-		if (found )
-		{
-			zPoint p;
-			float d;
-			util_getHeArrayClosestPoint(hes2, cablePoint, p, d);
-
-			if (blockType == zBlockType::Bottom)
-			{
-				zObjGraph tg;
-				zFnGraph tgf(tg);
-				zPointArray tpts;
-				util_createGraphFromHEArray(hes2, tg);
-				tgf.getVertexPositions(tpts);
-				zVector v = tpts[tpts.size() - 1] - tpts[0];
-				v *= 0.25;
-				p = tpts[0] + v;
-
-				//extend point
-				v = p-cablePoint;
-				float tempExtend = 0.0;
-				zPoint outPt;
-				util_getGraphClosestPoint(o_sectionGraphs[graphId], p, outPt, tempExtend);
-				v.normalize();
-				v *= tempExtend;
-				p += v;
-
-				// FIX: Rethink this
-				gPositions.push_back(p);
-				gEdgeCOnnects.push_back(0);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-				distances.push_back(d);
-				if (d < 0.005) printf("\n [%i] not found 2 %i | %1.4f", graphId, hes2.size(), d);
-
-			}
-
-		}
-		else printf("\n [%i] not found 2 %i", graphId, hes2.size());
-
-		//if (isCorner)
-		//{
-		//	//add extra bracing between corner point exterior and mid of interior
-		//
-		//	//if (found)
-		//	{
-		//		zItGraphHalfEdgeArray hes3, hes4;
-		//		//found = getShortestHEsBetweenColors(o_sectionGraphs[graphId], _colorCornersEnd, _colorFeatureOuter, hes3);
-		//		bool found1 = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_out_corner_st, _col_out_feature, hes3);
-		//		bool found2 = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_in_corner, _col_out_corner, hes4);
-		//
-		//		zPoint bracingStart, bracingEnd;
-
-		//
-		//		zObjGraph tempGraphStart;
-		//		zFnGraph tempFnStart(tempGraphStart);
-		//		util_createGraphFromHEArray(hes3, tempGraphStart);
-
-		//		zPointArray tempPts;
-		//		tempFnStart.getVertexPositions(tempPts);
-		//		zVector tempVec = tempPts[tempPts.size() - 1] - tempPts[0];
-		//		tempVec *= 0.75;
-		//		bracingEnd = tempPts[0] + tempVec;
-
-		//		for (zItGraphVertex v(o_sectionGraphs[graphId]); !v.end(); v++)
-		//		{
-		//			//iterate till finding corener exterior, then iterate through edges till finding the one between corner start and feature (snap to the closest point)
-		//			if (v.getColor() == _col_in_corner)
-		//			{
-		//				bracingStart = v.getPosition();
-		//				found == true;
-		//				break;
-		//			}
-		//		}
-
-		//		//extend point
-		//		zVector v = bracingEnd - bracingStart;
-		//		float tempExtend = 0.0;
-		//		zPoint outPt;
-		//		util_getGraphClosestPoint(o_sectionGraphs[graphId], bracingEnd, outPt, tempExtend);
-		//		v.normalize();
-		//		v *= tempExtend;
-		//		bracingEnd += v;
-
-		//
-		//		printf("\n found %i", found);
-		//		//if (found)
-		//		//if (found)
-		//		{
-		//			////get the center then snap it to the closest point on that graph
-		//			//zObjGraph tempGraph;
-		//			//createGraphFromHEArray(hes3, tempGraph);
-		//			//zFnGraph tempFn(tempGraph);
-		//			//zPointArray tempPts;
-		//			//tempFn.getVertexPositions(tempPts);
-		//			//zPoint tempCenter = tempFn.getCenter();
-		//			//int index = coreUtils.getClosest_PointCloud(tempCenter, tempPts);
-
-		//			gPositions.push_back(bracingStart);
-		//			gEdgeCOnnects.push_back(gPositions.size() - 1);
-		//			//gPositions.push_back(tempPts[index]);
-		//			gPositions.push_back(bracingEnd);
-		//			gEdgeCOnnects.push_back(gPositions.size() - 1);
-		//		}
-		//	}
-		//}
-
-		if(blockType == zBlockType::Bottom) {
-			zItGraphHalfEdgeArray cyan_orange, green_yellow;
-			//found = getShortestHEsBetweenColors(o_sectionGraphs[graphId], _colorCornersEnd, _colorFeatureOuter, hes3);
-			bool found1 = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_out_corner_st, _col_out_feature, cyan_orange);
-			bool found2 = util_getShortestHEsBetweenColors(o_sectionGraphs[graphId], _col_in_corner, _col_out_corner, green_yellow);
-
-			float gyLength = 0.0;
-			for (zItGraphHalfEdge he : green_yellow)
-			{
-				gyLength += he.getLength();
-			}
-			//printf("\n length of center: %f", gyLength);
-
-			//for pentagon block with split graph less than 1.2m, only needs 2 bracing
-			std::vector<float> fractions;
-				(gyLength > 1.2) ? fractions = { 0.33f, 0.57f, 0.8f } : fractions = {  0.40f, 0.8f };
-				//if (isCableBlock)
-				//{
-				//	fractions.clear();
-				//	fractions = { 0.57f, 0.8f };
-				//}
-
-			zObjGraph tempGraphStart;
-			zFnGraph tempFnStart(tempGraphStart);
-			util_createGraphFromHEArray(cyan_orange, tempGraphStart);
-			zPointArray GraphStartPoints; tempFnStart.getVertexPositions(GraphStartPoints);
-			zVector GraphStartVector = GraphStartPoints[GraphStartPoints.size() - 1] - GraphStartPoints[0];
-
-			zObjGraph tempGraphEnd;
-			zFnGraph tempFnEnd(tempGraphEnd);
-			util_createGraphFromHEArray(green_yellow, tempGraphEnd);
-			zPointArray GraphEndPoints; tempFnEnd.getVertexPositions(GraphEndPoints);
-			zVector GraphEndVector = GraphEndPoints[GraphEndPoints.size() - 1] - GraphEndPoints[0];
-
-			for(float fraction : fractions) {
-
-				zPoint bracingStart, bracingEnd;
-
-				bracingEnd = GraphStartPoints[0] + (GraphStartVector * fraction);
-				bracingStart = GraphEndPoints[0] + (GraphEndVector * fraction);
-
-				if((fraction == fractions[0]) && !isCableBlock) {
-					bracingEnd = gPositions[gPositions.size() - 1];
-				}
-
-				//extend point
-				zVector v = bracingEnd - bracingStart;
-				float tempExtend = 0.0;
-				zPoint outPt;
-				util_getGraphClosestPoint(o_sectionGraphs[graphId], bracingEnd, outPt, tempExtend);
-				v.normalize();
-				//extend a bit more
-				v *= (tempExtend+0.1f);
-				bracingEnd += v;
-
-
-				gPositions.push_back(bracingStart);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-				//gPositions.push_back(tempPts[index]);
-				gPositions.push_back(bracingEnd);
-				gEdgeCOnnects.push_back(gPositions.size() - 1);
-			}
-
-		}
-
-		//make graph from the positions and choose the longest 2 to create perpendicular slot graph
-		zFnGraph fnTrimG(outGraph);
-		fnTrimG.create(gPositions, gEdgeCOnnects);
-
-
-		////printf("\n graph[%i] %i | %i", graphId, gPositions.size(), gEdgeCOnnects.size());
-		//for (int i = 0; i < fnTrimG.numEdges(); i++)
-		//{
-		//	int prevId = (i + 1) % fnTrimG.numEdges();
-		//	zItGraphEdge e(o_trimGraphs[graphId], i);
-		//	zItGraphEdge ePrev(o_trimGraphs[graphId], prevId);
-		//	if (abs(ePrev.getLength() - zItGraphEdge(o_trimGraphs[graphId], i).getLength()) < EPS)
-		//	{
-		//		printf("\n graph[%i] distance %1.4f", graphId, e.getLength());
-		//		zPointArray pts;
-		//		e.getVertexPositions(pts);
-		//		cout << endl << pts[0];
-		//		cout << endl << pts[1] << endl;
-		//		ePrev.getVertexPositions(pts);
-		//		cout << endl << pts[0];
-		//		cout << endl << pts[1] << endl;
-		//	}
-		//}
-		//coreUtils.checkRepeatVector()
-	}
-
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph& outGraph_hardFeature, zObjGraph& outGraph_softFeature)
+		ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_TrimGraphs_BoundaryFeature(int graphId, zObjGraph& outGraph_hardFeature, zObjGraph& outGraph_softFeature)
 	{
 		//create a trim graph at each trim points. Trim points are all feature curves and corner
 		//The graph will be made by avg the two outgoing vector from the feature vertex
@@ -3053,11 +1335,6 @@ namespace zSpace
 			bool otherFeature = v.getColor() == _col_in_feature ||
 								v.getColor() == _col_out_feature;
 
-			/*if (blockType == zBlockType::Bottom)
-			{
-				cornerByTopology =	v.getColor() == _col_in_corner_st ||
-									v.getColor() == _col_in_corner;
-			}*/
 			if (cornerByTopology) features_hard.push_back(v);
 			else
 			{
@@ -3075,30 +1352,9 @@ namespace zSpace
 					if (otherFeature)
 						features_hard.push_back(v);
 
-					else if (!isCorner)
+					else
 						features_soft.push_back(v);
 				}
-			}
-		}
-
-		if (blockType == zBlockType::Bottom)
-		{
-			features_hard.clear();
-
-			std::array<zColor, 5> colors = { zGREEN, zRED, zCYAN, zORANGE, zYELLOW };
-			int index = 0;
-
-			for (auto col : colors)
-			{
-				zItGraphVertex v(o_sectionGraphs[graphId]);
-
-				while (!(v.getColor() == col) && !v.end())
-				{
-					v++;
-				}
-
-				if(!v.end())
-					features_hard.push_back(v);
 			}
 		}
 
@@ -3229,8 +1485,8 @@ namespace zSpace
 
 		int counter;
 
-		zColor startColor = (blockType != zBlockType::Arch) ? _col_in_corner_st : _col_in_corner;
-		zColor endColor = (blockType != zBlockType::Arch) ? _col_out_corner_st : _col_out_corner;
+		zColor startColor = _col_in_corner_st;
+		zColor endColor = _col_out_corner_st;
 		for (zItGraphVertex v(sectionGraph); !v.end(); v++)
 		{
 			if (v.getColor() == startColor)
@@ -3384,14 +1640,11 @@ namespace zSpace
 		int r3 = (o_sectionGraphs.size()) - 1;
 		printf("\n r: %i  %i %i %i ", r0, r1, r2, r3);
 
-		int end = (isRegular) ? o_sectionGraphs.size() : floor(o_sectionGraphs.size() * 0.5);
-		//int end =  floor(o_sectionGraphs.size() * 0.5);
+		int end = o_sectionGraphs.size();
 		numSDFlayers = (numSDFlayers > end) ? end : numSDFlayers;
 		numSDFlayers = (allSDFLayers) ? end : numSDFlayers;
 
-		int j = isCorner ? 0 : 1;
-		//int j = 1;
-		//int max_layers = isCorner ? numSDFlayers - 1 : numSDFlayers; //changed for big gap
+		int j = 1;
 		int max_layers = numSDFlayers;
 
 		printf("\n Start: %d | Max: %d\n", j, max_layers);
@@ -3699,11 +1952,13 @@ namespace zSpace
 		writeUsdHeader(out);
 		writeWorldOpen(out);
 
-		writeMeshPrim(out, oMesh, "block", nullptr, 8);
-		writeMeshPrim(out, o_SliceMesh_Left, "block_left", nullptr, 8);
-		writeMeshPrim(out, o_SliceMesh_Right, "block_right", nullptr, 8);
+		writeGroupOpen(out, "block_meshes", 8);
+		writeMeshPrim(out, oMesh, "block", nullptr, 12);
+		writeMeshPrim(out, o_SliceMesh_Left, "block_left", nullptr, 12);
+		writeMeshPrim(out, o_SliceMesh_Right, "block_right", nullptr, 12);
+		writeGroupClose(out, 8);
 
-		auto writeContour = [&](int graphId, const string& primName)
+		auto writeContour = [&](int graphId, const string& primName, int indent)
 		{
 			if (graphId < 0 || graphId >= o_contourGraphs.size()) return;
 
@@ -3749,32 +2004,47 @@ namespace zSpace
 				} while (he != startHe);
 			}
 
-			writeGraphPrim(out, o_contourGraphs[graphId], primName, nullptr, &vSequence, 8);
+			writeGraphPrim(out, o_contourGraphs[graphId], primName, nullptr, &vSequence, indent);
 		};
 
-		int end = isRegular ? o_sectionGraphs.size() : floor(o_sectionGraphs.size() * 0.5);
+		int end = o_sectionGraphs.size();
+		auto writeGraphGroup = [&](const string& groupName, zObjGraphArray& graphs, const string& childPrefix, const zTransform* frameSource)
+		{
+			writeGroupOpen(out, groupName, 8);
+			for (int i = 0; i < end; i++)
+			{
+				string id = core.getPaddedIndexString(i, 3);
+				const zTransform* frame = frameSource && i < sectionFrames.size() ? &sectionFrames[i] : nullptr;
+				if (i >= 0 && i < graphs.size()) writeGraphPrim(out, graphs[i], childPrefix + "_" + id, frame, nullptr, 12);
+			}
+			writeGroupClose(out, 8);
+		};
+
+		writeGraphGroup("sections", o_sectionGraphs, "section", sectionFrames.data());
+
+		writeGroupOpen(out, "section_meshes", 8);
 		for (int i = 0; i < end; i++)
 		{
-			string graphID_padded = core.getPaddedIndexString(i, 3);
-
-			for (int side = 0; side < (isRegular ? 1 : 2); side++)
-			{
-				int gID = (side == 0) ? i : i + floor(o_sectionGraphs.size() * 0.5);
-				string suffix = graphID_padded + "_" + to_string(side);
-
-				if (gID >= 0 && gID < o_sectionGraphs.size()) writeGraphPrim(out, o_sectionGraphs[gID], "section_" + suffix, &sectionFrames[gID], nullptr, 8);
-				if (!planarBlock && gID >= 0 && gID < o_sectionMeshes.size()) writeMeshPrim(out, o_sectionMeshes[gID], "sectionMesh_" + suffix, &sectionFrames[gID], 8);
-
-				if (gID >= 0 && gID < o_trimGraphs_bracing.size()) writeGraphPrim(out, o_trimGraphs_bracing[gID], "trim_bracing_" + suffix, nullptr, nullptr, 8);
-				if (gID >= 0 && gID < o_trimGraphs_bracing_slots.size()) writeGraphPrim(out, o_trimGraphs_bracing_slots[gID], "bracing_slots_" + suffix, nullptr, nullptr, 8);
-				if (gID >= 0 && gID < o_trimGraphs_features_hard.size()) writeGraphPrim(out, o_trimGraphs_features_hard[gID], "trim_features_hard_" + suffix, nullptr, nullptr, 8);
-				if (gID >= 0 && gID < o_trimGraphs_features_soft.size()) writeGraphPrim(out, o_trimGraphs_features_soft[gID], "trim_features_soft_" + suffix, nullptr, nullptr, 8);
-				if (gID >= 0 && gID < o_trimGraphs_SlotSide.size()) writeGraphPrim(out, o_trimGraphs_SlotSide[gID], "trim_interiorSplit_" + suffix, nullptr, nullptr, 8);
-				if (gID >= 0 && gID < o_trimGraphs_seamAlignment.size()) writeGraphPrim(out, o_trimGraphs_seamAlignment[gID], "trim_seamAlignment_" + suffix, nullptr, nullptr, 8);
-
-				writeContour(gID, "contours_" + suffix);
-			}
+			string id = core.getPaddedIndexString(i, 3);
+			const zTransform* frame = i < sectionFrames.size() ? &sectionFrames[i] : nullptr;
+			if (i >= 0 && i < o_sectionMeshes.size()) writeMeshPrim(out, o_sectionMeshes[i], "sectionMesh_" + id, frame, 12);
 		}
+		writeGroupClose(out, 8);
+
+		writeGraphGroup("trim_bracing", o_trimGraphs_bracing, "trim_bracing", nullptr);
+		writeGraphGroup("bracing_slots", o_trimGraphs_bracing_slots, "bracing_slots", nullptr);
+		writeGraphGroup("trim_features_hard", o_trimGraphs_features_hard, "trim_features_hard", nullptr);
+		writeGraphGroup("trim_features_soft", o_trimGraphs_features_soft, "trim_features_soft", nullptr);
+		writeGraphGroup("trim_interiorSplit", o_trimGraphs_SlotSide, "trim_interiorSplit", nullptr);
+		writeGraphGroup("trim_seamAlignment", o_trimGraphs_seamAlignment, "trim_seamAlignment", nullptr);
+
+		writeGroupOpen(out, "contours", 8);
+		for (int i = 0; i < end; i++)
+		{
+			string id = core.getPaddedIndexString(i, 3);
+			writeContour(i, "contours_" + id, 12);
+		}
+		writeGroupClose(out, 8);
 
 		writeWorldClose(out);
 		return out.good();
@@ -3811,7 +2081,6 @@ namespace zSpace
 		Block_visitied.assign(files.size(), false);
 
 		myfile << "blockID" << ","
-			<< "blockType" << ","
 			<< "frameCHECKS" << ","
 			<< "minHeight" << ","
 			<< "maxHeight" << ","
@@ -3819,8 +2088,7 @@ namespace zSpace
 			<< "geometryCHECK" << ","
 			<< "criticalPtsMin" << ","
 			<< "criticalPtsMax" << ","
-			<< "planeSpacing" << ","
-			<< "dihedralAngle" << endl;
+			<< "planeSpacing" << endl;
 
 
 		for (auto& s : files)
@@ -3836,130 +2104,71 @@ namespace zSpace
 			setFromJSON(folderDir, _blockID, runBothPlanes, runPlaneLeft);
 			Block_visitied[_blockID] = true;
 
-			//if (!planarBlock) continue;
-
-
 			bool frameCHECKS = false;
 			bool geomCHECKS = true;
 			bool sdfCHECKS = true;
 
-			bool maxHeight = true;
-			bool minHeight = true;
+			bool maxHeightCheck = true;
+			bool minHeightCheck = true;
 
-			int minCriticalPtsCount = INT_MAX;
-			float bestPlaneSpacing = FLT_MAX;
-			if (planarBlock)
+			float bestPlaneSpacing = 0.01f;
+			zVector norm(0, 0, 1);
+			vector<zItMeshHalfEdgeArray> vLoops;
+			zObjMesh oMesh_top, oMesh_bottom;
+
+			computeVLoops(o_SliceMesh_Left, medialIDS, FeaturedNumStrides, norm, vLoops, oMesh_top, oMesh_bottom);
+
+			zScalarArray scalars;
+			computeGeodesicScalars(o_SliceMesh_Left, vLoops, scalars, true);
+
+			o_sectionMeshes.clear();
+			computeGeodesicContours(vLoops, scalars, bestPlaneSpacing, oMesh_top, oMesh_bottom, o_sectionMeshes);;
+			createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
+
+			zFnPointCloud fnCritical_min(criticalMinLayer_pts);
+			zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
+
+			float minHeight = FLT_MAX;
+			float maxHeight = FLT_MIN;
+
+			for (int m = 0; m < o_sectionGraphs.size(); m++)
 			{
-				for (float printPlaneSpacing = printHeightDomain.max; printPlaneSpacing >= printHeightDomain.min; printPlaneSpacing -= 0.00025)
+				zPointArray secPts;
+				zFnGraph fnGraph(o_sectionGraphs[m]);
+				fnGraph.getVertexPositions(secPts);
+
+				zVectorArray pNorms;
+				zObjGraph outPrintHeightLines;
+				for (auto& p : secPts)
 				{
-
-
-					//printf("\n printPlaneSpace %1.4f ", printPlaneSpacing);
-					compute_PrintSectionFromPlaneSpacing(printPlaneSpacing, printHeightDomain, frameCHECKS, sdfCHECKS, geomCHECKS);
-					if (frameCHECKS)
+					for (zItMeshFace f(o_sectionMeshes[m]); !f.end(); f++)
 					{
-						bestPlaneSpacing = printPlaneSpacing;
-						break;
-
-					}
-
-					zFnPointCloud fnCritical_min(criticalMinLayer_pts);
-					zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
-
-					if (minCriticalPtsCount > (fnCritical_min.numVertices() + fnCritical_max.numVertices()))
-					{
-						minCriticalPtsCount = fnCritical_min.numVertices() + fnCritical_max.numVertices();
-						bestPlaneSpacing = printPlaneSpacing;
-					}
-
-					if (actualPrintHeightDomain.min < printHeightDomain.min && actualPrintHeightDomain.max < printHeightDomain.max)
-					{
-						printf("\n minimum print height was reached and no solution was found.");
-						break;
-					}
-
-				}
-			}
-			else
-			{
-				//printf("\n non-planar printPlaneSpace %1.4f ", printPlaneSpacing);
-				int numBlendFrames;
-				zVector norm(0, 0, 1);
-				vector<zItMeshHalfEdgeArray> vLoops;
-				zObjMesh oMesh_top, oMesh_bottom;
-				//vector<zObjMesh> oSectionMeshes;
-
-				computeVLoops(o_SliceMesh_Left, medialIDS, FeaturedNumStrides, norm, vLoops, oMesh_top, oMesh_bottom);
-
-				zScalarArray scalars;
-				computeGeodesicScalars(o_SliceMesh_Left, vLoops, scalars, true);
-
-				o_sectionMeshes.clear();
-				computeGeodesicContours(vLoops, scalars, 0.01, oMesh_top, oMesh_bottom, o_sectionMeshes);;
-				//computeGeodesicContours(vLoops, scalars, printPlaneSpacing, oMesh_top, oMesh_bottom, o_sectionMeshes);;
-				createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
-
-				zFnPointCloud fnCritical_min(criticalMinLayer_pts);
-				zFnPointCloud fnCritical_max(criticalMaxLayer_pts);
-
-				int minHeight = FLT_MAX;
-				int maxHeight = FLT_MIN;
-
-
-				for (int m = 0; m < o_sectionGraphs.size(); m++)
-				{
-					zPointArray secPts;
-					zFnGraph fnGraph(o_sectionGraphs[m]);
-					fnGraph.getVertexPositions(secPts);
-
-					zVectorArray pNorms;
-					zObjGraph outPrintHeightLines;
-					for (auto& p : secPts)
-					{
-						for (zItMeshFace f(o_sectionMeshes[m]); !f.end(); f++)
+						zPointArray fVerts;
+						f.getVertexPositions(fVerts);
+						bool ptIntTriangle = core.pointInTriangle(p, fVerts[0], fVerts[1], fVerts[2]);
+						if (ptIntTriangle)
 						{
-							zPointArray fVerts;
-							f.getVertexPositions(fVerts);
-							bool ptIntTriangle = core.pointInTriangle(p, fVerts[0], fVerts[1], fVerts[2]);
-							if (ptIntTriangle)
-							{
-
-								zVector n = f.getNormal();
-								pNorms.push_back(n);
-								break;
-							}
+							zVector n = f.getNormal();
+							pNorms.push_back(n);
+							break;
 						}
 					}
-					zFloatArray pHeights;
-					getPrintHeight(secPts, pNorms, o_sectionMeshes[m], pHeights, outPrintHeightLines);
-
-
-
-					//iterate throught the print width and check for all criticcal points bellow or above maximum printDomain
-
-					for (int h = 0; h < pHeights.size(); h++)
-					{
-						if (pHeights[h] < printHeightDomain.min)fnCritical_min.addPosition(secPts[h]);
-						if (pHeights[h] > printHeightDomain.max)fnCritical_max.addPosition(secPts[h]);
-
-						if (pHeights[h] < minHeight) minHeight = pHeights[h];
-						if (pHeights[h] > maxHeight) maxHeight = pHeights[h];
-
-					}
 				}
-				actualPrintHeightDomain.min = minHeight;
-				actualPrintHeightDomain.max = maxHeight;
+				zFloatArray pHeights;
+				getPrintHeight(secPts, pNorms, o_sectionMeshes[m], pHeights, outPrintHeightLines);
 
+				for (int h = 0; h < pHeights.size(); h++)
+				{
+					if (pHeights[h] < printHeightDomain.min)fnCritical_min.addPosition(secPts[h]);
+					if (pHeights[h] > printHeightDomain.max)fnCritical_max.addPosition(secPts[h]);
+
+					if (pHeights[h] < minHeight) minHeight = pHeights[h];
+					if (pHeights[h] > maxHeight) maxHeight = pHeights[h];
+				}
 			}
-
-
-
-			if (!frameCHECKS)
-			{
-				printf("\n Layer height check FALSE!  Choose best planeXY spacing %1.4f", bestPlaneSpacing);
-
-				compute_PrintSectionFromPlaneSpacing(bestPlaneSpacing, printHeightDomain, frameCHECKS, sdfCHECKS, geomCHECKS);
-			}
+			actualPrintHeightDomain.min = minHeight;
+			actualPrintHeightDomain.max = maxHeight;
+			frameCHECKS = fnCritical_min.numVertices() == 0 && fnCritical_max.numVertices() == 0;
 
 
 
@@ -4004,8 +2213,7 @@ namespace zSpace
 			core.json_read(path, j);
 			//output json for critical points
 			//json j;
-			string planeTypes = runningType == 0 ? "BothPlanes" : runningType == 1 ? "LeftPlanes" : "RightPlanes";
-			string outDir = folderDir + "/criticalPointsCheck_" + planeTypes;
+			string outDir = folderDir + "/criticalPointsCheck_nonPlanar";
 			string outPath = outDir + "/outBlock_" + to_string(_blockID) + ".json";
 			if (!filesystem::is_directory(outDir) || !filesystem::exists(outDir)) filesystem::create_directory(outDir);
 			j["CP_Min"] = ptsMin;
@@ -4021,14 +2229,7 @@ namespace zSpace
 			}
 
 
-			float leftAngle = core.dihedralAngleBetweenPlanes(leftPlanes[0], leftPlanes[1]);
-			float rightAngle = core.dihedralAngleBetweenPlanes(rightPlanes[0], rightPlanes[1]);
-
-			float maxAngle = leftAngle > rightAngle ? leftAngle : rightAngle;
-
-
 			myfile << _blockID << ","
-				<< ((planarBlock) ? "PlanarBlock" : "NonPlanarBlock") << ","
 				<< ((frameCHECKS) ? "True" : "False") << ","
 				<< actualPrintHeightDomain.min * 1000 << ","
 				<< actualPrintHeightDomain.max * 1000 << ","
@@ -4036,8 +2237,7 @@ namespace zSpace
 				<< ((geomCHECKS) ? "True" : "False") << ","
 				<< minPts << ","
 				<< maxPts << ","
-				<< bestPlaneSpacing * 1000 << ","
-				<< maxAngle << endl;
+				<< bestPlaneSpacing * 1000 << endl;
 
 
 			string outDir2 = folderDir + "/outSections";
@@ -4047,7 +2247,6 @@ namespace zSpace
 			if (!filesystem::is_directory(outDir2) || !filesystem::exists(outDir2)) filesystem::create_directory(outDir2);
 			for (const auto& entry : std::filesystem::directory_iterator(outDir2)) std::filesystem::remove_all(entry.path());
 
-			//if (planarBlock)
 			if (true)
 			{
 				zFnGraph fnGraph;
@@ -4076,191 +2275,7 @@ namespace zSpace
 
 
 
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_cable_CableSectionPoints(int graphId, zObjGraph& o_cableGraph, zPointArray& outputPoints, float threshold )
-	{
-
-
-		zFnGraph fnSection(o_sectionGraphs[graphId]);
-		zPointArray graphPts;
-		fnSection.getVertexPositions(graphPts);
-		zPlane frame = sectionFrames[graphId];
-		zVector normal(frame(2, 0), frame(2, 1), frame(2, 2));
-
-		zPointArray intersectionPts, intersectionPts_2;
-		util_intersect_graphPlane(o_cableGraph, frame, false, intersectionPts);
-		zTransformationMatrix tLocal;
-		zTransformationMatrix tWorld;
-		tWorld.setTransform(frame);
-		zTransform t = tWorld.getToTransform(tLocal);
-
-		zItGraphHalfEdge heS(o_sectionGraphs[graphId], 0);
-		zItGraphHalfEdge heW(o_sectionGraphs[graphId], 0);
-		zPointArray ptsSeq;
-		do
-		{
-			ptsSeq.push_back(heS.getStartVertex().getPosition());
-			heS = heS.getNext();
-		} while (heW != heS);
-
-
-		if (graphId == 16)
-		{
-			cout << endl << "polygons: ";
-			for (auto p : ptsSeq)
-			{
-				cout << endl << p;
-			}
-			cout << endl << "intersection: ";
-			for (auto p : intersectionPts)
-			{
-				cout << endl << p;
-			}
-
-		}
-
-		/*for(auto& p : intersectionPts)
-		{
-			intersectionPts_2.push_back( p * t);
-		}
-		for(auto&p : graphPts)
-		{
-			p = p * t;
-		}*/
-
-
-
-		outputPoints.clear();
-		if (intersectionPts.size() > 0)
-		{
-			for (int i = 0; i < intersectionPts.size(); i++)
-			{
-				if (core.pointInPlanarPolygon(intersectionPts[i], ptsSeq, normal))
-				{
-					outputPoints.push_back(intersectionPts[i]);
-				}
-			}
-		}
-		else
-		{
-			//printf("\n section [%i] cableGraph intersection is ZERO", graphId);
-		}
-		//printf("\n cableGraph [%i] intersection - number of intersection %i ",graphId, outputPoints.size());
-
-		/*if (outputPoints.size() > 0)
-		{
-
-		}*/
-
-		//if (intersectionEvents.Count() > 0)
-		//{
-		//	fnField.getScalars_Circle(scalars, intersectionPoint, radius);
-
-		//}
-	}
-	ZSPACE_TOOLSETS_INLINE int zTsCarbcomn::compute_cable_CableGraphIndexPerGraph(int graphId)
-	{
-		//iterate through all the graphs to get the graph the block belongs to
-		int index = -1;
-		int counter = 0;
-		for (int i = 0; i < o_CableGraphs.size(); i++)
-		{
-			zPointArray intersectionPts;
-			compute_cable_CableSectionPoints(graphId, o_CableGraphs[i], intersectionPts);
-			if (intersectionPts.size() > 0)
-			{
-				index = i;
-				counter++;
-			}
-		}
-
-		if (counter != 1)
-		{
-
-			index = -1;
-			if (counter == 0)
-			{
-
-				printf("\n section [%i] cableGraph intersection is ZERO, update threshold!", graphId);
-
-
-				//try with a different threshold
-				for (int i = 0; i < o_CableGraphs.size(); i++)
-				{
-					zPointArray intersectionPts;
-					compute_cable_CableSectionPoints(graphId, o_CableGraphs[i], intersectionPts, 0.001);
-					if (intersectionPts.size() > 0)
-					{
-						index = i;
-						counter++;
-					}
-				}
-				if (counter == 0)
-				{
-					index = -1;
-					printf("\n section [%i] cableGraph intersection is ZERO, FAILD!", graphId);
-				}
-			}
-			else
-			{
-				printf("\n section [%i] cableGraph intersection - number of intersection %i index %i", graphId, counter, index);
-			}
-		}
-
-
-		//printf("\n cableGraph intersection - number of intersection %i index %i", counter, index);
-
-		return index;
-
-
-		//// create graphs
-		//zFnGraph fnGraph(o_cableGraph);
-
-		//zPoint O(frame(3, 0), frame(3, 1), frame(3, 2));
-		//zVector N(frame(2, 0), frame(2, 1), frame(2, 2));
-
-		//zVector X(frame(0, 0), frame(0, 1), frame(0, 2));
-		//X.normalize();
-
-		//zObjNurbsCurve curve;
-		//zFnNurbsCurve fnnurbs(curve);
-		//fnnurbs.create(o_cableGraph, 0.01, 1, false, true, 20);
-
-		//zObjPlane oPlane;
-		//zFnPlane fnPlane(oPlane);
-
-		//fnPlane.createFromMatrix(frame);
-
-
-		//ON_SimpleArray<ON_X_EVENT> intersectionEvents;
-		//zFnNurbsCurve fnCurve(curve);
-		//ON_NurbsCurve* onCurve = fnCurve.getRawON_Curve();
-		//int intersection_result = onCurve->IntersectPlane(oPlane.on_plane.plane_equation, intersectionEvents);
-
-		//zPoint intersectionPoint;
-		//float dist = FLT_MAX;
-		//for (int i = 0; i < intersectionEvents.Count(); i++)
-		//{
-		//	ON_3dPoint onpt = intersectionEvents[i].m_A[0];
-		//	zPoint pt = zPoint(onpt.x, onpt.y, onpt.z);
-		//	float d = pt.distanceTo(O);
-		//	if (d < dist)
-		//	{
-		//		intersectionPoint = pt;
-		//		dist = d;
-		//	}
-		//}
-		////zFnMesh fn(o_SliceMesh_Left);
-
-		//if (intersectionEvents.Count() > 0)
-		//{
-		//	fnField.getScalars_Circle(scalars, intersectionPoint, radius);
-
-		//}
-	}
-
-
-
-	ZSPACE_TOOLSETS_INLINE zPoint zTsCarbcomn::util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh)
+			ZSPACE_TOOLSETS_INLINE zPoint zTsCarbcomn::util_getContourPosition(float& threshold, zVector& vertex_lower, zVector& vertex_higher, float& thresholdLow, float& thresholdHigh)
 	{
 		float scaleVal = core.ofMap(threshold, thresholdLow, thresholdHigh, 0.0000f, 1.0000f);
 		zVector e = vertex_higher - vertex_lower;
@@ -4526,20 +2541,8 @@ namespace zSpace
 
 		int counter;
 
-		zColor startColor = (blockType != zBlockType::Arch) ? _col_in_corner_st : _col_in_corner;
-		zColor endColor = (blockType != zBlockType::Arch) ? _col_out_corner_st : _col_out_corner;
-
-		if (blockType == zBlockType::Bottom)
-		{
-			startColor =  _col_out_corner_st ;
-			endColor =  _col_in_corner_st ;
-		}
-
-		if (isRegular)
-		{
-			startColor =  _col_out_corner;
-			endColor =  _col_in_corner;
-		}
+		zColor startColor = _col_out_corner;
+		zColor endColor = _col_in_corner;
 
 		for (zItGraphVertex v(inPoly); !v.end(); v++)
 		{
@@ -4572,33 +2575,10 @@ namespace zSpace
 			ptOffset = 0.125f;
 		float iterOffset = iterate ? -(_printParameters.slotIterating * 0.5f) : _printParameters.slotIterating * 0.5f;
 
-		//if (blockType != zBlockType::Arch)
-		//{
-		//	ptOffset = iterate ? graphLength * 2.5 : edgeLength - (graphLength * 2.5);
-		//}
-		//if (blockType == zBlockType::Bottom)
-		//{
-		//	//ptOffset = iterate ? edgeLength - (graphLength * 2.5) : edgeLength - (graphLength * 5);
-		//}
-		//if (isCorner)
-		//{
-		//	ptOffset = iterate ? (graphLength * 2.0) : edgeLength - (graphLength * 2.0);
-		//}
-		//if (blockType == zBlockType::Wall)
-		//{
-		//	ptOffset = iterate ? edgeLength - (graphLength * 2.5) : edgeLength - (graphLength * 3);
-
-		//}
-
 		//startV += (edgeVector * ptOffset);
 		//move slot lower to avoid too close to corner pt
 
 			startV += (edgeVector * ((edgeLength * ptOffset) + iterOffset));
-
-
-
-		if (isCorner)
-			graphLength = graphLength * 3.0f;
 			startV += (edgeVector * (_printParameters.slotIterating * 0.5f));
 
 		util_getPerpendicularVector(plane, edgeVector, startV, graphLength*1.5, outGraph);
@@ -4626,14 +2606,8 @@ namespace zSpace
 
 		int counter;
 
-		zColor startColor = (blockType != zBlockType::Arch) ? _col_in_corner_st : _col_in_corner;
-		zColor endColor = (blockType != zBlockType::Arch) ? _col_out_corner_st : _col_out_corner;
-
-		if (isRegular)
-		{
-			startColor = _col_in_corner;
-			endColor = _col_out_corner;
-		}
+		zColor startColor = _col_in_corner;
+		zColor endColor = _col_out_corner;
 
 		for (zItGraphVertex v(inPoly); !v.end(); v++)
 		{
@@ -5050,7 +3024,7 @@ namespace zSpace
 		zItGraphHalfEdgeArray hesInterior;
 		util_getShortestHEsBetweenColors(sectionGraph, _col_in_corner_st, _col_in_corner, hesInterior);
 
-		// Get specific half-edges of the section for regular blocks
+		// Get specific half-edges of the section for wall blocks.
 		zItGraphHalfEdgeArray cyan_red, red_green, green_yellow, yellow_orange, cyan_orange;
 		util_getShortestHEsBetweenColors(sectionGraph, zCYAN, zRED, cyan_red);
 		util_getShortestHEsBetweenColors(sectionGraph, zRED, zGREEN, red_green);
@@ -5058,111 +3032,29 @@ namespace zSpace
 		util_getShortestHEsBetweenColors(sectionGraph, zYELLOW, zORANGE, yellow_orange);
 		util_getShortestHEsBetweenColors(sectionGraph, zCYAN, zORANGE, cyan_orange);
 
-		if(isCorner)
-			util_getHEsColorLen(sectionGraph, zYELLOW, zORANGE, 0.085f, yellow_orange);
-
-		// Function to check if a halfedge array contains a halfedge
-		auto contains_edge = [](zItGraphHalfEdgeArray& arr, zItGraphHalfEdge& he) -> bool {
-			return std::find_if(arr.begin(), arr.end(), [&](zItGraphHalfEdge& edge) {
-				return edge.getId() == he.getId();
-				}) != arr.end();
-		};
-
 		// Default colour
 		fnGraph.setEdgeColor(zBLUE, false);
 
-	    if(!isRegular)
-	    {
-			//update the offsetArray based on the interior edges
-			for (zItGraphHalfEdge he : hesInterior)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-
-				he.getEdge().setColor(zMAGENTA);
-			}
-
-			if (blockType == zBlockType::Bottom)
-			{
-				for (zItGraphHalfEdge he : cyan_red)
-				{
-					outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-					innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-
-					he.getEdge().setColor(zMAGENTA);
-				}
-
-				for (zItGraphHalfEdge he : green_yellow)
-				{
-					outerOffsetArray[he.getEdge().getId()] = _printParameters.targetInteriorGap * 0.15f ; //13mm
-					////changed for pentagon split
-					////innerOffsetArray[he.getEdge().getId()] = innerOffsetArray[he.getEdge().getId()]/2.0f;
-					innerOffsetArray[he.getEdge().getId()] = _printParameters.targetInteriorGap * 0.35f;
-					he.getEdge().setColor(zMAGENTA);
-				}
-			}
-	    }
-
-		else if (!isPlanarBlock() || blockType == zBlockType::Wall)
+		for (zItGraphHalfEdge he : cyan_red)
 		{
-			for (zItGraphHalfEdge he : cyan_red)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-				he.getEdge().setColor(zMAGENTA);
-			}
-
-			for (zItGraphHalfEdge he : red_green)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-				he.getEdge().setColor(zMAGENTA);
-			}
-
-			for (zItGraphHalfEdge he : green_yellow)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-				he.getEdge().setColor(zMAGENTA);
-			}
+			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
+			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
+			he.getEdge().setColor(zMAGENTA);
 		}
 
-		// Regular
-	    else
-	    {
-			// Set thickness for cyan_red
-			for (zItGraphHalfEdge he : cyan_red)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
+		for (zItGraphHalfEdge he : red_green)
+		{
+			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
+			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
+			he.getEdge().setColor(zMAGENTA);
+		}
 
-				he.getEdge().setColor(zMAGENTA);
-			}
-
-			for (zItGraphHalfEdge he : red_green)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-
-				he.getEdge().setColor(zMAGENTA);
-			}
-
-			for (zItGraphHalfEdge he : green_yellow)
-			{
-				outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-				innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-
-				he.getEdge().setColor(zMAGENTA);
-			}
-
-			//for (zItGraphHalfEdge he : yellow_orange)
-			//{
-			//	//outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-			//	innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-
-			//	he.getEdge().setColor(zMAGENTA);
-			//}
-	    }
+		for (zItGraphHalfEdge he : green_yellow)
+		{
+			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
+			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
+			he.getEdge().setColor(zMAGENTA);
+		}
 
 		outScalar_offset_outer = outScalar_polygon;
 		outScalar_offset_inner = outScalar_polygon;
@@ -6553,73 +4445,12 @@ namespace zSpace
 		int sID = flip ? j["MedialStartEnd"][1] : j["MedialStartEnd"][0];
 		int eID = flip ? j["MedialStartEnd"][0] : j["MedialStartEnd"][1];
 
-		isCorner = j["IsCorner"];
-		int type = j["BlockType"];
-		blockType = static_cast<zBlockType>(type);
-
-		zTransform sPlaneRight, ePlaneRight, sPlaneLeft, ePlaneLeft;
-
-		zPoint oS, oE, xS, xE, yS, yE, zS, zE;
-		zVector zVectorEndRight, zVectorEndLeft;
-
-		oS = zPoint(j["LeftPlanes"][0][3], j["LeftPlanes"][0][7], j["LeftPlanes"][0][11]);
-		oE = zPoint(j["LeftPlanes"][1][3], j["LeftPlanes"][1][7], j["LeftPlanes"][1][11]);
-
-		xS = zPoint(j["LeftPlanes"][0][0], j["LeftPlanes"][0][4], j["LeftPlanes"][0][8]);
-		xE = zPoint(j["LeftPlanes"][1][0], j["LeftPlanes"][1][4], j["LeftPlanes"][1][8]);
-
-		yS = zPoint(j["LeftPlanes"][0][1], j["LeftPlanes"][0][5], j["LeftPlanes"][0][9]);
-		yE = zPoint(j["LeftPlanes"][1][1], j["LeftPlanes"][1][5], j["LeftPlanes"][1][9]);
-
-		zS = zPoint(j["LeftPlanes"][0][2], j["LeftPlanes"][0][6], j["LeftPlanes"][0][10]);
-		zE = zPoint(j["LeftPlanes"][1][2], j["LeftPlanes"][1][6], j["LeftPlanes"][1][10]);
-		zVectorEndLeft = zE;
-		sPlaneLeft = flip ? core.getPlaneFromVectors(oE, xE, yE * -1.0f, zE * -1.0f) : core.getPlaneFromVectors(oS, xS, yS, zS);
-		ePlaneLeft = flip ? core.getPlaneFromVectors(oS, xS, yS * -1.0f, zS * -1.0f) : core.getPlaneFromVectors(oE, xE, yE, zE);
-
-		oS = zPoint(j["RightPlanes"][0][3], j["RightPlanes"][0][7], j["RightPlanes"][0][11]);
-		oE = zPoint(j["RightPlanes"][1][3], j["RightPlanes"][1][7], j["RightPlanes"][1][11]);
-		xS = zPoint(j["RightPlanes"][0][0], j["RightPlanes"][0][4], j["RightPlanes"][0][8]);
-		xE = zPoint(j["RightPlanes"][1][0], j["RightPlanes"][1][4], j["RightPlanes"][1][8]);
-		yS = zPoint(j["RightPlanes"][0][1], j["RightPlanes"][0][5], j["RightPlanes"][0][9]);
-		yE = zPoint(j["RightPlanes"][1][1], j["RightPlanes"][1][5], j["RightPlanes"][1][9]);
-		zS = zPoint(j["RightPlanes"][0][2], j["RightPlanes"][0][6], j["RightPlanes"][0][10]);
-		zE = zPoint(j["RightPlanes"][1][2], j["RightPlanes"][1][6], j["RightPlanes"][1][10]);
-		zVectorEndRight = zE;
-
-		sPlaneRight = flip ? core.getPlaneFromVectors(oE, xE, yE * -1.0f, zE * -1.0f) : core.getPlaneFromVectors(oS, xS, yS, zS);
-		ePlaneRight = flip ? core.getPlaneFromVectors(oS, xS, yS * -1.0f, zS * -1.0f) : core.getPlaneFromVectors(oE, xE, yE, zE);
+		isCorner = false;
 
 		runningType = runBothPlanes ? 0 : runPlaneLeft ? 1 : 2;
 
-		if (!runBothPlanes)
-		{
-			if (isCorner && blockType == zBlockType::Top)
-			{
-				bool check = abs(zVectorEndLeft.z) < abs(zVectorEndRight.z);
-
-
-				check = runPlaneLeft ? check : !check;
-
-				if (check)
-				{
-					sPlaneRight = sPlaneLeft;
-					ePlaneRight = ePlaneLeft;
-				}
-				else
-				{
-					sPlaneLeft = sPlaneRight;
-					ePlaneLeft = ePlaneRight;
-				}
-			}
-		}
-
-
-		setStartEndPlanes(sPlaneLeft, ePlaneLeft, true);
-		base_world = sPlaneLeft;
-		setStartEndPlanes(sPlaneRight, ePlaneRight, false);
-
 		base_local.setIdentity();
+		base_world.setIdentity();
 		//medial axis
 		compute_MedialGraph(o_GuideMesh, sID, eID);
 
@@ -6631,25 +4462,10 @@ namespace zSpace
 		core.json_readAttribute(j, "MedialStartEnd", medialIDS);
 		StartCornerVID = j["StartCornerVID"];
 
-		// left mesh
-		isRegular = !blockType == zBlockType::Bottom;
-
-		if (isRegular)
-		{
-			compute_SliceMesh_Regular(o_GuideMesh, sID, eID, FeaturedNumStrides);
-			printf("FeaturedNumStrides %i", FeaturedNumStrides[0]);
-			printf("\n slice mesh regular");
-		}
-		else
-		{
-			//left Mesh
-			compute_SliceMesh_Pentagon(o_GuideMesh, sID, eID, FeaturedNumStrides, true);
-			printf("\n slice mesh1");
-
-			//Right Mesh
-			compute_SliceMesh_Pentagon(o_GuideMesh, sID, eID, FeaturedNumStrides, false);
-			printf("\n slice mesh2");
-		}
+		isRegular = true;
+		compute_SliceMesh_Regular(o_GuideMesh, sID, eID, FeaturedNumStrides);
+		printf("FeaturedNumStrides %i", FeaturedNumStrides[0]);
+		printf("\n slice mesh regular");
 	}
 
 
