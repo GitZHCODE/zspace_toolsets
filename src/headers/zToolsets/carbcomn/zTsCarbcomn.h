@@ -224,6 +224,15 @@ namespace zSpace
 		zObjMeshArray o_sectionMeshes;
 		zObjMeshArray o_sectionMeshesPar;
 
+		bool usdInputMode = false;
+		vector<zPointArray> usd_longitudeEdges;
+		vector<zPointArray> usd_topBracing;
+		vector<zPointArray> usd_bottomBracing;
+		zPointArray usd_topFaceBound;
+		zPointArray usd_bottomFaceBound;
+		zPointArray usd_topCorners;
+		float usd_actualLayerSpacing = 0.0f;
+
 		//DEBUG
 		zObjGraph o_debug_sectiongraph;
 		zObjGraph o_debug_slotgraph;
@@ -375,6 +384,7 @@ namespace zSpace
 		*	\since version 0.0.4
 		*/
 		void setFromJSON(string dir, int _blockID, bool runBothPlanes = true, bool runPlaneLeft = false);
+		bool setFromUSD(string usdPath);
 
 		void setCableGraph(string dir);
 
@@ -623,9 +633,6 @@ namespace zSpace
 		void compute_TrimGraphs_SlotSide(zObjGraph& sectionGraph, zObjGraph& outGraph_splitGraph);
 		void compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph,  bool remove_firstLast = false);
 
-		void util_innerOuter(zObjGraph& sectionGraph, bool addEndStart, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx);
-
-
 		//--------------------------
 		//---- UTILITY METHODS
 		//--------------------------
@@ -699,6 +706,7 @@ namespace zSpace
 		void computeGeodesicContours(vector<zItMeshHalfEdgeArray>& v_Loops, zScalarArray& scalars, float spacing, zObjMesh& oMesh_top, zObjMesh& oMesh_bottom, zObjMeshArray& oMeshes);
 		void computeGeodesicContours(zObjMesh& o_mesh, zFloatArray& scalars, float spacing, zObjGraphArray& o_contourGraphs);
 		void createSectionGraphs(zObjMeshArray& oMeshes, zObjGraphArray& o_sectionsGraphs);
+		bool computePrintBlocksFromUSD();
 
 		void transformAllGraphs(int graphId, zTransform t,  bool toLocal);
 
@@ -758,7 +766,6 @@ namespace zSpace
 
 
 		void getScalars_3dp_wall_bracing(zObjGraph& sectionGraph, zObjGraph& bracingGraph, zObjGraph& bracingSlotsGraph, float iterateOffset, bool iterateChk, zScalarArray & outScalar_interiorBracing, zScalarArray & outScalar_bracing, zScalarArray & outScalar_bracingSlots);
-		void getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray& outScalar_triangles, bool remove_firstLast = false);
 
 		void getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner);
 		int util_get_corrected_id(std::unordered_map<int, int>& map, int id_to_check, int id_to_set);

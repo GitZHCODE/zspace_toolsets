@@ -17,6 +17,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <algorithm>
+#include <cfloat>
+#include <regex>
+#include <sstream>
 #include <vector>
 //#include "zCore/base/zColor.h"
 //#include "zCore/base/zEnumerators.h"
@@ -31,11 +35,13 @@
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/plug/registry.h>
 #include <pxr/base/vt/array.h>
+#include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/sdf/valueTypeName.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/basisCurves.h>
 #include <pxr/usd/usdGeom/mesh.h>
+#include <pxr/usd/usdGeom/points.h>
 #include <pxr/usd/usdGeom/tokens.h>
 #include <pxr/usd/usdGeom/xform.h>
 
@@ -287,6 +293,80 @@ namespace zSpace
 			out << "}\n";
 		}
 
+		zPoint usdPoint(const GfVec3f& p)
+		{
+			return zPoint(p[0], p[1], p[2]);
+		}
+
+		bool readUsdCurvePrim(const UsdPrim& prim, zPointArray& points)
+		{
+			points.clear();
+			UsdGeomBasisCurves curve(prim);
+			if (!curve) return false;
+
+			VtArray<GfVec3f> usdPoints;
+			if (!curve.GetPointsAttr().Get(&usdPoints)) return false;
+			for (const GfVec3f& p : usdPoints) points.push_back(usdPoint(p));
+			return points.size() >= 2;
+		}
+
+		bool readUsdCurveGroup(const UsdStageRefPtr& stage, const std::string& groupName, vector<zPointArray>& curves)
+		{
+			curves.clear();
+			UsdPrim group = stage->GetPrimAtPath(SdfPath(("/World/" + groupName).c_str()));
+			if (!group)
+			{
+				printf("\n USD input missing group: /World/%s", groupName.c_str());
+				return false;
+			}
+
+			for (const UsdPrim& child : group.GetChildren())
+			{
+				if (!child.IsA<UsdGeomBasisCurves>()) continue;
+				zPointArray points;
+				if (!readUsdCurvePrim(child, points))
+				{
+					printf("\n USD curve read failed: %s", child.GetPath().GetText());
+					return false;
+				}
+				curves.push_back(points);
+			}
+
+			if (curves.empty()) printf("\n USD input group has no curves: /World/%s", groupName.c_str());
+			return !curves.empty();
+		}
+
+		bool readUsdSingleCurveGroup(const UsdStageRefPtr& stage, const std::string& groupName, zPointArray& curvePoints)
+		{
+			vector<zPointArray> curves;
+			if (!readUsdCurveGroup(stage, groupName, curves)) return false;
+			curvePoints = curves[0];
+			return true;
+		}
+
+		bool readUsdPointsGroup(const UsdStageRefPtr& stage, const std::string& groupName, zPointArray& points)
+		{
+			points.clear();
+			UsdPrim group = stage->GetPrimAtPath(SdfPath(("/World/" + groupName).c_str()));
+			if (!group)
+			{
+				printf("\n USD input missing group: /World/%s", groupName.c_str());
+				return false;
+			}
+
+			for (const UsdPrim& child : group.GetChildren())
+			{
+				if (!child.IsA<UsdGeomPoints>()) continue;
+				UsdGeomPoints pointPrim(child);
+				VtArray<GfVec3f> usdPoints;
+				if (!pointPrim.GetPointsAttr().Get(&usdPoints)) return false;
+				for (const GfVec3f& p : usdPoints) points.push_back(usdPoint(p));
+			}
+
+			if (points.empty()) printf("\n USD input group has no points: /World/%s", groupName.c_str());
+			return !points.empty();
+		}
+
 		bool exportMeshUsd(zUtilsCore& core, const std::string& path, zObjMesh& meshObj, const std::string& primName, const zTransform* frame = nullptr)
 		{
 			std::ofstream out;
@@ -326,6 +406,283 @@ namespace zSpace
 		}
 	}
 #endif
+	namespace
+	{
+		float pointDistanceSquared(const zPoint& a, const zPoint& b)
+		{
+			const float dx = a.x - b.x;
+			const float dy = a.y - b.y;
+			const float dz = a.z - b.z;
+			return (dx * dx) + (dy * dy) + (dz * dz);
+		}
+
+		float pointDistance(const zPoint& a, const zPoint& b)
+		{
+			return sqrt(pointDistanceSquared(a, b));
+		}
+
+		float polylineLength(const zPointArray& points)
+		{
+			float length = 0.0f;
+			for (int i = 1; i < points.size(); i++) length += pointDistance(points[i], points[i - 1]);
+			return length;
+		}
+
+		zPoint samplePolylineNormalised(const zPointArray& points, float t)
+		{
+			if (points.empty()) return zPoint();
+			if (points.size() == 1) return points[0];
+			if (t <= 0.0f) return points.front();
+			if (t >= 1.0f) return points.back();
+
+			const float targetLength = polylineLength(points) * t;
+			float travelled = 0.0f;
+			for (int i = 1; i < points.size(); i++)
+			{
+				const float segmentLength = pointDistance(points[i], points[i - 1]);
+				if (segmentLength <= 0.0f) continue;
+				if (travelled + segmentLength >= targetLength)
+				{
+					const float localT = (targetLength - travelled) / segmentLength;
+					return zPoint(
+						points[i - 1].x + ((points[i].x - points[i - 1].x) * localT),
+						points[i - 1].y + ((points[i].y - points[i - 1].y) * localT),
+						points[i - 1].z + ((points[i].z - points[i - 1].z) * localT));
+				}
+				travelled += segmentLength;
+			}
+			return points.back();
+		}
+
+		void createOpenGraphFromPolyline(zObjGraph& graphObj, zPointArray points)
+		{
+			zIntArray edgeConnects;
+			for (int i = 0; i < points.size() - 1; i++)
+			{
+				edgeConnects.push_back(i);
+				edgeConnects.push_back(i + 1);
+			}
+			zFnGraph fnGraph(graphObj);
+			fnGraph.create(points, edgeConnects);
+		}
+
+		void createClosedGraphFromLoop(zObjGraph& graphObj, zPointArray points)
+		{
+			zIntArray edgeConnects;
+			for (int i = 0; i < points.size(); i++)
+			{
+				edgeConnects.push_back(i);
+				edgeConnects.push_back((i + 1) % points.size());
+			}
+			zFnGraph fnGraph(graphObj);
+			fnGraph.create(points, edgeConnects);
+		}
+
+		void createRingMesh(zObjMesh& meshObj, const zPointArray& loopA, const zPointArray& loopB)
+		{
+			zPointArray positions;
+			zIntArray pCounts;
+			zIntArray pConnects;
+			const int count = std::min(loopA.size(), loopB.size());
+
+			for (int i = 0; i < count; i++) positions.push_back(loopA[i]);
+			for (int i = 0; i < count; i++) positions.push_back(loopB[i]);
+
+			for (int i = 0; i < count; i++)
+			{
+				const int j = (i + 1) % count;
+				pCounts.push_back(4);
+				pConnects.push_back(i);
+				pConnects.push_back(j);
+				pConnects.push_back(count + j);
+				pConnects.push_back(count + i);
+			}
+
+			zFnMesh fnMesh(meshObj);
+			fnMesh.create(positions, pCounts, pConnects);
+		}
+
+		void createPerpendicularTrimSlots(zObjGraph& sourceGraph, zObjGraph& outGraph, bool alternate, float trimLength, int maxEdges = -1)
+		{
+			zFnGraph fnSource(sourceGraph);
+			if (fnSource.numVertices() == 0 || fnSource.numEdges() == 0)
+			{
+				outGraph.graph.clear();
+				return;
+			}
+
+			zPointArray sourcePositions;
+			zIntArray sourceEdges;
+			fnSource.getVertexPositions(sourcePositions);
+			fnSource.getEdgeData(sourceEdges);
+
+			zPointArray trimPositions;
+			zIntArray trimEdges;
+			const float t = alternate ? 0.4f : 0.6f;
+			const int edgeLimit = (maxEdges < 0) ? (int)(sourceEdges.size() / 2) : std::min(maxEdges, (int)(sourceEdges.size() / 2));
+
+			for (int i = 0; i < edgeLimit; i++)
+			{
+				const int a = sourceEdges[i * 2];
+				const int b = sourceEdges[(i * 2) + 1];
+				if (a < 0 || b < 0 || a >= sourcePositions.size() || b >= sourcePositions.size()) continue;
+
+				zVector dir = sourcePositions[b] - sourcePositions[a];
+				if (dir.length() <= 0.0001f) continue;
+				dir.normalize();
+
+				zVector perp(-dir.y, dir.x, 0.0f);
+				if (perp.length() <= 0.0001f) continue;
+				perp.normalize();
+
+				zPoint mid = sourcePositions[a] + ((sourcePositions[b] - sourcePositions[a]) * t);
+				const int id = trimPositions.size();
+				trimPositions.push_back(mid + (perp * trimLength));
+				trimPositions.push_back(mid - (perp * trimLength));
+				trimEdges.push_back(id);
+				trimEdges.push_back(id + 1);
+			}
+
+			if (trimPositions.empty())
+			{
+				outGraph.graph.clear();
+				return;
+			}
+
+			zFnGraph fnOut(outGraph);
+			fnOut.create(trimPositions, trimEdges);
+		}
+
+		void combineGraphObjects(const zObjGraphArray& graphs, zObjGraph& outGraph)
+		{
+			zPointArray positions;
+			zIntArray edgeConnects;
+
+			for (const zObjGraph& graph : graphs)
+			{
+				zObjGraph graphCopy = graph;
+				zFnGraph fnGraph(graphCopy);
+				if (fnGraph.numVertices() == 0) continue;
+
+				zPointArray graphPositions;
+				zIntArray graphEdges;
+				fnGraph.getVertexPositions(graphPositions);
+				fnGraph.getEdgeData(graphEdges);
+
+				const int offset = positions.size();
+				for (zPoint& p : graphPositions) positions.push_back(p);
+				for (int id : graphEdges) edgeConnects.push_back(id + offset);
+			}
+
+			if (positions.empty())
+			{
+				outGraph.graph.clear();
+				return;
+			}
+
+			zFnGraph fnOut(outGraph);
+			fnOut.create(positions, edgeConnects);
+		}
+
+		std::string nativeUsdPath(std::string path)
+		{
+			std::replace(path.begin(), path.end(), '/', '\\');
+			return std::filesystem::path(path).string();
+		}
+
+		std::string readTextFile(const std::string& path)
+		{
+			std::ifstream in(path, std::ios::in);
+			if (!in.good()) return "";
+			std::ostringstream buffer;
+			buffer << in.rdbuf();
+			return buffer.str();
+		}
+
+		bool getUsdaXformBody(const std::string& text, const std::string& groupName, std::string& body)
+		{
+			const std::string marker = "def Xform \"" + groupName + "\"";
+			size_t markerPos = text.find(marker);
+			if (markerPos == std::string::npos) return false;
+			size_t openBrace = text.find('{', markerPos);
+			if (openBrace == std::string::npos) return false;
+
+			int depth = 0;
+			for (size_t i = openBrace; i < text.size(); i++)
+			{
+				if (text[i] == '{') depth++;
+				else if (text[i] == '}')
+				{
+					depth--;
+					if (depth == 0)
+					{
+						body = text.substr(openBrace + 1, i - openBrace - 1);
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		zPointArray parseUsdaPointArray(const std::string& arrayText)
+		{
+			zPointArray points;
+			const std::regex pointRegex("\\(([-+0-9.eE]+),\\s*([-+0-9.eE]+),\\s*([-+0-9.eE]+)\\)");
+			for (std::sregex_iterator it(arrayText.begin(), arrayText.end(), pointRegex), end; it != end; ++it)
+			{
+				points.push_back(zPoint((float)std::stof((*it)[1].str()), (float)std::stof((*it)[2].str()), (float)std::stof((*it)[3].str())));
+			}
+			return points;
+		}
+
+		bool readUsdaCurveGroup(const std::string& text, const std::string& groupName, vector<zPointArray>& curves)
+		{
+			curves.clear();
+			std::string body;
+			if (!getUsdaXformBody(text, groupName, body))
+			{
+				printf("\n USDA input missing group: /World/%s", groupName.c_str());
+				return false;
+			}
+
+			const std::regex pointsAttrRegex("point3f\\[\\]\\s+points\\s*=\\s*\\[([\\s\\S]*?)\\]", std::regex::ECMAScript | std::regex::optimize);
+			for (std::sregex_iterator it(body.begin(), body.end(), pointsAttrRegex), end; it != end; ++it)
+			{
+				zPointArray points = parseUsdaPointArray((*it)[1].str());
+				if (points.size() >= 2) curves.push_back(points);
+			}
+
+			if (curves.empty()) printf("\n USDA input group has no curves: /World/%s", groupName.c_str());
+			return !curves.empty();
+		}
+
+		bool readUsdaSingleCurveGroup(const std::string& text, const std::string& groupName, zPointArray& curvePoints)
+		{
+			vector<zPointArray> curves;
+			if (!readUsdaCurveGroup(text, groupName, curves)) return false;
+			curvePoints = curves[0];
+			return true;
+		}
+
+		bool readUsdaPointsGroup(const std::string& text, const std::string& groupName, zPointArray& points)
+		{
+			points.clear();
+			std::string body;
+			if (!getUsdaXformBody(text, groupName, body))
+			{
+				printf("\n USDA input missing group: /World/%s", groupName.c_str());
+				return false;
+			}
+
+			const std::regex pointsAttrRegex("point3f\\[\\]\\s+points\\s*=\\s*\\[([\\s\\S]*?)\\]", std::regex::ECMAScript | std::regex::optimize);
+			std::smatch match;
+			if (!std::regex_search(body, match, pointsAttrRegex)) return false;
+			points = parseUsdaPointArray(match[1].str());
+
+			if (points.empty()) printf("\n USDA input group has no points: /World/%s", groupName.c_str());
+			return !points.empty();
+		}
+	}
 	//---- CONSTRUCTOR
 
 	ZSPACE_TOOLSETS_INLINE zTsCarbcomn::zTsCarbcomn()
@@ -485,33 +842,196 @@ namespace zSpace
 
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::setFromJSON(string dir, int _blockID, bool runBothPlanes, bool runPlaneLeft)
 	{
-		string path = dir + "blockMesh_" + to_string(_blockID) + ".json";
-		/*bool pathExist = coreUtils.fileExists(path);
-		if (!pathExist)
+		printf("\n Carbcomn JSON input is disabled. Use setFromUSD().");
+	}
+
+	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::setFromUSD(string usdPath)
+	{
+		const std::string nativePath = nativeUsdPath(usdPath);
+		if (!std::filesystem::exists(nativePath))
 		{
-			throw std::invalid_argument(" error: invalid path. ");
-			return;
-		}*/
-
-		json j;
-		bool jsonCheck = core.json_read(path, j);
-
-		if (jsonCheck) printf("\n %s exists", path.c_str());
-
-		if (!jsonCheck)
-		{
-			printf("\n %s doesnt exists", path.c_str());
-			return;
+			printf("\n USD input does not exist: %s", nativePath.c_str());
+			return false;
 		}
 
-		blockId = _blockID;
+		vector<zPointArray> rawLongitudeEdges;
+		const std::string ext = std::filesystem::path(nativePath).extension().string();
+		if (ext == ".usda" || ext == ".USDA")
+		{
+			const std::string usdaText = readTextFile(nativePath);
+			if (usdaText.empty())
+			{
+				printf("\n error reading USDA input: %s", nativePath.c_str());
+				return false;
+			}
+
+			if (!readUsdaCurveGroup(usdaText, "longtitudeEdges", rawLongitudeEdges)) return false;
+			if (!readUsdaSingleCurveGroup(usdaText, "topFaceBound", usd_topFaceBound)) return false;
+			if (!readUsdaPointsGroup(usdaText, "topFaceCorners", usd_topCorners)) return false;
+			if (!readUsdaCurveGroup(usdaText, "topBracing", usd_topBracing)) return false;
+			if (!readUsdaCurveGroup(usdaText, "bottomBracing", usd_bottomBracing)) return false;
+		}
+		else
+		{
+#if defined ZSPACE_USD_INTEROP
+		SdfLayerRefPtr rootLayer = SdfLayer::FindOrOpen(nativePath);
+		if (!rootLayer)
+		{
+			printf("\n error opening USD layer: %s", nativePath.c_str());
+			return false;
+		}
+
+		UsdStageRefPtr stage = UsdStage::Open(rootLayer);
+		if (!stage)
+		{
+			printf("\n error opening USD input: %s", nativePath.c_str());
+			return false;
+		}
+
+		if (!readUsdCurveGroup(stage, "longtitudeEdges", rawLongitudeEdges)) return false;
+		if (!readUsdSingleCurveGroup(stage, "topFaceBound", usd_topFaceBound)) return false;
+		if (!readUsdPointsGroup(stage, "topFaceCorners", usd_topCorners)) return false;
+		if (!readUsdCurveGroup(stage, "topBracing", usd_topBracing)) return false;
+		if (!readUsdCurveGroup(stage, "bottomBracing", usd_bottomBracing)) return false;
+#else
+			printf("\n binary USD input requires ZSPACE_USD_INTEROP.");
+			return false;
+#endif
+		}
+
+		if (rawLongitudeEdges.size() != usd_topFaceBound.size())
+		{
+			printf("\n USD input invalid: longtitudeEdges count %i does not match topFaceBound vertices %i", rawLongitudeEdges.size(), usd_topFaceBound.size());
+			return false;
+		}
+
+		if (usd_topBracing.size() != usd_bottomBracing.size())
+		{
+			printf("\n USD input invalid: topBracing count %i does not match bottomBracing count %i", usd_topBracing.size(), usd_bottomBracing.size());
+			return false;
+		}
+
+		usd_longitudeEdges.clear();
+		usd_longitudeEdges.assign(usd_topFaceBound.size(), zPointArray());
+
+		zBoolArray used;
+		used.assign(rawLongitudeEdges.size(), false);
+
+		for (int i = 0; i < usd_topFaceBound.size(); i++)
+		{
+			int bestId = -1;
+			bool flip = false;
+			float bestDist = FLT_MAX;
+
+			for (int j = 0; j < rawLongitudeEdges.size(); j++)
+			{
+				if (used[j] || rawLongitudeEdges[j].size() < 2) continue;
+
+				const float dStart = pointDistanceSquared(usd_topFaceBound[i], rawLongitudeEdges[j].front());
+				const float dEnd = pointDistanceSquared(usd_topFaceBound[i], rawLongitudeEdges[j].back());
+				const float d = std::min(dStart, dEnd);
+				if (d < bestDist)
+				{
+					bestDist = d;
+					bestId = j;
+					flip = dEnd < dStart;
+				}
+			}
+
+			if (bestId < 0)
+			{
+				printf("\n USD input invalid: could not match longtitude edge for top boundary vertex %i", i);
+				return false;
+			}
+
+			usd_longitudeEdges[i] = rawLongitudeEdges[bestId];
+			if (flip) std::reverse(usd_longitudeEdges[i].begin(), usd_longitudeEdges[i].end());
+			used[bestId] = true;
+		}
+
+		usd_bottomFaceBound.clear();
+		for (zPointArray& edge : usd_longitudeEdges) usd_bottomFaceBound.push_back(edge.back());
+
+		struct CornerOrder
+		{
+			int boundaryId;
+			zPoint point;
+		};
+
+		vector<CornerOrder> sortedCorners;
+		for (zPoint& corner : usd_topCorners)
+		{
+			int bestId = 0;
+			float bestDist = FLT_MAX;
+			for (int i = 0; i < usd_topFaceBound.size(); i++)
+			{
+				const float d = pointDistanceSquared(corner, usd_topFaceBound[i]);
+				if (d < bestDist)
+				{
+					bestDist = d;
+					bestId = i;
+				}
+			}
+			sortedCorners.push_back({ bestId, corner });
+		}
+
+		std::sort(sortedCorners.begin(), sortedCorners.end(), [](const CornerOrder& a, const CornerOrder& b) { return a.boundaryId < b.boundaryId; });
+		usd_topCorners.clear();
+		for (const CornerOrder& c : sortedCorners) usd_topCorners.push_back(c.point);
+
+		zPointArray guidePositions;
+		zIntArray pCounts;
+		zIntArray pConnects;
+		for (zPoint& p : usd_topFaceBound) guidePositions.push_back(p);
+		for (zPoint& p : usd_bottomFaceBound) guidePositions.push_back(p);
+
+		const int n = usd_topFaceBound.size();
+		for (int i = 0; i < n; i++)
+		{
+			const int j = (i + 1) % n;
+			pCounts.push_back(4);
+			pConnects.push_back(i);
+			pConnects.push_back(j);
+			pConnects.push_back(n + j);
+			pConnects.push_back(n + i);
+		}
+
+		zFnMesh fnGuide(o_GuideMesh);
+		fnGuide.create(guidePositions, pCounts, pConnects);
+		fnGuide.setFaceColor(zGREY);
+		fnGuide.setVertexColor(zBLACK);
+
+		zPointArray medialPts;
+		zIntArray medialEdges;
+		float shortestLength = FLT_MAX;
+		int medialId = 0;
+		for (int i = 0; i < usd_longitudeEdges.size(); i++)
+		{
+			const float length = polylineLength(usd_longitudeEdges[i]);
+			if (length < shortestLength)
+			{
+				shortestLength = length;
+				medialId = i;
+			}
+		}
+		medialPts = usd_longitudeEdges[medialId];
+		for (int i = 0; i < medialPts.size() - 1; i++)
+		{
+			medialEdges.push_back(i);
+			medialEdges.push_back(i + 1);
+		}
+		zFnGraph fnMedial(o_MedialGraph);
+		fnMedial.create(medialPts, medialEdges);
+
+		usdInputMode = true;
 		planarBlock = false;
-		printf("\n is planar %s ", to_string(planarBlock));
+		isCorner = false;
+		isRegular = true;
+		base_world.setIdentity();
+		base_local.setIdentity();
 
-		//bool flip = j["IsCorner"];
-		bool flip = false;
-
-		readJSON(path, _blockID, runBothPlanes, runPlaneLeft, flip);
+		printf("\n USD input loaded: %i longtitude edges | %i top vertices | %i top corners | %i bracings", usd_longitudeEdges.size(), usd_topFaceBound.size(), usd_topCorners.size(), usd_topBracing.size());
+		return true;
 	}
 
 			ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::setTransforms(bool toLocal)
@@ -1000,42 +1520,151 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		fnMedial.setEdgeColor(zGREEN, false);
 	}
 		//----------PRINT BLOCKS----------
+	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::computePrintBlocksFromUSD()
+	{
+		if (!usdInputMode || usd_longitudeEdges.empty())
+		{
+			printf("\n USD print block computation requested without USD input.");
+			return false;
+		}
+
+		float shortestLength = FLT_MAX;
+		for (const zPointArray& edge : usd_longitudeEdges)
+		{
+			const float length = polylineLength(edge);
+			if (length < shortestLength) shortestLength = length;
+		}
+
+		if (shortestLength <= 0.0f || printHeightDomain.min <= 0.0f)
+		{
+			printf("\n USD print block computation failed: invalid shortest edge length or print height.");
+			return false;
+		}
+
+		const int layerCount = std::max(1, (int)ceil(shortestLength / printHeightDomain.min));
+		usd_actualLayerSpacing = shortestLength / layerCount;
+
+		vector<zPointArray> layerLoops;
+		layerLoops.assign(layerCount + 1, zPointArray());
+
+		for (int l = 0; l <= layerCount; l++)
+		{
+			const float t = (float)l / (float)layerCount;
+			for (const zPointArray& edge : usd_longitudeEdges) layerLoops[l].push_back(samplePolylineNormalised(edge, t));
+		}
+
+		zIntArray cornerIds;
+		for (zPoint& corner : usd_topCorners)
+		{
+			int bestId = 0;
+			float bestDist = FLT_MAX;
+			for (int i = 0; i < usd_topFaceBound.size(); i++)
+			{
+				const float d = pointDistanceSquared(corner, usd_topFaceBound[i]);
+				if (d < bestDist)
+				{
+					bestDist = d;
+					bestId = i;
+				}
+			}
+			cornerIds.push_back(bestId);
+		}
+
+		o_sectionGraphs.clear();
+		o_sectionGraphs.assign(layerLoops.size(), zObjGraph());
+		o_sectionMeshes.clear();
+		o_sectionMeshes.assign(layerLoops.size(), zObjMesh());
+		o_sectionMeshesPar.clear();
+		o_sectionMeshesPar.assign(layerLoops.size(), zObjMesh());
+		sectionFrames.clear();
+		sectionFrames.assign(layerLoops.size(), zTransform());
+
+		o_trimGraphs.clear();
+		o_trimGraphs.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_features_hard.clear();
+		o_trimGraphs_features_hard.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_features_soft.clear();
+		o_trimGraphs_features_soft.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_bracing.clear();
+		o_trimGraphs_bracing.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_bracing_slots.clear();
+		o_trimGraphs_bracing_slots.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_bracing_flat.clear();
+		o_trimGraphs_bracing_flat.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_bracing_slots_flat.clear();
+		o_trimGraphs_bracing_slots_flat.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_SlotSide.clear();
+		o_trimGraphs_SlotSide.assign(layerLoops.size(), zObjGraph());
+		o_trimGraphs_seamAlignment.clear();
+		o_trimGraphs_seamAlignment.assign(layerLoops.size(), zObjGraph());
+
+		for (int l = 0; l < layerLoops.size(); l++)
+		{
+			createClosedGraphFromLoop(o_sectionGraphs[l], layerLoops[l]);
+
+			zFnGraph fnSection(o_sectionGraphs[l]);
+			fnSection.setVertexColor(zBLACK);
+			fnSection.setEdgeColor(zGREEN);
+			fnSection.setEdgeWeight(3);
+
+			for (int i = 0; i < cornerIds.size(); i++)
+			{
+				zItGraphVertex v(o_sectionGraphs[l], cornerIds[i]);
+				v.setColor(zORANGE);
+			}
+
+			const int meshA = (l == 0) ? 0 : l - 1;
+			const int meshB = (l == 0) ? 1 : l;
+			createRingMesh(o_sectionMeshes[l], layerLoops[meshA], layerLoops[meshB]);
+			sectionFrames[l].setIdentity();
+
+			zPointArray bracingPositions;
+			zIntArray bracingEdges;
+			const float t = (float)l / (float)layerCount;
+
+			for (int b = 0; b < usd_topBracing.size(); b++)
+			{
+				const int count = std::max(2, std::max((int)usd_topBracing[b].size(), (int)usd_bottomBracing[b].size()));
+				const int offset = bracingPositions.size();
+				for (int i = 0; i < count; i++)
+				{
+					const float u = (count == 1) ? 0.0f : (float)i / (float)(count - 1);
+					zPoint pTop = samplePolylineNormalised(usd_topBracing[b], u);
+					zPoint pBottom = samplePolylineNormalised(usd_bottomBracing[b], u);
+					bracingPositions.push_back(pTop + ((pBottom - pTop) * t));
+					if (i > 0)
+					{
+						bracingEdges.push_back(offset + i - 1);
+						bracingEdges.push_back(offset + i);
+					}
+				}
+			}
+
+			if (!bracingPositions.empty())
+			{
+				zFnGraph fnBracing(o_trimGraphs_bracing[l]);
+				fnBracing.create(bracingPositions, bracingEdges);
+				fnBracing.setEdgeColor(zMAGENTA);
+			}
+		}
+
+		printf("\n USD print layers: %i | actual spacing: %1.4f", layerLoops.size(), usd_actualLayerSpacing);
+		return true;
+	}
+
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_PrintBlocks(zDomainFloat& _printHeightDomain, float printLayerWidth, bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, bool compFrames, bool compSDF)
 	{
-
-
-		bool frameCHECKS = false;
-		bool geomCHECKS = true;
-		bool sdfCHECKS = true;
-
-		int minCriticalPtsCount = INT_MAX;
-		float bestPlaneSpacing = FLT_MAX;
 		printHeightDomain = _printHeightDomain;
+
+		if (!usdInputMode)
+		{
+			printf("\n Carbcomn compute_PrintBlocks is USD-only. Call setFromUSD() before computing.");
+			return;
+		}
 
 		if (compFrames)
 		{
-			zVector norm(0, 0, 1);
-			vector<zItMeshHalfEdgeArray> vLoops;
-			zObjMesh oMesh_top, oMesh_bottom;
-
-			computeVLoops(o_SliceMesh_Left, medialIDS, FeaturedNumStrides, norm, vLoops, oMesh_top, oMesh_bottom);
-
-			zScalarArray scalars;
-			computeGeodesicScalars(o_SliceMesh_Left, vLoops, scalars, true);
-
-			o_sectionMeshes.clear();
-
-			computeGeodesicContours(vLoops, scalars, 0.008, oMesh_top, oMesh_bottom, o_sectionMeshes);;
-			createSectionGraphs(o_sectionMeshes, o_sectionGraphs);
-			o_sectionMeshesPar.clear();
-			o_sectionMeshesPar.assign(o_sectionMeshes.size(), zObjMesh());
-
-			sectionFrames.clear();
-			sectionFrames.assign(o_sectionGraphs.size(), zTransform());
-			compute_PrintBlock_ComputeTrimGraphs();
-
-			o_contourHeightLines.clear();
-			o_contourHeightLines.assign(o_sectionGraphs.size(), zObjGraph());
+			computePrintBlocksFromUSD();
 		}
 
 		if (compSDF)
@@ -1527,94 +2156,13 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 	}
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_TrimGraphs_BracingWall(zObjGraph& sectionGraph, zObjGraph& outGraph, bool remove_firstLast)
 	{
-		zFnGraph fnSectionG(sectionGraph);
-		printf("\n remove_firstLast %i \n", remove_firstLast);
-		//walk on the graph till u reach a feature vertex and store it
-
-		zItGraphVertexArray innerVertx, outerVertx;
-
-
-		util_innerOuter(sectionGraph,false , innerVertx, outerVertx);
-
-		//make graphs between verticies
-		zPointArray gPositions;
-		zIntArray gEdgeCOnnects;
-		zColorArray gColors;
-		int startID = (remove_firstLast) ? 1 : 0;
-		int endID = (remove_firstLast) ? innerVertx.size() - 1 : innerVertx.size();
-
-		for (int i = startID; i < endID; i++)
-		{
-
-			gPositions.push_back(innerVertx[i].getPosition());
-			gEdgeCOnnects.push_back(gPositions.size() - 1);
-			gColors.push_back(innerVertx[i].getColor());
-
-			gPositions.push_back(outerVertx[i].getPosition());
-			gEdgeCOnnects.push_back(gPositions.size() - 1);
-			gColors.push_back(outerVertx[i].getColor());
-
-		}
-		zFnGraph fnG(outGraph);
-		fnG.create(gPositions, gEdgeCOnnects);
-		fnG.setVertexColors(gColors);
-		//printf("\n graph[%i] %i | %i", graphId, gPositions.size(), gEdgeCOnnects.size());
-
+		outGraph.graph.clear();
 	}
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_TrimGraphs_BracingWall(int graphId, zObjGraph& outGraph)
 	{
 		compute_TrimGraphs_BracingWall(o_sectionGraphs[graphId], outGraph);
 	}
 
-
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::util_innerOuter(zObjGraph& sectionGraph, bool addEndStart, zItGraphVertexArray& innerVertx, zItGraphVertexArray& outerVertx)
-	{
-		innerVertx.clear();
-		outerVertx.clear();
-		zFnGraph fnSectionG(sectionGraph);
-		//get inner and outer edges
-		bool found = false;
-		zItGraphHalfEdgeArray hesInner, hesOuter;
-		found = util_getShortestHEsBetweenColors(sectionGraph, _col_in_corner_st, _col_in_corner, hesInner);
-		found = util_getShortestHEsBetweenColors(sectionGraph, _col_out_corner_st, _col_out_corner, hesOuter);
-
-		//walk on the graph till u reach a feature vertex and store it
-
-		zItGraphHalfEdge heStart, heEnd, heTemp;
-
-		heStart = hesInner[0];
-		heEnd = hesInner[hesInner.size() - 1];
-		heTemp = heStart;
-		if (addEndStart) innerVertx.push_back(heTemp.getStartVertex());
-		while (heTemp != heEnd)
-		{
-			if (heTemp.getStartVertex().getColor() == _col_in_feature)
-				innerVertx.push_back(heTemp.getStartVertex());
-			heTemp = heTemp.getNext();
-		}
-		if (addEndStart) innerVertx.push_back(heEnd.getVertex());
-
-		heStart = hesOuter[0];
-		heEnd = hesOuter[hesOuter.size() - 1];
-		heTemp = heStart;
-		if (addEndStart) outerVertx.push_back(heTemp.getStartVertex());
-		while (heTemp != heEnd)
-		{
-			if (heTemp.getStartVertex().getColor() == _col_out_feature)
-				outerVertx.push_back(heTemp.getStartVertex());
-			heTemp = heTemp.getNext();
-		}
-		if (addEndStart) outerVertx.push_back(heEnd.getVertex());
-
-		//check if the two arrays are not the same size, return
-		if (innerVertx.size() != outerVertx.size())
-		{
-			printf("\n ERROR!  inner and outer vertices are not the same size! inner | outer  %i | %i", innerVertx.size(), outerVertx.size());
-			return;
-		}
-
-
-	}
 
 	//SDF MAIN method
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SDF(bool allSDFLayers, int& numSDFlayers, int funcNum, int numSmooth, float printWidth)
@@ -1723,17 +2271,29 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		zObjGraph trimGraphs_bracing_flat;
 		zObjGraph trimGraphs_bracing_slots_flat;
 
-		bool chk = (graphId > o_sectionGraphs.size() * 0.9f) ? true : false;
-		//bool chk = false;
-		//printf("\n graphId : %i (o_sectionGraphs.size() * 0.9f) : %1.2f\n", graphId, (o_sectionGraphs.size() * 0.9f));
-		compute_TrimGraphs_BracingWall(oFlatGraph, trimGraphs_bracing_flat, chk);
+		if (usdInputMode && graphId < o_trimGraphs_bracing.size())
+		{
+			trimGraphs_bracing_flat = o_trimGraphs_bracing[graphId];
+			zVectorArray bracingNormals;
+			barycentericProjection_triMesh(trimGraphs_bracing_flat, o_projectionMesh, oUnrolledMesh, bracingNormals);
+		}
 		o_trimGraphs_bracing_flat[graphId] = trimGraphs_bracing_flat;
 
-		compute_TrimGraphs_BracingWall(oFlatGraph, trimGraphs_bracing_slots_flat, chk);
+		zObjGraph trimSlots_bracing_flat;
+		zObjGraph trimSlots_boundary_flat;
+		const float trimLength = std::max(0.10f, _printParameters.bracingEdgeWidth * 4.0f);
+		createPerpendicularTrimSlots(trimGraphs_bracing_flat, trimSlots_bracing_flat, graphId % 2 == 0, trimLength);
+		createPerpendicularTrimSlots(oFlatGraph, trimSlots_boundary_flat, graphId % 2 == 0, trimLength, 1);
+
+		zObjGraphArray trimSlotSources;
+		trimSlotSources.push_back(trimSlots_bracing_flat);
+		trimSlotSources.push_back(trimSlots_boundary_flat);
+		combineGraphObjects(trimSlotSources, trimGraphs_bracing_slots_flat);
+
 		o_trimGraphs_bracing_slots_flat[graphId] = trimGraphs_bracing_slots_flat;
 
 		zObjGraph o_trimGraphs_slotSide_flat;
-		compute_TrimGraphs_SlotSide(oFlatGraph, o_trimGraphs_slotSide_flat);
+		o_trimGraphs_slotSide_flat.graph.clear();
 
 		zFnMeshScalarField fnField(o_field);
 
@@ -1746,9 +2306,9 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		getScalars_offset(oFlatGraph, numSmooth, polyField, scalar_offset_outer, scalar_offset_inner);
 
 		//transfer color to sectiongraph
-		zColorArray eColors;
-		fnGraph.getEdgeColors(eColors);
-		fnTmpGraph.setEdgeColors(eColors, false);
+		//zColorArray eColors;
+		//fnGraph.getEdgeColors(eColors);
+		//fnTmpGraph.setEdgeColors(eColors, false);
 
 		zPlane planeXY;
 		planeXY.setIdentity();
@@ -1783,21 +2343,11 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		}
 
 
-		zScalarArray scalar_triangles;
-		zScalarArray scalar_boolean_trianglesInner;
-		zScalarArray booleanField_0;
-
-		if (funcNum >= 4)
-		{
-
-			getScalars_3dp_wall_triangles(oFlatGraph, scalar_triangles, chk);
-			fnField.boolean_subtract(scalar_offset_inner, scalar_triangles, scalar_boolean_trianglesInner, false);
-			if (numSmooth > 0) fnField.smoothField(scalar_boolean_trianglesInner, numSmooth); // smooth field
-			fnField.boolean_subtract(scalar_boolean_trianglesInner, scalar_interiorBracing, booleanField_0, false);
-		}
+		zScalarArray scalar_boolean_bracing;
+		if (funcNum >= 4) fnField.boolean_subtract(scalar_offset_inner, scalar_interiorBracing, scalar_boolean_bracing, false);
 
 		zScalarArray booleanField_1;
-		if (funcNum >= 5) fnField.boolean_subtract(scalar_offset_outer, booleanField_0, booleanField_1, false);
+		if (funcNum >= 5) fnField.boolean_subtract(scalar_offset_outer, scalar_boolean_bracing, booleanField_1, false);
 
 
 		zScalarArray scalar_booleanSlot;
@@ -1824,12 +2374,10 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 			break;
 
 		case 4:
-			fnField.setFieldValues(scalar_triangles, zFieldSDF, sdfWidth);
-			break;
-		case 5:
-			fnField.setFieldValues(scalar_boolean_trianglesInner, zFieldSDF, sdfWidth);
+			fnField.setFieldValues(scalar_boolean_bracing, zFieldSDF, sdfWidth);
 			break;
 
+		case 5:
 		case 6:
 			fnField.setFieldValues(booleanField_1, zFieldSDF, sdfWidth);
 			break;
@@ -1865,6 +2413,13 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 
 		//project contour back to section mesh
 		barycentericProjection_triMesh(o_contourGraphs[graphId], oUnrolledMesh, o_projectionMesh, pNorms);
+
+		if (graphId < o_trimGraphs_bracing_slots_flat.size())
+		{
+			o_trimGraphs_bracing_slots[graphId] = o_trimGraphs_bracing_slots_flat[graphId];
+			zVectorArray slotNorms;
+			barycentericProjection_triMesh(o_trimGraphs_bracing_slots[graphId], oUnrolledMesh, o_projectionMesh, slotNorms);
+		}
 
 		auto project_slot = [this](zObjGraph& graph, zObjMesh& inMesh, zObjMesh& projMesh)
 		{
@@ -1915,7 +2470,8 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		};
 
 		//project splitGraph back to section mesh
-		project_slot(slotGraph, oUnrolledMesh, o_projectionMesh);
+		zFnGraph fnSlotGraph(slotGraph);
+		if (fnSlotGraph.numVertices() >= 2) project_slot(slotGraph, oUnrolledMesh, o_projectionMesh);
 		o_trimGraphs_SlotSide[graphId] = slotGraph;
 
 		//fnContour.setVertexPositions(projectedPositions);
@@ -1931,19 +2487,16 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 			//EXPORT MAIN method
 	ZSPACE_TOOLSETS_INLINE bool zTsCarbcomn::exportUSD_update(string pathCurrent, string dir)
 	{
-		string folderName = dir + "/" + to_string(blockId);
+		if (!usdInputMode)
+		{
+			printf("\n Carbcomn USD export is USD-input only.");
+			return false;
+		}
 
-		zObjMesh oMesh;
-		zFnMesh fn(oMesh);
-		json j;
-		string blockPath = pathCurrent + "blockMesh_" + to_string(blockId) + ".json";
-		bool fileChk = fn.json_read(blockPath, j);
-		if (!fileChk) return false;
+		string folderName = dir + "/" + to_string(blockId);
 
 		std::filesystem::create_directories(folderName);
 		for (const auto& entry : std::filesystem::directory_iterator(folderName)) std::filesystem::remove_all(entry.path());
-
-		fn.from(j);
 
 		string outName = folderName + "/block_" + to_string(blockId) + "_carbcomn.usda";
 		std::ofstream out;
@@ -1953,7 +2506,7 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		writeWorldOpen(out);
 
 		writeGroupOpen(out, "block_meshes", 8);
-		writeMeshPrim(out, oMesh, "block", nullptr, 12);
+		writeMeshPrim(out, o_GuideMesh, "guide_block", nullptr, 12);
 		writeMeshPrim(out, o_SliceMesh_Left, "block_left", nullptr, 12);
 		writeMeshPrim(out, o_SliceMesh_Right, "block_right", nullptr, 12);
 		writeGroupClose(out, 8);
@@ -2054,6 +2607,9 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::check_PrintLayerHeights_Folder(string folderDir, zDomainFloat& _printHeightDomain, zDomainFloat& _neopreneOffset, bool runBothPlanes, bool runPlaneLeft)
 	{
+		printf("\n Carbcomn folder height check is disabled with the JSON legacy workflow.");
+		return;
+
 		printHeightDomain = _printHeightDomain;
 		neopreneOffset = zDomainFloat(0.0f, 0.0f);
 
@@ -2895,111 +3451,22 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		planeXY(2, 2) = 1;
 
 		zObjGraph o_bracingSlots;
-		zObjGraphArray bracingSlotsArray;
-		bracingSlotsArray.assign(hesTemp.size(), zObjGraph());
-		int counter = 0;
-		for (zItGraphHalfEdge& he : hesTemp)
+
+		zFnGraph fnInputSlots(bracing_slotsGraph);
+		if (fnInputSlots.numVertices() > 0)
 		{
-			//to get the slot offset, we have the following steps
-			//1. get the length of the bracing edge
-			//2. get the offset of the triangle point (using the factor value)
-			//3. get the offset of the 1st offset and the 2nd offset
-			//4. find the middle point between step 2 and step 3
-			//5. iterate
-			float triangleStart = he.getLength() * _printParameters.wall_triangleOffsetFactor;
-			float exteriorStart = _printParameters.offset_1st_exterior + _printParameters.offset_2nd_exterior;
-			float slotOffset = triangleStart + ((he.getLength() - exteriorStart - triangleStart) / 2);
-
-			if (iterateChk) slotOffset -= _printParameters.slotIterating_in;
-			zVector vec = he.getVector();
-			vec.normalize();
-			vec *= slotOffset;
-			zPoint midP = he.getStartVertex().getPosition() + vec;
-			float graphLength = _printParameters.bracingEdgeWidth * 4;
-			util_getPerpendicularVector(planeXY, vec, midP, graphLength, bracingSlotsArray[counter]);
-
-			counter++;
-
+			o_bracingSlots = bracing_slotsGraph;
 		}
-		util_combineMultipleGraphs(bracingSlotsArray, o_bracingSlots);
+		else
+		{
+			o_bracingSlots.graph.clear();
+		}
 
 		fnField.getScalarsAsEdgeDistance(outScalar_bracingSlots, o_bracingSlots, _printParameters.bracingEdgeSlotWidth, false);
 		fnField.boolean_subtract(outScalar_bracing, outScalar_bracingSlots, outScalar_interiorBracing, false);
 
 		bracing_slotsGraph = o_bracingSlots;
 		o_debug_bracingslotsgraph = o_bracingSlots;
-	}
-
-	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::getScalars_3dp_wall_triangles(zObjGraph& sectionGraph, zScalarArray& outScalar_triangles, bool remove_firstLast)
-	{
-
-		zPrintParamSDF _printParameters;
-		zFnGraph fnGraph(sectionGraph);
-		zFnMeshScalarField fnField(o_field);
-
-		//inner vertex are the vertex of the sectionGraph on the inner side (_col_in_feature - magenta)
-		//and outer vertex are the vertex of the sectionGraph on the outer side (_col_out_feature - orange)
-		zItGraphVertexArray innerVertx, outerVertx;
-		util_innerOuter(sectionGraph, true, innerVertx, outerVertx);
-
-		if (remove_firstLast)
-		{
-			innerVertx.erase(innerVertx.begin() + (innerVertx.size() - 2));
-			innerVertx.erase(innerVertx.begin() + 1);
-
-			outerVertx.erase(outerVertx.begin() + (outerVertx.size() - 2));
-			outerVertx.erase(outerVertx.begin() + 1);
-
-		}
-
-		zPointArray gPts;
-		zIntArray eConnect;
-		int startId = (remove_firstLast) ? /*1*/ 0 : 0;
-		int endId = (remove_firstLast) ? innerVertx.size() /*- 1*/ : innerVertx.size();
-		printf("\n remove_firstLast in triangle %i", remove_firstLast);
-
-		for (int i = startId; i < endId; i++)
-		{
-			//this is the middle point between the inner and outer vertex - this value can be changed to any value
-			zVector edgeDir = outerVertx[i].getPosition() - innerVertx[i].getPosition();
-			edgeDir *= _printParameters.wall_triangleOffsetFactor;
-			zPoint Pt0 = innerVertx[i].getPosition() + edgeDir;
-
-			gPts.push_back(Pt0);
-			if (i < endId - 1)
-			{
-				zPoint p1 = (innerVertx[i].getPosition() + innerVertx[i + 1].getPosition()) / 2;
-				zPoint p2 = (outerVertx[i].getPosition() + outerVertx[i + 1].getPosition()) / 2;
-				zVector v = p2 - p1;
-				v.normalize();
-				zPoint Pt1 = p1 + (v * 0.001); //< this is the peak of the triangle (average) , small offset so the full polygon is not through the same top edge
-				gPts.push_back(Pt1);
-			}
-
-		}
-		//create the triangles sides
-		for (int i = 0; i < gPts.size() - 1; i++)
-		{
-			eConnect.push_back(i);
-			eConnect.push_back(i + 1);
-		}
-		//create the top part of the triangle - this is the full of the inner edge
-		for (int i = endId - 1; i >= startId; i--)
-		{
-			eConnect.push_back(gPts.size() - 1);
-			//printf("\n [%i] innerVertx %i  ", i, innerVertx.size() - 1);
-			gPts.push_back(innerVertx[i].getPosition());
-			eConnect.push_back(gPts.size() - 1);
-		}
-		eConnect.push_back(gPts.size() - 1);
-		eConnect.push_back(0);
-		zObjGraph o_triangles;
-		zFnGraph fnG(o_triangles);
-		fnG.create(gPts, eConnect);
-
-
-		fnField.getScalars_Polygon(outScalar_triangles, o_triangles, false);
-
 	}
 
 	ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::getScalars_offset(zObjGraph& sectionGraph, int numSmooth, zScalarArray& outScalar_polygon, zScalarArray& outScalar_offset_outer, zScalarArray & outScalar_offset_inner)
@@ -3020,41 +3487,7 @@ ZSPACE_TOOLSETS_INLINE void zTsCarbcomn::compute_SliceMesh_Regular(zObjMesh& o_M
 		//innerOffsetArray.assign(fnGraph.numEdges(), _printParameters.offset_1st_exterior + _printParameters.offset_2nd_exterior);
 		innerOffsetArray.assign(fnGraph.numEdges(), _printParameters.offset_1st_exterior + _printParameters.offset_2nd_exterior);
 
-		//color the section based on the offset color
-		zItGraphHalfEdgeArray hesInterior;
-		util_getShortestHEsBetweenColors(sectionGraph, _col_in_corner_st, _col_in_corner, hesInterior);
-
-		// Get specific half-edges of the section for wall blocks.
-		zItGraphHalfEdgeArray cyan_red, red_green, green_yellow, yellow_orange, cyan_orange;
-		util_getShortestHEsBetweenColors(sectionGraph, zCYAN, zRED, cyan_red);
-		util_getShortestHEsBetweenColors(sectionGraph, zRED, zGREEN, red_green);
-		util_getShortestHEsBetweenColors(sectionGraph, zGREEN, zYELLOW, green_yellow);
-		util_getShortestHEsBetweenColors(sectionGraph, zYELLOW, zORANGE, yellow_orange);
-		util_getShortestHEsBetweenColors(sectionGraph, zCYAN, zORANGE, cyan_orange);
-
-		// Default colour
 		fnGraph.setEdgeColor(zBLUE, false);
-
-		for (zItGraphHalfEdge he : cyan_red)
-		{
-			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-			he.getEdge().setColor(zMAGENTA);
-		}
-
-		for (zItGraphHalfEdge he : red_green)
-		{
-			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-			he.getEdge().setColor(zMAGENTA);
-		}
-
-		for (zItGraphHalfEdge he : green_yellow)
-		{
-			outerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior;
-			innerOffsetArray[he.getEdge().getId()] = _printParameters.offset_1st_interior + _printParameters.offset_2nd_interior;
-			he.getEdge().setColor(zMAGENTA);
-		}
 
 		outScalar_offset_outer = outScalar_polygon;
 		outScalar_offset_inner = outScalar_polygon;
