@@ -30,6 +30,8 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
+//---- DRAW / PREVIEW MESH GENERATION
+
 ZSPACE_INLINE void
 zTsSDFSlicer::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
   zFnMesh fnOut(outMesh);

@@ -421,7 +421,7 @@ public:
 #include <source/zToolsets/slicer/zTsSDFSlicer_Unroll.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Field.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Path.cpp>
-#include <source/zToolsets/slicer/zTsSDFSlicer_Export.cpp>
+#include <source/zToolsets/slicer/zTsSDFSlicer_Draw.cpp>
 // clang-format on
 #endif
 
