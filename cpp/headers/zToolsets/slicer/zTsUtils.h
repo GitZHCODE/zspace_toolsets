@@ -127,13 +127,6 @@ struct PrintPath {
   zFloatArray widths;
   zFloatArray heights;
   zVectorArray normals;
-
-  PrintPath() = default;
-  PrintPath(const zObjGraph &inGraph, const zFloatArray &inWidths = {},
-            const zFloatArray &inHeights = {},
-            const zVectorArray &inNormals = {})
-      : graph(inGraph), widths(inWidths), heights(inHeights),
-        normals(inNormals) {}
 };
 
 //--------------------------
