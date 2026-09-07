@@ -188,12 +188,12 @@ ZSPACE_INLINE void colorWidthField(const zScalarArray &values,
                          0.50f);
   }
 
-  const zColor gray(220.0f / 255.0f, 220.0f / 255.0f, 220.0f / 255.0f, 1.0f);
+  const zColor fallbackColor(1.0f, 1.0f, 1.0f, 1.0f);
 
   for (int i = 0; i < n; i++) {
     const double value = values[i];
     if (!std::isfinite(value) || value <= 1e-6 || uniqueWidths.empty()) {
-      outColors[i] = gray;
+      outColors[i] = fallbackColor;
       continue;
     }
 
