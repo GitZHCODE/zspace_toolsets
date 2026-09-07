@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -28,384 +28,50 @@
 #include <limits>
 #include <random>
 #include <sstream>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 namespace zSpace {
 
+using namespace zTsUtils;
+
 namespace {
 
-//---- Basic Vector and Geometry Utilities
-
-inline zVector _vecSub(const zPoint &a, const zPoint &b) {
-  return zVector(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-inline double _vecDistSq(const zPoint &a, const zPoint &b) {
-  const double dx = a.x - b.x;
-  const double dy = a.y - b.y;
-  const double dz = a.z - b.z;
-  return dx * dx + dy * dy + dz * dz;
-}
-
-inline double _vecDot(const zVector &a, const zVector &b) {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-inline zVector _vecCross(const zVector &a, const zVector &b) {
-  return zVector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
-                 a.x * b.y - a.y * b.x);
-}
-
-inline unsigned long long _makeEdgeKey(int u, int v) {
-  const int lo = (std::min)(u, v);
-  const int hi = (std::max)(u, v);
-  return (static_cast<unsigned long long>(lo) << 32) |
-         static_cast<unsigned int>(hi);
-}
-
-//---- HalfEdge Mesh Topology Walk Utilities
-
-inline zItMeshHalfEdge _nextEdgeRing(zItMeshHalfEdge he) {
-  return he.getNext().getNext().getSym();
-}
-
-inline zItMeshHalfEdge _nextEdgeLoop(zItMeshHalfEdge he) {
-  return he.getNext().getSym().getNext();
-}
-
-inline zItMeshHalfEdge _zUpEdge(zItMeshVertex v) {
-  zItMeshHalfEdgeArray hEdges;
-  v.getConnectedHalfEdges(hEdges);
-  if (hEdges.empty())
-    return zItMeshHalfEdge();
-
-  return *std::max_element(hEdges.begin(), hEdges.end(),
-                           [](zItMeshHalfEdge a, zItMeshHalfEdge b) {
-                             return a.getVector().z < b.getVector().z;
-                           });
-}
-
-inline void _getFaceVerticesFromHalfedge(zItMeshHalfEdge &heStart, bool forward,
-                                         zIntArray &faceVerts) {
-  faceVerts.clear();
-  zItMeshHalfEdge he = heStart;
-  do {
-    faceVerts.push_back(forward ? he.getVertex().getId()
-                                : he.getStartVertex().getId());
-    he = forward ? he.getNext() : he.getPrev();
-  } while (he != heStart);
-}
-
-//---- Combine Multiple Graph Objects
-
-inline void _combineGraphObjects(const zObjGraphArray &sources,
-                                 zObjGraph &outGraph) {
-  zPointArray positions;
-  zIntArray edgeConnects;
-  for (const zObjGraph &source : sources) {
-    zFnGraph fnSource(const_cast<zObjGraph &>(source));
-    zPointArray srcPos;
-    zIntArray srcEdges;
-    fnSource.getVertexPositions(srcPos);
-    fnSource.getEdgeData(srcEdges);
-    const int baseIndex = static_cast<int>(positions.size());
-    positions.insert(positions.end(), srcPos.begin(), srcPos.end());
-    for (int id : srcEdges)
-      edgeConnects.push_back(baseIndex + id);
+inline zColor _hslToRgb(float h, float s, float l) {
+  float c = (1.0f - std::abs(2.0f * l - 1.0f)) * s;
+  float hp = std::fmod(h, 360.0f) / 60.0f;
+  if (hp < 0.0f)
+    hp += 6.0f;
+  float x = c * (1.0f - std::abs(std::fmod(hp, 2.0f) - 1.0f));
+  float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f;
+  if (hp >= 0.0f && hp < 1.0f) {
+    r1 = c;
+    g1 = x;
+    b1 = 0.0f;
+  } else if (hp >= 1.0f && hp < 2.0f) {
+    r1 = x;
+    g1 = c;
+    b1 = 0.0f;
+  } else if (hp >= 2.0f && hp < 3.0f) {
+    r1 = 0.0f;
+    g1 = c;
+    b1 = x;
+  } else if (hp >= 3.0f && hp < 4.0f) {
+    r1 = 0.0f;
+    g1 = x;
+    b1 = c;
+  } else if (hp >= 4.0f && hp < 5.0f) {
+    r1 = x;
+    g1 = 0.0f;
+    b1 = c;
+  } else {
+    r1 = c;
+    g1 = 0.0f;
+    b1 = x;
   }
-  zFnGraph fnOut(outGraph);
-  fnOut.clear();
-  if (!positions.empty())
-    fnOut.create(positions, edgeConnects);
-}
-
-//---- Universal Polyline Sampling by Arc-Length with Optional Tangent Vector
-
-inline bool _samplePolyline(const zPoint *positions, const zScalar *scalars,
-                            size_t count, double t, zPoint &outPoint,
-                            zVector *outTangent = nullptr) {
-  if (!positions || !scalars || count < 1)
-    return false;
-
-  if (count == 1 || t <= 0.0) {
-    outPoint = positions[0];
-    if (outTangent && count > 1) {
-      *outTangent = _vecSub(positions[1], positions[0]);
-      if (outTangent->length() > 1e-6)
-        outTangent->normalize();
-    }
-    return true;
-  }
-  if (t >= 1.0) {
-    outPoint = positions[count - 1];
-    if (outTangent && count > 1) {
-      *outTangent = _vecSub(positions[count - 1], positions[count - 2]);
-      if (outTangent->length() > 1e-6)
-        outTangent->normalize();
-    }
-    return true;
-  }
-
-  const double targetDist = t * scalars[count - 1];
-  auto it = std::upper_bound(scalars, scalars + count, targetDist);
-  size_t s = (it == scalars) ? 0 : std::distance(scalars, it) - 1;
-  if (s + 1 >= count) {
-    outPoint = positions[count - 1];
-    return true;
-  }
-
-  const double segLen = scalars[s + 1] - scalars[s];
-  const double localT =
-      (segLen > 1e-6) ? (targetDist - scalars[s]) / segLen : 0.0;
-  const zPoint &a = positions[s];
-  const zPoint &b = positions[s + 1];
-  outPoint.x = a.x + (b.x - a.x) * localT;
-  outPoint.y = a.y + (b.y - a.y) * localT;
-  outPoint.z = a.z + (b.z - a.z) * localT;
-
-  if (outTangent) {
-    *outTangent = _vecSub(b, a);
-    if (outTangent->length() > 1e-6)
-      outTangent->normalize();
-  }
-  return true;
-}
-
-inline bool _samplePolyline(const zObjGraph &polylineGraph,
-                            const zScalarArray &scalars, double t,
-                            zPoint &outPoint, zVector *outTangent = nullptr) {
-  zFnGraph fnGraph(const_cast<zObjGraph &>(polylineGraph));
-  return _samplePolyline(fnGraph.getRawVertexPositions(), scalars.data(),
-                         scalars.size(), t, outPoint, outTangent);
-}
-
-//---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
-
-inline bool _parameterizeGraphOnMesh(const zObjGraph &inGraph, zObjMesh &inMesh,
-                                     MeshBarycentricGraph &outParams) {
-  outParams.clear();
-  zFnGraph fnGraph(const_cast<zObjGraph &>(inGraph));
-  zPointArray graphPositions;
-  fnGraph.getVertexPositions(graphPositions);
-  fnGraph.getEdgeData(outParams.edgeConnects);
-  if (graphPositions.empty() || outParams.edgeConnects.empty())
-    return false;
-
-  zFnMesh fnMesh(inMesh);
-  zPointArray meshPositions;
-  fnMesh.getVertexPositions(meshPositions);
-  if (meshPositions.empty() || fnMesh.numPolygons() == 0)
-    return false;
-
-  struct TriCache {
-    int v0, v1, v2;
-    zPoint p0, p1, p2;
-    zVector e0, e1;
-    double d00, d01, d11, denom;
-    bool valid;
-  };
-
-  std::vector<TriCache> allTris;
-  allTris.reserve(fnMesh.numPolygons() * 2);
-
-  for (zItMeshFace f(inMesh); !f.end(); f++) {
-    zIntArray faceVIds;
-    f.getVertices(faceVIds);
-    if (faceVIds.size() < 3)
-      continue;
-
-    for (size_t tri = 1; tri + 1 < faceVIds.size(); tri++) {
-      TriCache t;
-      t.v0 = faceVIds[0];
-      t.v1 = faceVIds[tri];
-      t.v2 = faceVIds[tri + 1];
-      t.p0 = meshPositions[t.v0];
-      t.p1 = meshPositions[t.v1];
-      t.p2 = meshPositions[t.v2];
-
-      t.e0 = _vecSub(t.p1, t.p0);
-      t.e1 = _vecSub(t.p2, t.p0);
-      t.d00 = _vecDot(t.e0, t.e0);
-      t.d01 = _vecDot(t.e0, t.e1);
-      t.d11 = _vecDot(t.e1, t.e1);
-      t.denom = t.d00 * t.d11 - t.d01 * t.d01;
-      t.valid = (std::abs(t.denom) > 1e-12);
-      allTris.push_back(t);
-    }
-  }
-
-  if (allTris.empty())
-    return false;
-
-  const size_t numGraphVerts = graphPositions.size();
-  outParams.vertices.resize(numGraphVerts);
-
-  for (size_t i = 0; i < numGraphVerts; i++) {
-    const zPoint &P = graphPositions[i];
-    double bestDistSq = (std::numeric_limits<double>::max)();
-    int bestV0 = allTris[0].v0, bestV1 = allTris[0].v1, bestV2 = allTris[0].v2;
-    double bestU = 1.0, bestV = 0.0, bestW = 0.0;
-    bool foundInside = false;
-
-    for (const auto &t : allTris) {
-      if (!t.valid)
-        continue;
-
-      const zVector v2 = _vecSub(P, t.p0);
-      const double d20 = _vecDot(v2, t.e0);
-      const double d21 = _vecDot(v2, t.e1);
-      const double v = (t.d11 * d20 - t.d01 * d21) / t.denom;
-      const double w = (t.d00 * d21 - t.d01 * d20) / t.denom;
-      const double u = 1.0 - v - w;
-
-      if (u >= -1e-4 && v >= -1e-4 && w >= -1e-4) {
-        const double cu = (std::max)(0.0, u);
-        const double cv = (std::max)(0.0, v);
-        const double cw = (std::max)(0.0, w);
-        const double csum = cu + cv + cw;
-        const double nu = cu / csum, nv = cv / csum, nw = cw / csum;
-
-        zPoint proj(t.p0.x * nu + t.p1.x * nv + t.p2.x * nw,
-                    t.p0.y * nu + t.p1.y * nv + t.p2.y * nw,
-                    t.p0.z * nu + t.p1.z * nv + t.p2.z * nw);
-        const double distSq = _vecDistSq(P, proj);
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          bestV0 = t.v0;
-          bestV1 = t.v1;
-          bestV2 = t.v2;
-          bestU = nu;
-          bestV = nv;
-          bestW = nw;
-          foundInside = true;
-          if (distSq < 1e-8)
-            break;
-        }
-      } else if (!foundInside) {
-        const double cu = (std::max)(0.0, (std::min)(1.0, u));
-        const double cv = (std::max)(0.0, (std::min)(1.0, v));
-        const double cw = (std::max)(0.0, (std::min)(1.0, w));
-        const double csum = cu + cv + cw;
-        if (csum > 1e-6) {
-          const double nu = cu / csum, nv = cv / csum, nw = cw / csum;
-          zPoint proj(t.p0.x * nu + t.p1.x * nv + t.p2.x * nw,
-                      t.p0.y * nu + t.p1.y * nv + t.p2.y * nw,
-                      t.p0.z * nu + t.p1.z * nv + t.p2.z * nw);
-          const double distSq = _vecDistSq(P, proj);
-          if (distSq < bestDistSq) {
-            bestDistSq = distSq;
-            bestV0 = t.v0;
-            bestV1 = t.v1;
-            bestV2 = t.v2;
-            bestU = nu;
-            bestV = nv;
-            bestW = nw;
-          }
-        }
-      }
-    }
-
-    outParams.vertices[i] = {bestV0,
-                             bestV1,
-                             bestV2,
-                             static_cast<float>(bestU),
-                             static_cast<float>(bestV),
-                             static_cast<float>(bestW)};
-  }
-
-  return true;
-}
-
-//---- Universal Barycentric Mesh Graph Reconstructor
-
-inline bool _reconstructGraphFromBarycentricParams(
-    const MeshBarycentricGraph &inParams, zObjMesh &targetMesh,
-    zObjGraph &outGraph, zVectorArray *outNormals = nullptr,
-    const zFloatArray *vertexScalars = nullptr,
-    zFloatArray *outHeights = nullptr) {
-  if (inParams.empty())
-    return false;
-
-  zFnMesh fnTarget(targetMesh);
-  zPointArray targetPositions;
-  fnTarget.getVertexPositions(targetPositions);
-  if (targetPositions.empty())
-    return false;
-
-  const size_t numVerts = inParams.vertices.size();
-  zPointArray newPositions(numVerts);
-  if (outNormals)
-    outNormals->assign(numVerts, zVector(0, 0, 1));
-  if (outHeights)
-    outHeights->assign(numVerts, 0.0f);
-
-  const size_t numMeshVerts = targetPositions.size();
-
-  for (size_t i = 0; i < numVerts; i++) {
-    const auto &bv = inParams.vertices[i];
-    if (bv.v0 < 0 || bv.v0 >= (int)numMeshVerts || bv.v1 < 0 ||
-        bv.v1 >= (int)numMeshVerts || bv.v2 < 0 || bv.v2 >= (int)numMeshVerts) {
-      return false;
-    }
-
-    newPositions[i].x = targetPositions[bv.v0].x * bv.u +
-                        targetPositions[bv.v1].x * bv.v +
-                        targetPositions[bv.v2].x * bv.w;
-    newPositions[i].y = targetPositions[bv.v0].y * bv.u +
-                        targetPositions[bv.v1].y * bv.v +
-                        targetPositions[bv.v2].y * bv.w;
-    newPositions[i].z = targetPositions[bv.v0].z * bv.u +
-                        targetPositions[bv.v1].z * bv.v +
-                        targetPositions[bv.v2].z * bv.w;
-
-    if (vertexScalars && outHeights) {
-      float h0 =
-          (bv.v0 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v0] : 0.0f;
-      float h1 =
-          (bv.v1 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v1] : 0.0f;
-      float h2 =
-          (bv.v2 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v2] : 0.0f;
-      (*outHeights)[i] = bv.u * h0 + bv.v * h1 + bv.w * h2;
-    }
-  }
-
-  if (outNormals) {
-    for (size_t i = 0; i < numVerts; i++) {
-      const auto &bv = inParams.vertices[i];
-      zVector e0 = _vecSub(targetPositions[bv.v1], targetPositions[bv.v0]);
-      zVector e1 = _vecSub(targetPositions[bv.v2], targetPositions[bv.v0]);
-      zVector norm = _vecCross(e0, e1);
-      if (norm.length() > 1e-6)
-        norm.normalize();
-      else
-        norm = zVector(0, 0, 1);
-      (*outNormals)[i] = norm;
-    }
-  }
-
-  zFnGraph fnOut(outGraph);
-  fnOut.clear();
-  fnOut.create(newPositions, const_cast<zIntArray &>(inParams.edgeConnects));
-  return true;
-}
-
-//---- Barycentric Mesh-to-Mesh Graph Projection
-
-inline bool
-_barycentericProjection_triMesh(zObjGraph &graph, zObjMesh &inMesh2D,
-                                zObjMesh &projectionMesh3D,
-                                zVectorArray *mappedNormals = nullptr,
-                                const zFloatArray *vertexHeights = nullptr,
-                                zFloatArray *mappedHeights = nullptr) {
-  MeshBarycentricGraph tempParams;
-  if (!_parameterizeGraphOnMesh(graph, inMesh2D, tempParams))
-    return false;
-  return _reconstructGraphFromBarycentricParams(tempParams, projectionMesh3D,
-                                                graph, mappedNormals,
-                                                vertexHeights, mappedHeights);
+  float m = l - c * 0.5f;
+  return zColor(r1 + m, g1 + m, b1 + m, 1.0f);
 }
 
 //---- Multi-Object Wavefront OBJ Exporters for Mesh Array and Graph Array
@@ -507,13 +173,13 @@ _exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
     for (int i = 0; i < numV; i++) {
       if (adj[i].size() == 1) {
         int next = adj[i][0];
-        if (visitedEdges.count(_makeEdgeKey(i, next)))
+        if (visitedEdges.count(makeEdgeKey(i, next)))
           continue;
 
         std::vector<int> chain = {i};
         int prev = i;
         int curr = next;
-        visitedEdges.insert(_makeEdgeKey(prev, curr));
+        visitedEdges.insert(makeEdgeKey(prev, curr));
 
         while (true) {
           chain.push_back(curr);
@@ -521,9 +187,9 @@ _exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
             break;
 
           int nxt = (adj[curr][0] != prev) ? adj[curr][0] : adj[curr][1];
-          if (visitedEdges.count(_makeEdgeKey(curr, nxt)))
+          if (visitedEdges.count(makeEdgeKey(curr, nxt)))
             break;
-          visitedEdges.insert(_makeEdgeKey(curr, nxt));
+          visitedEdges.insert(makeEdgeKey(curr, nxt));
           prev = curr;
           curr = nxt;
         }
@@ -535,13 +201,13 @@ _exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
     for (int i = 0; i < numV; i++) {
       if (adj[i].size() == 2) {
         for (int nb : adj[i]) {
-          if (visitedEdges.count(_makeEdgeKey(i, nb)))
+          if (visitedEdges.count(makeEdgeKey(i, nb)))
             continue;
 
           std::vector<int> loop = {i};
           int prev = i;
           int curr = nb;
-          visitedEdges.insert(_makeEdgeKey(prev, curr));
+          visitedEdges.insert(makeEdgeKey(prev, curr));
           bool isClosed = false;
 
           while (true) {
@@ -554,9 +220,9 @@ _exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
               break;
 
             int nxt = (adj[curr][0] != prev) ? adj[curr][0] : adj[curr][1];
-            if (visitedEdges.count(_makeEdgeKey(curr, nxt)))
+            if (visitedEdges.count(makeEdgeKey(curr, nxt)))
               break;
-            visitedEdges.insert(_makeEdgeKey(curr, nxt));
+            visitedEdges.insert(makeEdgeKey(curr, nxt));
             prev = curr;
             curr = nxt;
           }
@@ -575,9 +241,9 @@ _exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
     for (int e = 0; e < numE; e++) {
       int u = edgeConnects[e * 2], v = edgeConnects[e * 2 + 1];
       if (u >= 0 && v >= 0 && u < numV && v < numV &&
-          !visitedEdges.count(_makeEdgeKey(u, v))) {
+          !visitedEdges.count(makeEdgeKey(u, v))) {
         polylineChains.push_back({u, v});
-        visitedEdges.insert(_makeEdgeKey(u, v));
+        visitedEdges.insert(makeEdgeKey(u, v));
       }
     }
 
@@ -599,40 +265,74 @@ _exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
   return true;
 }
 
-inline zColor _hslToRgb(float h, float s, float l) {
-  float c = (1.0f - std::abs(2.0f * l - 1.0f)) * s;
-  float hp = std::fmod(h, 360.0f) / 60.0f;
-  if (hp < 0.0f)
-    hp += 6.0f;
-  float x = c * (1.0f - std::abs(std::fmod(hp, 2.0f) - 1.0f));
-  float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f;
-  if (hp >= 0.0f && hp < 1.0f) {
-    r1 = c;
-    g1 = x;
-    b1 = 0.0f;
-  } else if (hp >= 1.0f && hp < 2.0f) {
-    r1 = x;
-    g1 = c;
-    b1 = 0.0f;
-  } else if (hp >= 2.0f && hp < 3.0f) {
-    r1 = 0.0f;
-    g1 = c;
-    b1 = x;
-  } else if (hp >= 3.0f && hp < 4.0f) {
-    r1 = 0.0f;
-    g1 = x;
-    b1 = c;
-  } else if (hp >= 4.0f && hp < 5.0f) {
-    r1 = x;
-    g1 = 0.0f;
-    b1 = c;
-  } else {
-    r1 = c;
-    g1 = 0.0f;
-    b1 = x;
+inline bool _exportColoredFieldMeshesToMultiOBJ(
+    const zObjMesh &baseFieldMesh,
+    const std::vector<zScalarArray> &fieldScalars, const std::string &filePath,
+    const std::string &objectPrefix = "field_layer_",
+    bool isWidthField = false) {
+  if (fieldScalars.empty())
+    return false;
+
+  zFnMesh fnBase(const_cast<zObjMesh &>(baseFieldMesh));
+  zPointArray positions;
+  fnBase.getVertexPositions(positions);
+  if (positions.empty())
+    return false;
+
+  zIntArray polyConnects, polyCounts;
+  fnBase.getPolygonData(polyConnects, polyCounts);
+  if (polyCounts.empty())
+    return false;
+
+  std::ofstream ofs(filePath);
+  if (!ofs.is_open())
+    return false;
+
+  ofs << "# Exported Colored Scalar Fields from zTsSDFSlicer (Multi-Layer OBJ "
+         "with Vertex Colors)\n";
+  size_t globalVertexBase = 1;
+
+  for (size_t l = 0; l < fieldScalars.size(); l++) {
+    const auto &scalars = fieldScalars[l];
+    if (scalars.empty())
+      continue;
+
+    std::vector<zColor> colors;
+    if (isWidthField) {
+      zTsSDFSlicer::colorWidthField(scalars, colors);
+    } else {
+      zTsSDFSlicer::colorPathField(scalars, colors);
+    }
+
+    ofs << "o " << objectPrefix << l << "\n";
+    ofs << "g " << objectPrefix << l << "\n";
+
+    for (size_t i = 0; i < positions.size(); i++) {
+      const auto &p = positions[i];
+      if (i < colors.size()) {
+        const auto &c = colors[i];
+        ofs << "v " << p.x << " " << p.y << " " << p.z << " " << c.r << " "
+            << c.g << " " << c.b << "\n";
+      } else {
+        ofs << "v " << p.x << " " << p.y << " " << p.z << "\n";
+      }
+    }
+
+    size_t offset = 0;
+    for (int count : polyCounts) {
+      ofs << "f";
+      for (int i = 0; i < count; i++) {
+        ofs << " " << (globalVertexBase + polyConnects[offset + i]);
+      }
+      ofs << "\n";
+      offset += count;
+    }
+
+    globalVertexBase += positions.size();
   }
-  float m = l - c * 0.5f;
-  return zColor(r1 + m, g1 + m, b1 + m, 1.0f);
+
+  ofs.close();
+  return true;
 }
 
 } // anonymous namespace
@@ -1064,80 +764,6 @@ zTsSDFSlicer::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
 
   fnOut.create(meshPositions, polyCounts, polyConnects);
 }
-
-namespace {
-
-inline bool _exportColoredFieldMeshesToMultiOBJ(
-    const zObjMesh &baseFieldMesh,
-    const std::vector<zScalarArray> &fieldScalars, const std::string &filePath,
-    const std::string &objectPrefix = "field_layer_",
-    bool isWidthField = false) {
-  if (fieldScalars.empty())
-    return false;
-
-  zFnMesh fnBase(const_cast<zObjMesh &>(baseFieldMesh));
-  zPointArray positions;
-  fnBase.getVertexPositions(positions);
-  if (positions.empty())
-    return false;
-
-  zIntArray polyConnects, polyCounts;
-  fnBase.getPolygonData(polyConnects, polyCounts);
-  if (polyCounts.empty())
-    return false;
-
-  std::ofstream ofs(filePath);
-  if (!ofs.is_open())
-    return false;
-
-  ofs << "# Exported Colored Scalar Fields from zTsSDFSlicer (Multi-Layer OBJ "
-         "with Vertex Colors)\n";
-  size_t globalVertexBase = 1;
-
-  for (size_t l = 0; l < fieldScalars.size(); l++) {
-    const auto &scalars = fieldScalars[l];
-    if (scalars.empty())
-      continue;
-
-    std::vector<zColor> colors;
-    if (isWidthField) {
-      zTsSDFSlicer::colorWidthField(scalars, colors);
-    } else {
-      zTsSDFSlicer::colorPathField(scalars, colors);
-    }
-
-    ofs << "o " << objectPrefix << l << "\n";
-    ofs << "g " << objectPrefix << l << "\n";
-
-    for (size_t i = 0; i < positions.size(); i++) {
-      const auto &p = positions[i];
-      if (i < colors.size()) {
-        const auto &c = colors[i];
-        ofs << "v " << p.x << " " << p.y << " " << p.z << " " << c.r << " "
-            << c.g << " " << c.b << "\n";
-      } else {
-        ofs << "v " << p.x << " " << p.y << " " << p.z << "\n";
-      }
-    }
-
-    size_t offset = 0;
-    for (int count : polyCounts) {
-      ofs << "f";
-      for (int i = 0; i < count; i++) {
-        ofs << " " << (globalVertexBase + polyConnects[offset + i]);
-      }
-      ofs << "\n";
-      offset += count;
-    }
-
-    globalVertexBase += positions.size();
-  }
-
-  ofs.close();
-  return true;
-}
-
-} // anonymous namespace
 
 //---- EXPORT METHOD
 

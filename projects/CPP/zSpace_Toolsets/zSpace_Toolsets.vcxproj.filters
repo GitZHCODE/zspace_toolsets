@@ -19,6 +19,9 @@
     <Filter Include="Header Files\Geometry">
       <UniqueIdentifier>{734460e2-4bec-4f38-8220-ce287d43d6c2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Slicer">
+      <UniqueIdentifier>{f1c8e266-3515-4bc0-a7a9-be7e50800dbc}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files\PathNetworks">
       <UniqueIdentifier>{4cc5e7fe-d200-4c63-8be1-b74402a40a9b}</UniqueIdentifier>
     </Filter>
@@ -48,6 +51,9 @@
     </Filter>
     <Filter Include="Source Files\Geometry">
       <UniqueIdentifier>{6096f4d0-262c-48a9-a945-dc85d759746b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Slicer">
+      <UniqueIdentifier>{3ddd96d2-c55c-4d3b-982d-2b4c77941ffc}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\Data">
       <UniqueIdentifier>{ea0606fa-7a28-4cab-8300-82b39ff54ee8}</UniqueIdentifier>
@@ -162,14 +168,17 @@
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.h">
       <Filter>Depends\SPA</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsSDFSlicer.h">
-      <Filter>Header Files\Geometry</Filter>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsUtils.h">
+      <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTs3DP.h">
-      <Filter>Header Files\Geometry</Filter>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsSDFSlicer.h">
+      <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\geometry\zTsPrintSyn.h">
-      <Filter>Header Files\Geometry</Filter>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTs3DP.h">
+      <Filter>Header Files\Slicer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsPrintSyn.h">
+      <Filter>Header Files\Slicer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\base\zSpace_Toolsets.h">
       <Filter>Header Files\0_base</Filter>
@@ -284,24 +293,30 @@
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.c">
       <Filter>Depends\SPA</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer-Utils.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsUtils.cpp">
+      <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer-Slice.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Structure.cpp">
+      <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer-Unroll.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Unroll.cpp">
+      <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsSDFSlicer-Field.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Field.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Path.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Export.cpp">
+      <Filter>Source Files\Slicer</Filter>
     </ClCompile>
 
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTs3DP.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTs3DP.cpp">
+      <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPrintSyn.cpp">
-      <Filter>Source Files\Geometry</Filter>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsPrintSyn.cpp">
+      <Filter>Source Files\Slicer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">
       <Filter>Source Files\Geometry</Filter>

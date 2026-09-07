@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -36,6 +36,8 @@
 #endif
 
 namespace zSpace {
+
+using namespace zTsUtils;
 
 namespace {
 
@@ -61,7 +63,7 @@ bool _createPerpendicularSlot(const zObjGraph &sourceGraph, zObjGraph &outGraph,
     int u = edgeConnects[e * 2], v = edgeConnects[e * 2 + 1];
     if (u >= 0 && v >= 0 && u < (int)positions.size() &&
         v < (int)positions.size() &&
-        _vecDistSq(positions[u], positions[v]) > 1e-12) {
+        vecDistSq(positions[u], positions[v]) > 1e-12) {
       adj[u].push_back({v, e});
       adj[v].push_back({u, e});
     }
@@ -120,7 +122,7 @@ bool _createPerpendicularSlot(const zObjGraph &sourceGraph, zObjGraph &outGraph,
       if (next == -1)
         break;
       visitedEdge[edgeId] = true;
-      totalLen += std::sqrt(_vecDistSq(positions[cur], positions[next]));
+      totalLen += std::sqrt(vecDistSq(positions[cur], positions[next]));
       chainPos.push_back(positions[next]);
       chainScalars.push_back(static_cast<zScalar>(totalLen));
       prev = cur;
@@ -130,12 +132,11 @@ bool _createPerpendicularSlot(const zObjGraph &sourceGraph, zObjGraph &outGraph,
     if (totalLen <= 1e-6 || chainPos.size() < 2)
       continue;
 
-    // Locate midpoint and perpendicular direction using universal
-    // _samplePolyline
+    // Locate midpoint and perpendicular direction using shared samplePolyline
     zPoint mid;
     zVector dir;
-    if (_samplePolyline(chainPos.data(), chainScalars.data(), chainPos.size(),
-                        ratio, mid, &dir)) {
+    if (samplePolyline(chainPos.data(), chainScalars.data(), chainPos.size(),
+                       ratio, mid, &dir)) {
       zVector perp(-dir.y, dir.x, 0.0);
       int baseId = static_cast<int>(trimPositions.size());
       trimPositions.push_back(mid + perp * trimLength);
@@ -596,7 +597,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
   }
 
   if (outTrimSlotsGraph && !allSlotGraphs.empty()) {
-    _combineGraphObjects(allSlotGraphs, *outTrimSlotsGraph);
+    combineGraphObjects(allSlotGraphs, *outTrimSlotsGraph);
   }
 
   const zScalar defaultW =
@@ -631,7 +632,7 @@ void _getPathGraph(zObjMeshScalarField &pathFieldMesh,
   edgeCrossMap.reserve(numFaces / 4);
 
   auto getEdgeIntersection = [&](int v0, int v1) -> int {
-    const unsigned long long edgeKey = _makeEdgeKey(v0, v1);
+    const unsigned long long edgeKey = makeEdgeKey(v0, v1);
 
     auto it = edgeCrossMap.find(edgeKey);
     if (it != edgeCrossMap.end())

@@ -16,6 +16,7 @@
 #pragma once
 
 #include <headers/base/zSpace_Toolsets.h>
+#include <headers/zToolsets/slicer/zTsUtils.h>
 #include <zspace/interface.h>
 #include <zspace/io.h>
 #include <zspace/zInterface/functionsets/zFnGraph.h>
@@ -39,27 +40,15 @@ namespace zSpace {
  *  @{
  */
 
-/*! \struct PrintPath
- *	\brief Encapsulates a complete printing toolpath including its graph, line widths, layer heights, and normals.
- */
-struct PrintPath {
-  zObjGraph graph;
-  zFloatArray widths;
-  zFloatArray heights;
-  zVectorArray normals;
-
-  PrintPath() = default;
-  PrintPath(const zObjGraph &inGraph, const zFloatArray &inWidths = {},
-            const zFloatArray &inHeights = {},
-            const zVectorArray &inNormals = {})
-      : graph(inGraph), widths(inWidths), heights(inHeights),
-        normals(inNormals) {}
-};
+// NOTE: PrintPath is a shared type declared in zTsUtils.h so that
+// zTsSDFSlicer and zTsPrintSyn can both use it without depending on
+// each other.
 
 /*! \class zTsPrintSyn
  *	\brief Toolpath synthesis, cleanup, corner preservation, uniform resampling, and width filtering engine.
- *	\details Decoupled post-processing engine that transforms raw isocontours into continuous,
- *           high-quality robotic 3D printing toolpaths.
+ *	\details Fully decoupled from zTsSDFSlicer: it only depends on zTsUtils.h
+ *           (for the shared PrintPath type and shared vector/topology helpers)
+ *           and never includes zTsSDFSlicer.h.
  *	\since 1.0.0
  */
 class ZSPACE_TOOLSETS zTsPrintSyn {
@@ -144,7 +133,7 @@ public:
     defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include <source/zToolsets/geometry/zTsPrintSyn.cpp>
+#include <source/zToolsets/slicer/zTsPrintSyn.cpp>
 #endif
 
 #endif // ZSPACE_TS_GEOMETRY_PRINTSYN_H

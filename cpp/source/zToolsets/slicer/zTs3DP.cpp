@@ -10,6 +10,6 @@
 // Author : Weijie Tao <weijie.tao@zspace.com>
 //
 
-#include <headers/zToolsets/geometry/zTs3DP.h>
+#include <headers/zToolsets/slicer/zTs3DP.h>
 
 // zTs3DP is fully inlined in zTs3DP.h

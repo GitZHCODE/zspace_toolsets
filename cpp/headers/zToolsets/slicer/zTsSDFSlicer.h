@@ -20,6 +20,7 @@
 #endif
 
 #include <headers/base/zSpace_Toolsets.h>
+#include <headers/zToolsets/slicer/zTsUtils.h>
 
 #include <zspace/interface.h>
 #include <zspace/io.h>
@@ -48,67 +49,15 @@ namespace zSpace {
  *  @{
  */
 
-typedef std::vector<zObjMesh> zObjMeshArray;
-typedef std::vector<zObjGraph> zObjGraphArray;
-typedef std::vector<zObjGraph *> zObjGraphPointerArray;
-typedef std::vector<zObjMeshScalarField> zObjMeshScalarFieldArray;
-
-struct PrintPath;
-
-/*! \struct SlicerSettings
- *	\brief Configuration settings for geodesic slicing, SDF field and
- * toolpath generation.
- */
-struct SlicerSettings {
-  int cornerStartVertexId = 21;
-  float layerSpacing = 1.0f;
-  bool topoSplit = true;
-  bool angleSplit = true;
-  float geometricAngleThreshold = 90.0f; // degrees (corner angle < threshold)
-
-  // SDF & Toolpath Parameters
-  bool doublelayerboundary = false;
-  std::vector<float> printBoundaryWidth = {0.5f};
-  float printBracingWidth = 0.5f;
-  float printOverlapWidth = 0.0f;
-  float trimSlotStaggerEven = 0.5f;
-  float trimSlotStaggerOdd = 0.5f;
-  int boundaryTrimSegmentId = 1;
-  float boundaryTrimSlotRatioEven = 0.45f;
-  float boundaryTrimSlotRatioOdd = 0.55f;
-
-  float fieldBoundingScale = 1.05f;
-  float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
-  // 2D Toolpath Post-Processing Settings
-  float postSampleLength = 0.15f;
-  float postFeatureAngleThreshold =
-      90.0f; // 2D toolpath geometric feature corner angle threshold (deg)
-};
-
-/*! \struct MeshBarycentricGraph
- *	\brief Universal graph representation parameterized by 2D/3D mesh face
- * barycentric coordinates.
- */
-struct MeshBarycentricGraph {
-  struct Vertex {
-    int v0, v1, v2; // Triangle 3 vertex indices
-    float u, v, w;  // Barycentric coordinate weights
-  };
-
-  std::vector<Vertex> vertices; // Parameterized vertices array (contiguous
-                                // cache-friendly layout)
-  zIntArray edgeConnects; // Edge topology connectivity [e0_v0, e0_v1, e1_v0,
-                          // e1_v1, ...]
-
-  bool empty() const { return vertices.empty() || edgeConnects.empty(); }
-  void clear() {
-    vertices.clear();
-    edgeConnects.clear();
-  }
-};
+// NOTE: SlicerSettings, MeshBarycentricGraph and PrintPath are shared types
+// declared in zTsUtils.h so that zTsSDFSlicer and zTsPrintSyn can both use
+// them without depending on each other.
 
 /*! \class zTsSDFSlicer
  *	\brief A toolset for SDF based geodesic slicing and bracing generation.
+ *	\details Fully decoupled from zTsPrintSyn: it only produces/consumes
+ *           PrintPath and MeshBarycentricGraph data (declared in zTsUtils.h),
+ *           and never includes zTsPrintSyn.h.
  */
 class ZSPACE_TOOLSETS zTsSDFSlicer {
 private:
@@ -414,8 +363,6 @@ public:
    */
   bool computeField();
 
-
-
   /*! \brief Computes 2D isocontour toolpaths and projects them back to 3D
    * section meshes.
    *
@@ -515,10 +462,11 @@ public:
 // All defined OK so do nothing
 #else
 // clang-format off
-#include <source/zToolsets/geometry/zTsSDFSlicer-Utils.cpp>
-#include <source/zToolsets/geometry/zTsSDFSlicer-Slice.cpp>
-#include <source/zToolsets/geometry/zTsSDFSlicer-Unroll.cpp>
-#include <source/zToolsets/geometry/zTsSDFSlicer-Field.cpp>
+#include <source/zToolsets/slicer/zTsSDFSlicer_Structure.cpp>
+#include <source/zToolsets/slicer/zTsSDFSlicer_Unroll.cpp>
+#include <source/zToolsets/slicer/zTsSDFSlicer_Field.cpp>
+#include <source/zToolsets/slicer/zTsSDFSlicer_Path.cpp>
+#include <source/zToolsets/slicer/zTsSDFSlicer_Export.cpp>
 // clang-format on
 #endif
 

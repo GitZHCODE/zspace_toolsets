@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/geometry/zTsPrintSyn.h>
+#include <headers/zToolsets/slicer/zTsPrintSyn.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -36,6 +36,8 @@
 #endif
 
 namespace zSpace {
+
+using namespace zTsUtils;
 
 namespace {
 
@@ -92,10 +94,10 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
     int b = edgeConnects[e + 1];
     if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
       continue;
-    if (_vecDistSq(positions[b], positions[a]) < 1e-12)
+    if (vecDistSq(positions[b], positions[a]) < 1e-12)
       continue;
 
-    const unsigned long long key = _makeEdgeKey(a, b);
+    const unsigned long long key = makeEdgeKey(a, b);
     if (!edgeSet.insert(key).second)
       continue;
 
@@ -122,7 +124,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
           int prev = i;
           int curr = startNb;
           bool isDeadEnd = false;
-          double branchLen = _vecSub(positions[curr], positions[prev]).length();
+          double branchLen = vecSub(positions[curr], positions[prev]).length();
 
           while (true) {
             if (activeAdj[curr].size() == 1) {
@@ -141,7 +143,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
             }
             if (next < 0 || next == i)
               break;
-            branchLen += _vecSub(positions[next], positions[curr]).length();
+            branchLen += vecSub(positions[next], positions[curr]).length();
             prev = curr;
             curr = next;
             branchPath.push_back(curr);
@@ -170,13 +172,13 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
   for (int i = 0; i < numV; i++) {
     if (activeAdj[i].size() == 1) {
       int next = *activeAdj[i].begin();
-      if (visitedEdges.count(_makeEdgeKey(i, next)))
+      if (visitedEdges.count(makeEdgeKey(i, next)))
         continue;
 
       std::vector<int> chain = {i};
       int prev = i;
       int curr = next;
-      visitedEdges.insert(_makeEdgeKey(prev, curr));
+      visitedEdges.insert(makeEdgeKey(prev, curr));
 
       while (true) {
         chain.push_back(curr);
@@ -190,9 +192,9 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
             break;
           }
         }
-        if (nxt < 0 || visitedEdges.count(_makeEdgeKey(curr, nxt)))
+        if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
           break;
-        visitedEdges.insert(_makeEdgeKey(curr, nxt));
+        visitedEdges.insert(makeEdgeKey(curr, nxt));
         prev = curr;
         curr = nxt;
       }
@@ -204,13 +206,13 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
   for (int i = 0; i < numV; i++) {
     if (activeAdj[i].size() == 2) {
       for (int nb : activeAdj[i]) {
-        if (visitedEdges.count(_makeEdgeKey(i, nb)))
+        if (visitedEdges.count(makeEdgeKey(i, nb)))
           continue;
 
         std::vector<int> loop = {i};
         int prev = i;
         int curr = nb;
-        visitedEdges.insert(_makeEdgeKey(prev, curr));
+        visitedEdges.insert(makeEdgeKey(prev, curr));
         bool loopClosed = false;
 
         while (true) {
@@ -229,9 +231,9 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
               break;
             }
           }
-          if (nxt < 0 || visitedEdges.count(_makeEdgeKey(curr, nxt)))
+          if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
             break;
-          visitedEdges.insert(_makeEdgeKey(curr, nxt));
+          visitedEdges.insert(makeEdgeKey(curr, nxt));
           prev = curr;
           curr = nxt;
         }
@@ -251,7 +253,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
   // Check if any open chain is already self-closing
   for (auto it = openChains.begin(); it != openChains.end();) {
     if (it->size() >= 3) {
-      if (_vecDistSq(positions[it->front()], positions[it->back()]) <=
+      if (vecDistSq(positions[it->front()], positions[it->back()]) <=
           weldTolSq) {
         closedLoops.push_back(*it);
         it = openChains.erase(it);
@@ -274,7 +276,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
         const auto &c1 = openChains[i];
         const auto &c2 = openChains[j];
 
-        double d0 = _vecDistSq(positions[c1.back()], positions[c2.front()]);
+        double d0 = vecDistSq(positions[c1.back()], positions[c2.front()]);
         if (d0 < bestDistSq) {
           bestDistSq = d0;
           bestI = i;
@@ -282,7 +284,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
           bestMode = 0;
         }
 
-        double d1 = _vecDistSq(positions[c1.back()], positions[c2.back()]);
+        double d1 = vecDistSq(positions[c1.back()], positions[c2.back()]);
         if (d1 < bestDistSq) {
           bestDistSq = d1;
           bestI = i;
@@ -290,7 +292,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
           bestMode = 1;
         }
 
-        double d2 = _vecDistSq(positions[c1.front()], positions[c2.back()]);
+        double d2 = vecDistSq(positions[c1.front()], positions[c2.back()]);
         if (d2 < bestDistSq) {
           bestDistSq = d2;
           bestI = i;
@@ -298,7 +300,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
           bestMode = 2;
         }
 
-        double d3 = _vecDistSq(positions[c1.front()], positions[c2.front()]);
+        double d3 = vecDistSq(positions[c1.front()], positions[c2.front()]);
         if (d3 < bestDistSq) {
           bestDistSq = d3;
           bestI = i;
@@ -330,7 +332,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
       mergedAny = true;
 
       if (c1.size() >= 3 &&
-          _vecDistSq(positions[c1.front()], positions[c1.back()]) <=
+          vecDistSq(positions[c1.front()], positions[c1.back()]) <=
               weldTolSq) {
         closedLoops.push_back(c1);
         openChains.erase(openChains.begin() + bestI);
@@ -348,10 +350,10 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
     double total = 0.0;
     const int n = static_cast<int>(seq.size());
     for (int k = 0; k + 1 < n; k++) {
-      total += _vecSub(positions[seq[k + 1]], positions[seq[k]]).length();
+      total += vecSub(positions[seq[k + 1]], positions[seq[k]]).length();
     }
     if (isLoop && n > 2) {
-      total += _vecSub(positions[seq.front()], positions[seq.back()]).length();
+      total += vecSub(positions[seq.front()], positions[seq.back()]).length();
     }
     return total;
   };
@@ -407,14 +409,14 @@ ZSPACE_INLINE void zTsPrintSyn::detectFeatureAngles(
     int curId = sequence[i];
     int nextId = sequence[(i + 1) % N];
 
-    zVector v0 = _vecSub(positions[prevId], positions[curId]);
-    zVector v1 = _vecSub(positions[nextId], positions[curId]);
+    zVector v0 = vecSub(positions[prevId], positions[curId]);
+    zVector v1 = vecSub(positions[nextId], positions[curId]);
     const double len0 = v0.length();
     const double len1 = v1.length();
     if (len0 < 1e-6 || len1 < 1e-6)
       continue;
 
-    double cosTheta = _vecDot(v0, v1) / (len0 * len1);
+    double cosTheta = vecDot(v0, v1) / (len0 * len1);
     cosTheta = (std::max)(-1.0, (std::min)(1.0, cosTheta));
     const double angleRad = std::acos(cosTheta);
 
@@ -439,7 +441,7 @@ ZSPACE_INLINE void zTsPrintSyn::resampleContourWithWeights(
 
   auto appendPoint = [&](const zPoint &p, float w) {
     if (!outPoints.empty()) {
-      zVector d = _vecSub(p, outPoints.back());
+      zVector d = vecSub(p, outPoints.back());
       if (d.length() < 1e-5)
         return;
     }
@@ -456,7 +458,7 @@ ZSPACE_INLINE void zTsPrintSyn::resampleContourWithWeights(
     float w0 = (i0 < static_cast<int>(weights.size())) ? weights[i0] : 0.04f;
     float w1 = (i1 < static_cast<int>(weights.size())) ? weights[i1] : 0.04f;
 
-    zVector segVec = _vecSub(p1, p0);
+    zVector segVec = vecSub(p1, p0);
     const double segLen = segVec.length();
 
     appendPoint(p0, w0);
@@ -489,7 +491,7 @@ ZSPACE_INLINE void zTsPrintSyn::resampleContourWithWeights(
       outEdges.push_back(i + 1);
     }
     if (closed && numPts >= 3) {
-      zVector d = _vecSub(outPoints.back(), outPoints.front());
+      zVector d = vecSub(outPoints.back(), outPoints.front());
       if (d.length() < 1e-4) {
         outPoints.pop_back();
         outWeights.pop_back();

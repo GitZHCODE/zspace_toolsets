@@ -16,8 +16,9 @@
 #pragma once
 
 #include <headers/base/zSpace_Toolsets.h>
-#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
-#include <headers/zToolsets/geometry/zTsPrintSyn.h>
+#include <headers/zToolsets/slicer/zTsUtils.h>
+#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zTsPrintSyn.h>
 
 #include <iostream>
 #include <string>
@@ -37,8 +38,9 @@ namespace zSpace {
 
 /*! \class zTs3DP
  *	\brief Master facade and pipeline controller for robotic 3D printing toolpath generation.
- *	\details Integrates input mesh/graph models, configuration parameters, SDF slicing/unrolling,
- *           contour post-processing via zTsPrintSyn, and 3D path projection into a unified architecture.
+ *	\details Wires together two fully decoupled engines - zTsSDFSlicer (geometry/SDF slicing)
+ *           and zTsPrintSyn (toolpath cleanup) - which share no dependency on each other and
+ *           only exchange data through the common PrintPath type declared in zTsUtils.h.
  *	\since 1.0.0
  */
 class ZSPACE_TOOLSETS zTs3DP {

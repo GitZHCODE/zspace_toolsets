@@ -1,0 +1,123 @@
+// This file is part of zspace, a simple C++ collection of geometry
+// data-structures & algorithms, data analysis & visualization framework.
+//
+// Copyright (C) 2019 ZSPACE
+//
+// This Source Code Form is subject to the terms of the MIT License
+// If a copy of the MIT License was not distributed with this file, You can
+// obtain one at https://opensource.org/licenses/MIT.
+//
+// Author : Vishu Bhooshan <vishu.bhooshan@zaha-hadid.com>
+//
+
+#ifndef EIGEN_DONT_PARALLELIZE
+#define EIGEN_DONT_PARALLELIZE
+#endif
+
+#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
+
+#ifndef ZSPACE_INLINE
+#define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
+#endif
+
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <vector>
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
+namespace zSpace {
+
+using namespace zTsUtils;
+
+//---- MAIN COMPUTE METHODS: STEP 5 (PROJECT 2D CONTOUR PATHS TO 3D)
+
+ZSPACE_INLINE bool zTsSDFSlicer::computePath() {
+  std::vector<PrintPath> raw2DPaths;
+  if (!extract2DPrintPaths(raw2DPaths)) {
+    m_Status = "failed: No 2D contours available. Call computeField() first.";
+    printError("[computePath] " + m_Status);
+    return false;
+  }
+  std::vector<PrintPath> out3DPaths;
+  return project2DPrintPathsTo3D(raw2DPaths, out3DPaths);
+}
+
+ZSPACE_INLINE bool zTsSDFSlicer::extract2DPrintPaths(
+    std::vector<PrintPath> &outPaths) const {
+  const size_t totalLayers = _2DContourGraphs.size();
+  outPaths.resize(totalLayers);
+  for (size_t l = 0; l < totalLayers; l++) {
+    outPaths[l].graph = _2DContourGraphs[l];
+    if (l < contourWeights.size()) {
+      outPaths[l].widths = contourWeights[l];
+    }
+  }
+  return !outPaths.empty();
+}
+
+ZSPACE_INLINE bool zTsSDFSlicer::project2DPrintPathsTo3D(
+    const std::vector<PrintPath> &in2DPaths,
+    std::vector<PrintPath> &out3DPaths) {
+  const int totalLayers = int(in2DPaths.size());
+  if (totalLayers == 0 || _2DSectionMeshes.empty() || sectionMeshes.empty()) {
+    m_Status = "failed: No 2D print paths or section meshes available for "
+               "projection.";
+    printError("[project2DPrintPathsTo3D] " + m_Status);
+    return false;
+  }
+
+  out3DPaths.assign(totalLayers, PrintPath());
+  contourGraphs.assign(totalLayers, zObjGraph());
+  contourWeights.assign(totalLayers, zFloatArray());
+  contourHeights.assign(totalLayers, zFloatArray());
+  contourNormals.assign(totalLayers, zVectorArray());
+
+  zFloatArray meshVertexHeights;
+  if (!m_VScalar.empty() && totalLayers > 1) {
+    meshVertexHeights.resize(m_VScalar.size());
+    const float denom = float(totalLayers - 1);
+    for (size_t k = 0; k < m_VScalar.size(); k++) {
+      meshVertexHeights[k] = (!m_VScalar[k].empty())
+                                 ? float(m_VScalar[k].back() / denom)
+                                 : i_Settings.layerSpacing;
+    }
+  }
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    out3DPaths[l].graph = in2DPaths[l].graph;
+    out3DPaths[l].widths = in2DPaths[l].widths;
+
+    zFnGraph fnContour(out3DPaths[l].graph);
+    if (fnContour.numVertices() > 0 && l < int(_2DSectionMeshes.size()) &&
+        l < int(sectionMeshes.size())) {
+      barycentricProjectionTriMesh(
+          out3DPaths[l].graph, _2DSectionMeshes[l], sectionMeshes[l],
+          &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
+    }
+
+    contourGraphs[l] = out3DPaths[l].graph;
+    contourWeights[l] = out3DPaths[l].widths;
+    contourHeights[l] = out3DPaths[l].heights;
+    contourNormals[l] = out3DPaths[l].normals;
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Projected " << out3DPaths.size() << " 3D PrintPaths in "
+      << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
+  m_Status = out.str();
+  printSuccess("[project2DPrintPathsTo3D] " + m_Status);
+  return true;
+}
+
+} // namespace zSpace

@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -38,6 +38,8 @@
 
 namespace zSpace {
 
+using namespace zTsUtils;
+
 namespace {
 
 // UV Start Halfedge Search
@@ -45,7 +47,7 @@ bool _getUVStart(zObjMesh &mesh, int startVID, zItMeshHalfEdge &heUStart,
                  zItMeshHalfEdge &heVStart, int &numSegments) {
   zFnMesh fnMesh(mesh);
   zItMeshVertex vStart(mesh, startVID);
-  heVStart = _zUpEdge(vStart);
+  heVStart = zUpEdge(vStart);
   if (heVStart.getVertex().getId() < 0)
     return false;
 
@@ -66,7 +68,7 @@ bool _getUVStart(zObjMesh &mesh, int startVID, zItMeshHalfEdge &heUStart,
     return false;
 
   zIntArray faceVerts;
-  _getFaceVerticesFromHalfedge(heUStart, false, faceVerts);
+  getFaceVerticesFromHalfedge(heUStart, false, faceVerts);
   if (std::find(faceVerts.begin(), faceVerts.end(), vId_v) != faceVerts.end()) {
     heUStart = heUStart.getSym();
   }
@@ -78,7 +80,7 @@ bool _getUVStart(zObjMesh &mesh, int startVID, zItMeshHalfEdge &heUStart,
     if (heWalkUp.getVertex().getValence() == 3) {
       break;
     }
-    heWalkUp = _nextEdgeLoop(heWalkUp);
+    heWalkUp = nextEdgeLoop(heWalkUp);
   }
 
   return numSegments > 0;
@@ -183,12 +185,12 @@ void _createBoundaryEdgeGraph(zObjMesh &mesh, zObjGraph &outGraph,
       if (topoSplit && isCorner[i])
         splitSet.insert(i);
       if (angleSplit) {
-        zVector v1 = _vecSub(positions[(i - 1 + N) % N], positions[i]);
-        zVector v2 = _vecSub(positions[(i + 1) % N], positions[i]);
+        zVector v1 = vecSub(positions[(i - 1 + N) % N], positions[i]);
+        zVector v2 = vecSub(positions[(i + 1) % N], positions[i]);
         if (v1.length() > 1e-6 && v2.length() > 1e-6) {
           v1.normalize();
           v2.normalize();
-          double dot = (std::max)(-1.0, (std::min)(1.0, _vecDot(v1, v2)));
+          double dot = (std::max)(-1.0, (std::min)(1.0, vecDot(v1, v2)));
           if (std::acos(dot) < angleRadThresh)
             splitSet.insert(i);
         }
@@ -224,7 +226,7 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
 
   auto appendFaceToMesh = [&](zItMeshHalfEdge he) {
     zIntArray faceVerts;
-    _getFaceVerticesFromHalfedge(he, false, faceVerts);
+    getFaceVerticesFromHalfedge(he, false, faceVerts);
     bottomCounts.push_back(int(faceVerts.size()));
 
     for (int origVID : faceVerts) {
@@ -242,9 +244,9 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
   for (int safety = 0; safety < fn.numPolygons() + 10; safety++) {
     appendFaceToMesh(heUWalk);
 
-    zItMeshHalfEdge nextU = _nextEdgeRing(heUWalk);
+    zItMeshHalfEdge nextU = nextEdgeRing(heUWalk);
     zIntArray nextFaceVerts;
-    _getFaceVerticesFromHalfedge(nextU, false, nextFaceVerts);
+    getFaceVerticesFromHalfedge(nextU, false, nextFaceVerts);
     if (nextFaceVerts.size() != 4 || stripReachedCorner(nextU)) {
       break;
     }
@@ -279,7 +281,7 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
     if (origVID < 0)
       continue;
 
-    heUp = _zUpEdge(zItMeshVertex(mesh, origVID));
+    heUp = zUpEdge(zItMeshVertex(mesh, origVID));
     if (heUp.getVertex().getId() < 0)
       continue;
 
@@ -305,7 +307,7 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
       scalarLoop.push_back(accumulatedDist);
 
       if (s + 1 < numSegments) {
-        heWalk = _nextEdgeLoop(heWalk);
+        heWalk = nextEdgeLoop(heWalk);
       }
     }
 
@@ -386,7 +388,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeBasicStructure() {
 
   // Compute barycentric parameterization of bracingGraph on 3D base mesh
   if (i_BracingGraph) {
-    _parameterizeGraphOnMesh(*i_BracingGraph, m_UMesh, m_BracingParams);
+    parameterizeGraphOnMesh(*i_BracingGraph, m_UMesh, m_BracingParams);
   }
 
   return true;
@@ -441,7 +443,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeSlice() {
       for (size_t i = 0; i < m_VLoops.size() && i < m_VScalar.size() &&
                          i < fnMesh.numVertices();
            i++) {
-        _samplePolyline(m_VLoops[i], m_VScalar[i], ratio, points[i]);
+        samplePolyline(m_VLoops[i], m_VScalar[i], ratio, points[i]);
       }
     }
 
@@ -450,7 +452,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeSlice() {
                              secOldVertexIds, 0);
 
     if (!m_BracingParams.empty()) {
-      _reconstructGraphFromBarycentricParams(
+      reconstructGraphFromBarycentricParams(
           m_BracingParams, sectionMeshes[l], bracingGraphs[l]);
     }
   }

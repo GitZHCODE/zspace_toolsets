@@ -17,7 +17,7 @@
 
 #pragma once
 
-//#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
+//#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
 
 #include <headers/base/zSpace_Toolsets.h>
 
