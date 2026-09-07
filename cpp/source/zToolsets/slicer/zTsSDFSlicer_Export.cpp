@@ -348,28 +348,28 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
   // 1. 3D Section Meshes
   if (!sectionMeshes.empty()) {
     std::string path = dir + "/section_meshes.obj";
-    if (zTsUtils::exportMeshesToMultiOBJ(sectionMeshes, path))
+    if (zTsUtils::exportMeshToOBJ(sectionMeshes, path))
       exportedFiles.push_back("section_meshes.obj");
   }
 
   // 2. 3D Toolpath Graphs
   if (!contourGraphs.empty()) {
     std::string path = dir + "/toolpath_graphs.obj";
-    if (zTsUtils::exportGraphsToMultiOBJ(contourGraphs, path, "toolpath_layer_"))
+    if (zTsUtils::exportGraphToOBJ(contourGraphs, path, "toolpath_layer_"))
       exportedFiles.push_back("toolpath_graphs.obj");
   }
 
   // 3. Longitudinal V-Loops
   if (!m_VLoops.empty()) {
     std::string path = dir + "/vloop_graphs.obj";
-    if (zTsUtils::exportGraphsToMultiOBJ(m_VLoops, path, "vloop_"))
+    if (zTsUtils::exportGraphToOBJ(m_VLoops, path, "vloop_"))
       exportedFiles.push_back("vloop_graphs.obj");
   }
 
   // 4. 3D Bracing Graphs
   if (!bracingGraphs.empty()) {
     std::string path = dir + "/bracing_graphs.obj";
-    if (zTsUtils::exportGraphsToMultiOBJ(bracingGraphs, path, "bracing_layer_"))
+    if (zTsUtils::exportGraphToOBJ(bracingGraphs, path, "bracing_layer_"))
       exportedFiles.push_back("bracing_graphs.obj");
   }
 
@@ -380,7 +380,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
       zTsUtils::colorWidthField(widthFields[l], layerColors[l]);
 
     std::string path = dir + "/width_fields.obj";
-    if (zTsUtils::exportColoredMeshesToMultiOBJ(m_ScalarField, layerColors, path,
+    if (zTsUtils::exportColoredMeshToOBJ(m_ScalarField, layerColors, path,
                                                 "width_field_layer_"))
       exportedFiles.push_back("width_fields.obj");
   }
@@ -392,7 +392,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
       zTsUtils::colorPathField(pathFields[l], layerColors[l]);
 
     std::string path = dir + "/path_fields.obj";
-    if (zTsUtils::exportColoredMeshesToMultiOBJ(m_ScalarField, layerColors, path,
+    if (zTsUtils::exportColoredMeshToOBJ(m_ScalarField, layerColors, path,
                                                 "path_field_layer_"))
       exportedFiles.push_back("path_fields.obj");
   }
@@ -400,7 +400,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
   // 7. 2D Toolpaths (If generated)
   if (!_2DContourGraphs.empty()) {
     std::string path = dir + "/2D_contour_graphs.obj";
-    if (zTsUtils::exportGraphsToMultiOBJ(_2DContourGraphs, path,
+    if (zTsUtils::exportGraphToOBJ(_2DContourGraphs, path,
                                          "2D_contour_layer_"))
       exportedFiles.push_back("2D_contour_graphs.obj");
   }

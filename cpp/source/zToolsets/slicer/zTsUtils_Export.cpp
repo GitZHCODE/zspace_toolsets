@@ -229,7 +229,7 @@ ZSPACE_INLINE void colorWidthField(zObjMesh &mesh, const zScalarArray &values) {
 
 //---- Generic Multi-Object Wavefront OBJ Exporters
 
-ZSPACE_INLINE bool exportMeshesToMultiOBJ(const zObjMeshArray &meshes,
+ZSPACE_INLINE bool exportMeshToOBJ(const zObjMeshArray &meshes,
                                           const std::string &filePath) {
   if (meshes.empty())
     return false;
@@ -276,7 +276,7 @@ ZSPACE_INLINE bool exportMeshesToMultiOBJ(const zObjMeshArray &meshes,
 }
 
 ZSPACE_INLINE bool
-exportGraphsToMultiOBJ(const zObjGraphArray &graphs, const std::string &filePath,
+exportGraphToOBJ(const zObjGraphArray &graphs, const std::string &filePath,
                        const std::string &objectPrefix) {
   if (graphs.empty())
     return false;
@@ -418,7 +418,7 @@ exportGraphsToMultiOBJ(const zObjGraphArray &graphs, const std::string &filePath
   return true;
 }
 
-ZSPACE_INLINE bool exportColoredMeshesToMultiOBJ(
+ZSPACE_INLINE bool exportColoredMeshToOBJ(
     const zObjMesh &baseMesh, const std::vector<std::vector<zColor>> &layerColors,
     const std::string &filePath, const std::string &objectPrefix) {
   if (layerColors.empty())

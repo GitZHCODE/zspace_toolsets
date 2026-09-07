@@ -230,12 +230,12 @@ void colorWidthField(zObjMesh &mesh, const zScalarArray &values);
 
 //---- Generic Multi-Object Wavefront OBJ Exporters
 
-bool exportMeshesToMultiOBJ(const zObjMeshArray &meshes,
+bool exportMeshToOBJ(const zObjMeshArray &meshes,
                             const std::string &filePath);
-bool exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
+bool exportGraphToOBJ(const zObjGraphArray &graphs,
                             const std::string &filePath,
                             const std::string &objectPrefix = "layer_");
-bool exportColoredMeshesToMultiOBJ(
+bool exportColoredMeshToOBJ(
     const zObjMesh &baseMesh,
     const std::vector<std::vector<zColor>> &layerColors,
     const std::string &filePath, const std::string &objectPrefix = "layer_");
