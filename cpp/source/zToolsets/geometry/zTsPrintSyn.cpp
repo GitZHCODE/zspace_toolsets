@@ -1,0 +1,655 @@
+// This file is part of zspace, a simple C++ collection of geometry
+// data-structures & algorithms, data analysis & visualization framework.
+//
+// Copyright (C) 2019 ZSPACE
+//
+// This Source Code Form is subject to the terms of the MIT License
+// If a copy of the MIT License was not distributed with this file, You can
+// obtain one at https://opensource.org/licenses/MIT.
+//
+// Author : Weijie Tao <weijie.tao@zspace.com>
+//
+
+#ifndef EIGEN_DONT_PARALLELIZE
+#define EIGEN_DONT_PARALLELIZE
+#endif
+
+#include <headers/zToolsets/geometry/zTsPrintSyn.h>
+
+#ifndef ZSPACE_INLINE
+#define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
+#endif
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <sstream>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
+namespace zSpace {
+
+namespace {
+
+inline void printError(const std::string &msg) {
+  std::cerr << "\033[1;31m" << msg << "\033[0m\n" << std::flush;
+}
+
+inline void printSuccess(const std::string &msg) {
+  std::cout << "\033[1;32m" << msg << "\033[0m\n" << std::flush;
+}
+
+} // anonymous namespace
+
+//----------------------------------------------------------------------
+// Constructors & Destructors
+//----------------------------------------------------------------------
+
+ZSPACE_INLINE zTsPrintSyn::zTsPrintSyn() { m_Status = "Initialized"; }
+
+ZSPACE_INLINE zTsPrintSyn::~zTsPrintSyn() {}
+
+//----------------------------------------------------------------------
+// Algorithm Implementations
+//----------------------------------------------------------------------
+
+ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
+    const zObjGraph &graph, std::vector<int> &sequence, bool &closed,
+    std::string *outReason, double weldTolerance, double spurLengthThreshold) {
+  zFnGraph fnGraph(const_cast<zObjGraph &>(graph));
+  zPointArray positions;
+  zIntArray edgeConnects;
+  fnGraph.getVertexPositions(positions);
+  fnGraph.getEdgeData(edgeConnects);
+  sequence.clear();
+  closed = false;
+
+  const int numV = static_cast<int>(positions.size());
+  const int numE = static_cast<int>(edgeConnects.size() / 2);
+  if (numV < 3 || numE < 3) {
+    if (outReason) {
+      std::ostringstream oss;
+      oss << "Insufficient elements (vertices=" << numV << ", edges=" << numE
+          << " < 3)";
+      *outReason = oss.str();
+    }
+    return false;
+  }
+
+  // Step 1: Build undirected adjacency list, discard self-loops and duplicate edges
+  std::vector<std::vector<int>> adj(numV);
+  std::unordered_set<unsigned long long> edgeSet;
+  for (size_t e = 0; e + 1 < edgeConnects.size(); e += 2) {
+    int a = edgeConnects[e];
+    int b = edgeConnects[e + 1];
+    if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
+      continue;
+    if (_vecDistSq(positions[b], positions[a]) < 1e-12)
+      continue;
+
+    const unsigned long long key = _makeEdgeKey(a, b);
+    if (!edgeSet.insert(key).second)
+      continue;
+
+    adj[a].push_back(b);
+    adj[b].push_back(a);
+  }
+
+  // Step 2: Prune short dead-end branches / spurs
+  std::vector<std::unordered_set<int>> activeAdj(numV);
+  for (int i = 0; i < numV; i++) {
+    for (int nb : adj[i]) {
+      activeAdj[i].insert(nb);
+    }
+  }
+
+  bool prunedAny = true;
+  while (prunedAny) {
+    prunedAny = false;
+    for (int i = 0; i < numV; i++) {
+      if (activeAdj[i].size() >= 3) {
+        std::vector<int> neighbors(activeAdj[i].begin(), activeAdj[i].end());
+        for (int startNb : neighbors) {
+          std::vector<int> branchPath = {i, startNb};
+          int prev = i;
+          int curr = startNb;
+          bool isDeadEnd = false;
+          double branchLen = _vecSub(positions[curr], positions[prev]).length();
+
+          while (true) {
+            if (activeAdj[curr].size() == 1) {
+              isDeadEnd = true;
+              break;
+            }
+            if (activeAdj[curr].size() != 2) {
+              break;
+            }
+            int next = -1;
+            for (int nb : activeAdj[curr]) {
+              if (nb != prev) {
+                next = nb;
+                break;
+              }
+            }
+            if (next < 0 || next == i)
+              break;
+            branchLen += _vecSub(positions[next], positions[curr]).length();
+            prev = curr;
+            curr = next;
+            branchPath.push_back(curr);
+          }
+
+          if (isDeadEnd && branchLen < spurLengthThreshold) {
+            for (size_t k = 0; k + 1 < branchPath.size(); k++) {
+              int u = branchPath[k];
+              int v = branchPath[k + 1];
+              activeAdj[u].erase(v);
+              activeAdj[v].erase(u);
+            }
+            prunedAny = true;
+          }
+        }
+      }
+    }
+  }
+
+  // Step 3: Extract and order continuous chains
+  std::vector<std::vector<int>> openChains;
+  std::vector<std::vector<int>> closedLoops;
+  std::unordered_set<unsigned long long> visitedEdges;
+
+  // 3.1 Extract all open chains starting from endpoints (degree 1)
+  for (int i = 0; i < numV; i++) {
+    if (activeAdj[i].size() == 1) {
+      int next = *activeAdj[i].begin();
+      if (visitedEdges.count(_makeEdgeKey(i, next)))
+        continue;
+
+      std::vector<int> chain = {i};
+      int prev = i;
+      int curr = next;
+      visitedEdges.insert(_makeEdgeKey(prev, curr));
+
+      while (true) {
+        chain.push_back(curr);
+        if (activeAdj[curr].size() != 2)
+          break;
+
+        int nxt = -1;
+        for (int nb : activeAdj[curr]) {
+          if (nb != prev) {
+            nxt = nb;
+            break;
+          }
+        }
+        if (nxt < 0 || visitedEdges.count(_makeEdgeKey(curr, nxt)))
+          break;
+        visitedEdges.insert(_makeEdgeKey(curr, nxt));
+        prev = curr;
+        curr = nxt;
+      }
+      openChains.push_back(chain);
+    }
+  }
+
+  // 3.2 Extract all closed loops with pure degree 2
+  for (int i = 0; i < numV; i++) {
+    if (activeAdj[i].size() == 2) {
+      for (int nb : activeAdj[i]) {
+        if (visitedEdges.count(_makeEdgeKey(i, nb)))
+          continue;
+
+        std::vector<int> loop = {i};
+        int prev = i;
+        int curr = nb;
+        visitedEdges.insert(_makeEdgeKey(prev, curr));
+        bool loopClosed = false;
+
+        while (true) {
+          if (curr == i) {
+            loopClosed = true;
+            break;
+          }
+          loop.push_back(curr);
+          if (activeAdj[curr].size() != 2)
+            break;
+
+          int nxt = -1;
+          for (int n : activeAdj[curr]) {
+            if (n != prev) {
+              nxt = n;
+              break;
+            }
+          }
+          if (nxt < 0 || visitedEdges.count(_makeEdgeKey(curr, nxt)))
+            break;
+          visitedEdges.insert(_makeEdgeKey(curr, nxt));
+          prev = curr;
+          curr = nxt;
+        }
+
+        if (loopClosed && loop.size() >= 3) {
+          closedLoops.push_back(loop);
+        } else if (!loop.empty()) {
+          openChains.push_back(loop);
+        }
+      }
+    }
+  }
+
+  // Step 4: Endpoint gap welding and chain merging
+  const double weldTolSq = weldTolerance * weldTolerance;
+
+  // Check if any open chain is already self-closing
+  for (auto it = openChains.begin(); it != openChains.end();) {
+    if (it->size() >= 3) {
+      if (_vecDistSq(positions[it->front()], positions[it->back()]) <=
+          weldTolSq) {
+        closedLoops.push_back(*it);
+        it = openChains.erase(it);
+        continue;
+      }
+    }
+    ++it;
+  }
+
+  // Iteratively weld chain endpoints
+  bool mergedAny = true;
+  while (mergedAny && openChains.size() > 1) {
+    mergedAny = false;
+    size_t bestI = 0, bestJ = 0;
+    int bestMode = -1;
+    double bestDistSq = weldTolSq;
+
+    for (size_t i = 0; i < openChains.size(); i++) {
+      for (size_t j = i + 1; j < openChains.size(); j++) {
+        const auto &c1 = openChains[i];
+        const auto &c2 = openChains[j];
+
+        double d0 = _vecDistSq(positions[c1.back()], positions[c2.front()]);
+        if (d0 < bestDistSq) {
+          bestDistSq = d0;
+          bestI = i;
+          bestJ = j;
+          bestMode = 0;
+        }
+
+        double d1 = _vecDistSq(positions[c1.back()], positions[c2.back()]);
+        if (d1 < bestDistSq) {
+          bestDistSq = d1;
+          bestI = i;
+          bestJ = j;
+          bestMode = 1;
+        }
+
+        double d2 = _vecDistSq(positions[c1.front()], positions[c2.back()]);
+        if (d2 < bestDistSq) {
+          bestDistSq = d2;
+          bestI = i;
+          bestJ = j;
+          bestMode = 2;
+        }
+
+        double d3 = _vecDistSq(positions[c1.front()], positions[c2.front()]);
+        if (d3 < bestDistSq) {
+          bestDistSq = d3;
+          bestI = i;
+          bestJ = j;
+          bestMode = 3;
+        }
+      }
+    }
+
+    if (bestMode >= 0) {
+      std::vector<int> &c1 = openChains[bestI];
+      std::vector<int> c2 = openChains[bestJ];
+
+      if (bestMode == 0) {
+        c1.insert(c1.end(), c2.begin(), c2.end());
+      } else if (bestMode == 1) {
+        std::reverse(c2.begin(), c2.end());
+        c1.insert(c1.end(), c2.begin(), c2.end());
+      } else if (bestMode == 2) {
+        c2.insert(c2.end(), c1.begin(), c1.end());
+        c1 = c2;
+      } else if (bestMode == 3) {
+        std::reverse(c2.begin(), c2.end());
+        c2.insert(c2.end(), c1.begin(), c1.end());
+        c1 = c2;
+      }
+
+      openChains.erase(openChains.begin() + bestJ);
+      mergedAny = true;
+
+      if (c1.size() >= 3 &&
+          _vecDistSq(positions[c1.front()], positions[c1.back()]) <=
+              weldTolSq) {
+        closedLoops.push_back(c1);
+        openChains.erase(openChains.begin() + bestI);
+      }
+    }
+  }
+
+  // Step 5: Select the longest continuous contour
+  double maxLen = -1.0;
+  std::vector<int> bestSequence;
+  bool isBestClosed = false;
+
+  auto computeLoopLength = [&](const std::vector<int> &seq,
+                               bool isLoop) -> double {
+    double total = 0.0;
+    const int n = static_cast<int>(seq.size());
+    for (int k = 0; k + 1 < n; k++) {
+      total += _vecSub(positions[seq[k + 1]], positions[seq[k]]).length();
+    }
+    if (isLoop && n > 2) {
+      total += _vecSub(positions[seq.front()], positions[seq.back()]).length();
+    }
+    return total;
+  };
+
+  for (const auto &loop : closedLoops) {
+    double len = computeLoopLength(loop, true);
+    if (len > maxLen) {
+      maxLen = len;
+      bestSequence = loop;
+      isBestClosed = true;
+    }
+  }
+
+  if (bestSequence.empty()) {
+    for (const auto &chain : openChains) {
+      double len = computeLoopLength(chain, false);
+      if (len > maxLen) {
+        maxLen = len;
+        bestSequence = chain;
+        isBestClosed = false;
+      }
+    }
+  }
+
+  if (bestSequence.size() < 3) {
+    if (outReason) {
+      std::ostringstream oss;
+      oss << "No valid contour sequence extracted (openChains="
+          << openChains.size() << ", closedLoops=" << closedLoops.size() << ")";
+      *outReason = oss.str();
+    }
+    return false;
+  }
+
+  sequence = bestSequence;
+  closed = isBestClosed;
+  return true;
+}
+
+ZSPACE_INLINE void zTsPrintSyn::detectFeatureAngles(
+    const zPointArray &positions, const std::vector<int> &sequence,
+    float angleThresholdDeg, std::vector<int> &outFeatureFlags) {
+  const int N = static_cast<int>(sequence.size());
+  outFeatureFlags.assign(N, 0);
+  if (N < 3)
+    return;
+
+  const double thresholdRad =
+      static_cast<double>(angleThresholdDeg) * (3.14159265358979323846 / 180.0);
+
+  for (int i = 0; i < N; i++) {
+    int prevId = sequence[(i - 1 + N) % N];
+    int curId = sequence[i];
+    int nextId = sequence[(i + 1) % N];
+
+    zVector v0 = _vecSub(positions[prevId], positions[curId]);
+    zVector v1 = _vecSub(positions[nextId], positions[curId]);
+    const double len0 = v0.length();
+    const double len1 = v1.length();
+    if (len0 < 1e-6 || len1 < 1e-6)
+      continue;
+
+    double cosTheta = _vecDot(v0, v1) / (len0 * len1);
+    cosTheta = (std::max)(-1.0, (std::min)(1.0, cosTheta));
+    const double angleRad = std::acos(cosTheta);
+
+    if (angleRad < thresholdRad) {
+      outFeatureFlags[i] = 1;
+    }
+  }
+}
+
+ZSPACE_INLINE void zTsPrintSyn::resampleContourWithWeights(
+    const zPointArray &positions, const zFloatArray &weights,
+    const std::vector<int> &sequence, const std::vector<int> &featureFlags,
+    bool closed, float sampleLength, zPointArray &outPoints,
+    zFloatArray &outWeights, zIntArray &outEdges) {
+  outPoints.clear();
+  outWeights.clear();
+  outEdges.clear();
+
+  const int N = static_cast<int>(sequence.size());
+  if (N < 2 || sampleLength <= 1e-6f)
+    return;
+
+  auto appendPoint = [&](const zPoint &p, float w) {
+    if (!outPoints.empty()) {
+      zVector d = _vecSub(p, outPoints.back());
+      if (d.length() < 1e-5)
+        return;
+    }
+    outPoints.push_back(p);
+    outWeights.push_back(w);
+  };
+
+  const int numSegments = closed ? N : (N - 1);
+  for (int seg = 0; seg < numSegments; seg++) {
+    int i0 = sequence[seg];
+    int i1 = sequence[(seg + 1) % N];
+    const zPoint &p0 = positions[i0];
+    const zPoint &p1 = positions[i1];
+    float w0 = (i0 < static_cast<int>(weights.size())) ? weights[i0] : 0.04f;
+    float w1 = (i1 < static_cast<int>(weights.size())) ? weights[i1] : 0.04f;
+
+    zVector segVec = _vecSub(p1, p0);
+    const double segLen = segVec.length();
+
+    appendPoint(p0, w0);
+
+    if (segLen > sampleLength) {
+      int steps = static_cast<int>(std::floor(segLen / sampleLength));
+      for (int s = 1; s <= steps; s++) {
+        double t = static_cast<double>(s * sampleLength) / segLen;
+        if (t >= 1.0 - 1e-4)
+          break;
+        zPoint interpP(p0.x + t * segVec.x, p0.y + t * segVec.y,
+                       p0.z + t * segVec.z);
+        float interpW = static_cast<float>(w0 + t * (w1 - w0));
+        appendPoint(interpP, interpW);
+      }
+    }
+  }
+
+  if (!closed && N > 0) {
+    int lastId = sequence[N - 1];
+    float lastW =
+        (lastId < static_cast<int>(weights.size())) ? weights[lastId] : 0.04f;
+    appendPoint(positions[lastId], lastW);
+  }
+
+  const int numPts = static_cast<int>(outPoints.size());
+  if (numPts >= 2) {
+    for (int i = 0; i + 1 < numPts; i++) {
+      outEdges.push_back(i);
+      outEdges.push_back(i + 1);
+    }
+    if (closed && numPts >= 3) {
+      zVector d = _vecSub(outPoints.back(), outPoints.front());
+      if (d.length() < 1e-4) {
+        outPoints.pop_back();
+        outWeights.pop_back();
+        outEdges.pop_back();
+        outEdges.pop_back();
+      }
+      const int finalN = static_cast<int>(outPoints.size());
+      if (finalN >= 3) {
+        outEdges.push_back(finalN - 1);
+        outEdges.push_back(0);
+      }
+    }
+  }
+}
+
+ZSPACE_INLINE void zTsPrintSyn::filterWidthGlitches(zFloatArray &widths,
+                                                   bool closed) {
+  const int n = static_cast<int>(widths.size());
+  if (n <= 2)
+    return;
+  for (int i = 0; i < n; i++) {
+    int prevId = (i == 0) ? (closed ? n - 1 : 0) : i - 1;
+    int nextId = (i == n - 1) ? (closed ? 0 : n - 1) : i + 1;
+    if (prevId == i || nextId == i)
+      continue;
+    float prevWidth = widths[prevId];
+    float currentWidth = widths[i];
+    float nextWidth = widths[nextId];
+    if (prevWidth <= 0.0f || nextWidth <= 0.0f)
+      continue;
+    if (std::fabs(prevWidth - nextWidth) > 0.001f)
+      continue;
+    if (std::fabs(currentWidth - prevWidth) <= 0.001f)
+      continue;
+    widths[i] = prevWidth;
+  }
+}
+
+//----------------------------------------------------------------------
+// High-Level Layer Processing Methods
+//----------------------------------------------------------------------
+
+ZSPACE_INLINE bool zTsPrintSyn::processLayer(zObjGraph &ioGraph,
+                                             zFloatArray &ioWeights,
+                                             float sampleLength,
+                                             float featureAngleThreshold) {
+  zFnGraph fnRaw(ioGraph);
+  if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
+    return false;
+
+  std::vector<int> sequence;
+  bool closed = false;
+  std::string failReason;
+  const double dynWeldTol =
+      (std::max)(0.08, static_cast<double>(sampleLength * 0.5));
+  if (!buildClosedContourSequence(ioGraph, sequence, closed, &failReason,
+                                  dynWeldTol) ||
+      sequence.size() < 3) {
+    return false;
+  }
+
+  zPointArray rawPositions;
+  fnRaw.getVertexPositions(rawPositions);
+
+  std::vector<int> featureFlags;
+  detectFeatureAngles(rawPositions, sequence, featureAngleThreshold,
+                      featureFlags);
+
+  zPointArray sampledPoints;
+  zFloatArray sampledWeights;
+  zIntArray sampledEdges;
+  resampleContourWithWeights(rawPositions, ioWeights, sequence, featureFlags,
+                             closed, sampleLength, sampledPoints, sampledWeights,
+                             sampledEdges);
+
+  if (sampledPoints.size() < 3 || sampledEdges.size() < 4)
+    return false;
+
+  filterWidthGlitches(sampledWeights, closed);
+
+  fnRaw.clear();
+  fnRaw.create(sampledPoints, sampledEdges);
+  ioWeights = sampledWeights;
+  return true;
+}
+
+ZSPACE_INLINE bool zTsPrintSyn::processAllLayers(
+    std::vector<zObjGraph> &ioGraphs, std::vector<zFloatArray> &ioWeights,
+    float sampleLength, float featureAngleThreshold) {
+  const int totalLayers = int(ioGraphs.size());
+  if (totalLayers == 0) {
+    m_Status = "failed: No 2D contours available.";
+    printError("[zTsPrintSyn] " + m_Status);
+    return false;
+  }
+
+  const float actualSampleLength =
+      (sampleLength > 1e-4f) ? sampleLength : 0.005f;
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    zFloatArray &weights = (l < int(ioWeights.size())) ? ioWeights[l]
+                                                       : ioWeights.emplace_back();
+    processLayer(ioGraphs[l], weights, actualSampleLength,
+                 featureAngleThreshold);
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Post-processed " << totalLayers << " layers in " << std::fixed
+      << std::setprecision(2) << wallTotalMs << " ms (sampleLen="
+      << actualSampleLength << "mm)";
+  m_Status = out.str();
+  printSuccess("[zTsPrintSyn] " + m_Status);
+  return true;
+}
+
+ZSPACE_INLINE bool zTsPrintSyn::processPath(PrintPath &ioPath,
+                                             float sampleLength,
+                                             float featureAngleThreshold) {
+  return processLayer(ioPath.graph, ioPath.widths, sampleLength,
+                      featureAngleThreshold);
+}
+
+ZSPACE_INLINE bool zTsPrintSyn::processAllPaths(
+    std::vector<PrintPath> &ioPaths, float sampleLength,
+    float featureAngleThreshold) {
+  const int totalLayers = int(ioPaths.size());
+  if (totalLayers == 0) {
+    m_Status = "failed: No print paths available.";
+    printError("[zTsPrintSyn] " + m_Status);
+    return false;
+  }
+
+  const float actualSampleLength =
+      (sampleLength > 1e-4f) ? sampleLength : 0.005f;
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    processPath(ioPaths[l], actualSampleLength, featureAngleThreshold);
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Post-processed " << totalLayers << " print paths in " << std::fixed
+      << std::setprecision(2) << wallTotalMs << " ms (sampleLen="
+      << actualSampleLength << "mm)";
+  m_Status = out.str();
+  printSuccess("[zTsPrintSyn] " + m_Status);
+  return true;
+}
+
+} // namespace zSpace
