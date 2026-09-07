@@ -204,11 +204,13 @@ void generateColorPalette(int numColors, std::vector<zColor> &outColors,
                           unsigned int seed = 1337, float saturation = 0.85f,
                           float lightness = 0.50f);
 
-//---- Field-Mesh Coloring: Continuous Gradient Interpolated Between the
-//---- Value Range's Two End Colors
+//---- Field-Mesh Coloring: Continuous Gradient Interpolated Between a Given
+//---- Start and End Color, by Each Value's Position in the [min, max] Range
 
-void colorPathField(const zScalarArray &values, std::vector<zColor> &outColors);
-void colorPathField(zObjMesh &mesh, const zScalarArray &values);
+void colorField(const zScalarArray &values, const zColor &startColor,
+                const zColor &endColor, std::vector<zColor> &outColors);
+void colorField(zObjMesh &mesh, const zScalarArray &values,
+                const zColor &startColor, const zColor &endColor);
 
 //---- Field-Mesh Coloring: Discrete Lookup by Index Into a Generated Color
 //---- List (one distinct color per unique value)
