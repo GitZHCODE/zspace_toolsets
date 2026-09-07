@@ -186,6 +186,48 @@ bool barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
                                   const zFloatArray *vertexHeights = nullptr,
                                   zFloatArray *mappedHeights = nullptr);
 
+//--------------------------
+//---- FIELD-MESH COLORING & OBJ EXPORT UTILITIES
+//--------------------------
+// Shared coloring/export building blocks, currently used by zTsSDFSlicer's
+// exportToOBJ; kept here (rather than owned by zTsSDFSlicer) since they take
+// no dependency on any engine's internal state and are equally usable by any
+// future toolset. Declared here, defined in zTsUtils_Export.cpp.
+
+//---- Color Format Conversion
+
+zColor hslToRgb(float h, float s, float l);
+
+//---- Distinct Shuffled Color Palette Generator
+
+void generateColorPalette(int numColors, std::vector<zColor> &outColors,
+                          unsigned int seed = 1337, float saturation = 0.85f,
+                          float lightness = 0.50f);
+
+//---- Field-Mesh Coloring: Continuous Gradient Interpolated Between the
+//---- Value Range's Two End Colors
+
+void colorPathField(const zScalarArray &values, std::vector<zColor> &outColors);
+void colorPathField(zObjMesh &mesh, const zScalarArray &values);
+
+//---- Field-Mesh Coloring: Discrete Lookup by Index Into a Generated Color
+//---- List (one distinct color per unique value)
+
+void colorWidthField(const zScalarArray &values, std::vector<zColor> &outColors);
+void colorWidthField(zObjMesh &mesh, const zScalarArray &values);
+
+//---- Generic Multi-Object Wavefront OBJ Exporters
+
+bool exportMeshesToMultiOBJ(const zObjMeshArray &meshes,
+                            const std::string &filePath);
+bool exportGraphsToMultiOBJ(const zObjGraphArray &graphs,
+                            const std::string &filePath,
+                            const std::string &objectPrefix = "layer_");
+bool exportColoredMeshesToMultiOBJ(
+    const zObjMesh &baseMesh,
+    const std::vector<std::vector<zColor>> &layerColors,
+    const std::string &filePath, const std::string &objectPrefix = "layer_");
+
 } // namespace zTsUtils
 
 /** @}*/
@@ -200,6 +242,7 @@ bool barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
 #else
 // clang-format off
 #include <source/zToolsets/slicer/zTsUtils.cpp>
+#include <source/zToolsets/slicer/zTsUtils_Export.cpp>
 // clang-format on
 #endif
 

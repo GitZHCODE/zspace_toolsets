@@ -296,6 +296,9 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsUtils.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsUtils_Export.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Structure.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
