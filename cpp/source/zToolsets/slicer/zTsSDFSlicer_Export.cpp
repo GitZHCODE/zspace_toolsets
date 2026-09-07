@@ -30,45 +30,6 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
-//---- SCALAR FIELD COLORING METHODS (zTsSDFSlicer)
-//---- Thin forwarders onto the generic implementations in zTsUtils (see
-//---- zTsUtils_Export.cpp), kept here so existing callers of
-//---- zTsSDFSlicer::colorPathField/colorWidthField/... keep working.
-
-ZSPACE_INLINE void
-zTsSDFSlicer::colorPathField(const zScalarArray &values,
-                             std::vector<zColor> &outColors) {
-  zTsUtils::colorPathField(values, outColors);
-}
-
-ZSPACE_INLINE void zTsSDFSlicer::colorPathField(zObjMesh &mesh,
-                                                const zScalarArray &values) {
-  zTsUtils::colorPathField(mesh, values);
-}
-
-ZSPACE_INLINE zColor zTsSDFSlicer::hslToRgb(float h, float s, float l) {
-  return zTsUtils::hslToRgb(h, s, l);
-}
-
-ZSPACE_INLINE void
-zTsSDFSlicer::generateColorPalette(int numColors, std::vector<zColor> &outColors,
-                                   unsigned int seed, float saturation,
-                                   float lightness) {
-  zTsUtils::generateColorPalette(numColors, outColors, seed, saturation,
-                                 lightness);
-}
-
-ZSPACE_INLINE void
-zTsSDFSlicer::colorWidthField(const zScalarArray &values,
-                              std::vector<zColor> &outColors) {
-  zTsUtils::colorWidthField(values, outColors);
-}
-
-ZSPACE_INLINE void zTsSDFSlicer::colorWidthField(zObjMesh &mesh,
-                                                 const zScalarArray &values) {
-  zTsUtils::colorWidthField(mesh, values);
-}
-
 //---- GEOMETRY HELPERS
 
 ZSPACE_INLINE void zTsSDFSlicer::translateMesh(zObjMesh &mesh,

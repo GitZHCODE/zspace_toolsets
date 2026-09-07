@@ -388,49 +388,10 @@ public:
    */
   bool exportToOBJ(const std::string &directoryPath = "");
 
-  /*! \brief Computes vertex colors for a scalar field mesh based on path SDF scalar values.
-   *
-   *	\param[in,out]		mesh		- target mesh whose vertex colors are updated.
-   *	\param[in]			values		- scalar values per vertex.
-   */
-  static void colorPathField(zObjMesh &mesh, const zScalarArray &values);
-
-  /*! \brief Computes vertex color array based on path SDF scalar values.
-   *
-   *	\param[in]			values		- scalar values per vertex.
-   *	\param[out]			outColors	- output vertex colors.
-   */
-  static void colorPathField(const zScalarArray &values, std::vector<zColor> &outColors);
-
-  /*! \brief Computes discrete vertex colors for a width field mesh grouped by unique path width values.
-   *
-   *	\param[in,out]		mesh		- target mesh whose vertex colors are updated.
-   *	\param[in]			values		- width scalar values per vertex.
-   */
-  static void colorWidthField(zObjMesh &mesh, const zScalarArray &values);
-
-  /*! \brief Converts HSL color values (H in degrees [0, 360), S in [0, 1], L in [0, 1]) to zColor RGB. */
-  static zColor hslToRgb(float h, float s, float l);
-
-  /*! \brief Generates a distinct shuffled HSL color palette for K categories.
-   *
-   *	\param[in]			numColors		- number of distinct categories (K).
-   *	\param[out]			outColors		- generated color palette.
-   *	\param[in]			seed			- random seed for shuffling (default 1337).
-   *	\param[in]			saturation		- HSL saturation (default 0.85).
-   *	\param[in]			lightness		- HSL lightness (default 0.50).
-   */
-  static void generateColorPalette(int numColors, std::vector<zColor> &outColors,
-                                   unsigned int seed = 1337,
-                                   float saturation = 0.85f,
-                                   float lightness = 0.50f);
-
-  /*! \brief Computes discrete vertex color array grouped by unique path width values.
-   *
-   *	\param[in]			values		- width scalar values per vertex.
-   *	\param[out]			outColors	- output vertex colors.
-   */
-  static void colorWidthField(const zScalarArray &values, std::vector<zColor> &outColors);
+  // NOTE: color/palette helpers (colorPathField, colorWidthField, hslToRgb,
+  // generateColorPalette) are not members of zTsSDFSlicer - they are generic
+  // utilities that don't depend on any slicer state. Call them via
+  // zTsUtils::... (declared in zTsUtils.h) instead.
 
   /*! \brief Builds 3D extruded rectangular pipe mesh for a specific toolpath layer.
    *
