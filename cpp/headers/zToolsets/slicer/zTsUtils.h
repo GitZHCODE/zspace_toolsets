@@ -59,8 +59,8 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
 //--------------------------
 
 /*! \struct SlicerSettings
- *	\brief Configuration settings for geodesic slicing and SDF field/toolpath
- * generation. Consumed only by zTsSDFSlicer.
+ *	\brief Configuration settings for geodesic slicing and SDF
+ * field/toolpath generation. Consumed only by zTsSDFSlicer.
  */
 struct SlicerSettings {
   int cornerStartVertexId = 21;
@@ -94,18 +94,17 @@ struct PostProcessSettings {
       90.0f; // geometric feature corner angle threshold (deg)
 };
 
-/*! \struct MeshBarycentricGraph
+/*! \struct BracingGraph
  *	\brief Universal graph representation parameterized by 2D/3D mesh face
  * barycentric coordinates.
  */
-struct MeshBarycentricGraph {
+struct BracingGraph {
   struct Vertex {
     int v0, v1, v2; // Triangle 3 vertex indices
     float u, v, w;  // Barycentric coordinate weights
   };
 
-  std::vector<Vertex> vertices; // Parameterized vertices array (contiguous
-                                // cache-friendly layout)
+  std::vector<Vertex> vertices; // Parameterized vertices array
   zIntArray edgeConnects; // Edge topology connectivity [e0_v0, e0_v1, e1_v0,
                           // e1_v1, ...]
 
@@ -117,9 +116,11 @@ struct MeshBarycentricGraph {
 };
 
 /*! \struct PrintPath
- *	\brief Encapsulates a complete printing toolpath including its graph, line widths, layer heights, and normals.
- *	\details Shared exchange type between zTsSDFSlicer (produces raw 2D/3D paths) and
- *           zTsPrintSyn (cleans up and resamples paths); neither engine class depends on the other.
+ *	\brief Encapsulates a complete printing toolpath including its graph,
+ * line widths, layer heights, and normals.
+ *	\details Shared exchange type between zTsSDFSlicer (produces raw 2D/3D
+ * paths) and zTsPrintSyn (cleans up and resamples paths); neither engine class
+ * depends on the other.
  */
 struct PrintPath {
   zObjGraph graph;
@@ -168,19 +169,18 @@ void combineGraphObjects(const zObjGraphArray &sources, zObjGraph &outGraph);
 bool samplePolyline(const zPoint *positions, const zScalar *scalars,
                     size_t count, double t, zPoint &outPoint,
                     zVector *outTangent = nullptr);
-bool samplePolyline(const zObjGraph &polylineGraph,
-                    const zScalarArray &scalars, double t, zPoint &outPoint,
-                    zVector *outTangent = nullptr);
+bool samplePolyline(const zObjGraph &polylineGraph, const zScalarArray &scalars,
+                    double t, zPoint &outPoint, zVector *outTangent = nullptr);
 
 //---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
 
 bool parameterizeGraphOnMesh(const zObjGraph &inGraph, zObjMesh &inMesh,
-                             MeshBarycentricGraph &outParams);
+                             BracingGraph &outParams);
 
 //---- Universal Barycentric Mesh Graph Reconstructor
 
 bool reconstructGraphFromBarycentricParams(
-    const MeshBarycentricGraph &inParams, zObjMesh &targetMesh,
+    const BracingGraph &inParams, zObjMesh &targetMesh,
     zObjGraph &outGraph, zVectorArray *outNormals = nullptr,
     const zFloatArray *vertexScalars = nullptr,
     zFloatArray *outHeights = nullptr);

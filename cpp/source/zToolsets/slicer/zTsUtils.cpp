@@ -180,7 +180,7 @@ ZSPACE_INLINE bool samplePolyline(const zObjGraph &polylineGraph,
 
 ZSPACE_INLINE bool parameterizeGraphOnMesh(const zObjGraph &inGraph,
                                            zObjMesh &inMesh,
-                                           MeshBarycentricGraph &outParams) {
+                                           BracingGraph &outParams) {
   outParams.clear();
   zFnGraph fnGraph(const_cast<zObjGraph &>(inGraph));
   zPointArray graphPositions;
@@ -317,7 +317,7 @@ ZSPACE_INLINE bool parameterizeGraphOnMesh(const zObjGraph &inGraph,
 //---- Universal Barycentric Mesh Graph Reconstructor
 
 ZSPACE_INLINE bool reconstructGraphFromBarycentricParams(
-    const MeshBarycentricGraph &inParams, zObjMesh &targetMesh,
+    const BracingGraph &inParams, zObjMesh &targetMesh,
     zObjGraph &outGraph, zVectorArray *outNormals,
     const zFloatArray *vertexScalars, zFloatArray *outHeights) {
   if (inParams.empty())
@@ -394,7 +394,7 @@ barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
                              zVectorArray *mappedNormals,
                              const zFloatArray *vertexHeights,
                              zFloatArray *mappedHeights) {
-  MeshBarycentricGraph tempParams;
+  BracingGraph tempParams;
   if (!parameterizeGraphOnMesh(graph, inMesh2D, tempParams))
     return false;
   return reconstructGraphFromBarycentricParams(tempParams, projectionMesh3D,

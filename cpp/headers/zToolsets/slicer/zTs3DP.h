@@ -333,7 +333,7 @@ public:
   inline const std::vector<int> &getBoundarySplitIndices() const {
     return m_Slicer.getBoundarySplitIndices();
   }
-  inline const MeshBarycentricGraph &getBracingParams() const {
+  inline const BracingGraph &getBracingParams() const {
     return m_Slicer.getBracingParams();
   }
 };

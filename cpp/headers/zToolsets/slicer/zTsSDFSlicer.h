@@ -49,14 +49,14 @@ namespace zSpace {
  *  @{
  */
 
-// NOTE: SlicerSettings, MeshBarycentricGraph and PrintPath are shared types
+// NOTE: SlicerSettings, BracingGraph and PrintPath are shared types
 // declared in zTsUtils.h so that zTsSDFSlicer and zTsPrintSyn can both use
 // them without depending on each other.
 
 /*! \class zTsSDFSlicer
  *	\brief A toolset for SDF based geodesic slicing and bracing generation.
  *	\details Fully decoupled from zTsPrintSyn: it only produces/consumes
- *           PrintPath and MeshBarycentricGraph data (declared in zTsUtils.h),
+ *           PrintPath and BracingGraph data (declared in zTsUtils.h),
  *           and never includes zTsPrintSyn.h.
  */
 class ZSPACE_TOOLSETS zTsSDFSlicer {
@@ -119,7 +119,7 @@ protected:
 
   /*!	\brief mesh barycentric parameterized bracing parameters (2D/3D
    * mesh-based)  */
-  MeshBarycentricGraph m_BracingParams;
+  BracingGraph m_BracingParams;
 
   /*!	\brief status string message  */
   std::string m_Status;
@@ -323,7 +323,7 @@ public:
   const std::vector<int> &getBoundarySplitIndices() const {
     return m_BoundarySplitIndices;
   }
-  const MeshBarycentricGraph &getBracingParams() const {
+  const BracingGraph &getBracingParams() const {
     return m_BracingParams;
   }
 
