@@ -46,7 +46,13 @@ namespace zSpace {
 typedef std::vector<zObjMesh> zObjMeshArray;
 typedef std::vector<zObjGraph> zObjGraphArray;
 typedef std::vector<zObjGraph *> zObjGraphPointerArray;
-typedef std::vector<zObjMeshScalarField> zObjMeshScalarFieldArray;
+// NOTE: zObjMeshScalarFieldArray is intentionally not declared here. This
+// header does not include zObjMeshField.h (nothing in the shared-utils layer
+// needs zObjMeshScalarField), so redeclaring the typedef against an
+// undeclared type here fails to compile, and once zObjMeshField.h's own
+// `using zObjMeshScalarFieldArray = ...` is later seen (via zTsSDFSlicer.h),
+// MSVC reports it as a redefinition with a mismatched type. Consumers that
+// need the array type should include zObjMeshField.h directly.
 
 //--------------------------
 //---- COMMON DATA STRUCTURES
