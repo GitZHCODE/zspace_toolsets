@@ -49,6 +49,7 @@ protected:
   zObjMesh m_InputMesh;
   zObjGraph m_BracingGraph;
   SlicerSettings m_Settings;
+  PostProcessSettings m_PostProcessSettings;
 
   //---- Sub-modules
   zTsSDFSlicer m_Slicer;
@@ -87,6 +88,11 @@ public:
     m_Settings = settings;
     m_Slicer.setSettings(settings);
     m_Status = "Settings updated";
+  }
+
+  inline void setPostProcessSettings(const PostProcessSettings &settings) {
+    m_PostProcessSettings = settings;
+    m_Status = "Post-process settings updated";
   }
 
   //----------------------------------------------------------------------
@@ -129,8 +135,8 @@ public:
     }
     // Modify PrintPaths through zTsPrintSyn without linking slicer directly
     bool success = m_PrintSyn.processAllPaths(
-        m_2DPrintPaths, m_Settings.postSampleLength,
-        m_Settings.postFeatureAngleThreshold);
+        m_2DPrintPaths, m_PostProcessSettings.sampleLength,
+        m_PostProcessSettings.featureAngleThreshold);
     m_Status = m_PrintSyn.getStatus();
     if (!success)
       return false;
@@ -183,6 +189,13 @@ public:
 
   inline SlicerSettings &getSettings() { return m_Settings; }
   inline const SlicerSettings &getSettings() const { return m_Settings; }
+
+  inline PostProcessSettings &getPostProcessSettings() {
+    return m_PostProcessSettings;
+  }
+  inline const PostProcessSettings &getPostProcessSettings() const {
+    return m_PostProcessSettings;
+  }
 
   inline zTsSDFSlicer &getSlicer() { return m_Slicer; }
   inline const zTsSDFSlicer &getSlicer() const { return m_Slicer; }

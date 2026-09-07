@@ -59,8 +59,8 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
 //--------------------------
 
 /*! \struct SlicerSettings
- *	\brief Configuration settings for geodesic slicing, SDF field and
- * toolpath generation. Shared between zTsSDFSlicer and zTs3DP.
+ *	\brief Configuration settings for geodesic slicing and SDF field/toolpath
+ * generation. Consumed only by zTsSDFSlicer.
  */
 struct SlicerSettings {
   int cornerStartVertexId = 21;
@@ -82,10 +82,16 @@ struct SlicerSettings {
 
   float fieldBoundingScale = 1.05f;
   float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
-  // 2D Toolpath Post-Processing Settings
-  float postSampleLength = 0.15f;
-  float postFeatureAngleThreshold =
-      90.0f; // 2D toolpath geometric feature corner angle threshold (deg)
+};
+
+/*! \struct PostProcessSettings
+ *	\brief Configuration settings for 2D toolpath cleanup and resampling.
+ * Consumed only by zTsPrintSyn.
+ */
+struct PostProcessSettings {
+  float sampleLength = 0.15f; // arc-length resampling step (mm)
+  float featureAngleThreshold =
+      90.0f; // geometric feature corner angle threshold (deg)
 };
 
 /*! \struct MeshBarycentricGraph
