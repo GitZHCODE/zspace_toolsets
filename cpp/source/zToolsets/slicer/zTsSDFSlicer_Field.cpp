@@ -822,8 +822,8 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
 #pragma omp for schedule(dynamic)
     for (int l = 0; l < totalLayers; l++) {
       std::vector<zObjGraph> boundarySegments;
-      zTsSDFSlicer::segmentGraph(_2DSectionGraphs[l], m_BoundarySplitIndices,
-                                 boundarySegments);
+      zTsUtils::segmentGraph(_2DSectionGraphs[l], m_BoundarySplitIndices,
+                            boundarySegments);
 
       zObjGraph flatBracingGraph;
       bool hasValidBracing = false;

@@ -240,6 +240,19 @@ bool exportColoredMeshToOBJ(
     const std::vector<std::vector<zColor>> &layerColors,
     const std::string &filePath, const std::string &objectPrefix = "layer_");
 
+//---- Generic Mesh/Graph Transform & Segmentation
+
+/*! \brief Generic 3D translation for all vertex positions of a mesh. */
+void translateMesh(zObjMesh &mesh, const zVector &offset);
+
+/*! \brief Generic 3D translation for all vertex positions of a graph. */
+void translateGraph(zObjGraph &graph, const zVector &offset);
+
+/*! \brief Segments a graph at specified split vertex indices. If no indices are provided, outputs original graph. */
+bool segmentGraph(const zObjGraph &sourceBoundaryGraph,
+                  const std::vector<int> &splitIndices,
+                  std::vector<zObjGraph> &outBoundarySegments);
+
 } // namespace zTsUtils
 
 /** @}*/

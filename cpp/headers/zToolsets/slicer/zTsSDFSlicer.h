@@ -400,16 +400,10 @@ public:
    */
   void drawPathMesh(int layerIdx, zObjMesh &outMesh) const;
 
-  /*! \brief Generic 3D translation for all vertex positions of a mesh. */
-  static void translateMesh(zObjMesh &mesh, const zVector &offset);
-
-  /*! \brief Generic 3D translation for all vertex positions of a graph. */
-  static void translateGraph(zObjGraph &graph, const zVector &offset);
-
-  /*! \brief Segments a graph at specified split vertex indices. If no indices are provided, outputs original graph. */
-  static bool segmentGraph(const zObjGraph &sourceBoundaryGraph,
-                           const std::vector<int> &splitIndices,
-                           std::vector<zObjGraph> &outBoundarySegments);
+  // NOTE: translateMesh, translateGraph, and segmentGraph are not members of
+  // zTsSDFSlicer - they are generic geometry utilities that don't depend on
+  // any slicer state. Call them via zTsUtils::... (declared in zTsUtils.h)
+  // instead.
 };
 
 /** @}*/
