@@ -220,77 +220,11 @@ public:
   inline zObjGraph &getBracingGraph() { return m_BracingGraph; }
   inline const zObjGraph &getBracingGraph() const { return m_BracingGraph; }
 
-  inline zObjMesh &getUMesh() { return m_Slicer.getUMesh(); }
-  inline const zObjMesh &getUMesh() const { return m_Slicer.getUMesh(); }
-  inline zObjGraph &getULoop() { return m_Slicer.getULoop(); }
-  inline const zObjGraph &getULoop() const { return m_Slicer.getULoop(); }
-
-  inline zObjGraphArray &getVLoops() { return m_Slicer.getVLoops(); }
-  inline const zObjGraphArray &getVLoops() const { return m_Slicer.getVLoops(); }
-
-  inline zObjMeshArray &getSectionMeshes() {
-    return m_Slicer.getSectionMeshes();
-  }
-  inline const zObjMeshArray &getSectionMeshes() const {
-    return m_Slicer.getSectionMeshes();
-  }
-  inline zObjGraphArray &getSectionGraphs() {
-    return m_Slicer.getSectionGraphs();
-  }
-  inline const zObjGraphArray &getSectionGraphs() const {
-    return m_Slicer.getSectionGraphs();
-  }
-  inline zObjGraphArray &getBracingGraphs() {
-    return m_Slicer.getBracingGraphs();
-  }
-  inline const zObjGraphArray &getBracingGraphs() const {
-    return m_Slicer.getBracingGraphs();
-  }
-
-  inline zObjMeshArray &get2DSectionMeshes() {
-    return m_Slicer.get2DSectionMeshes();
-  }
-  inline const zObjMeshArray &get2DSectionMeshes() const {
-    return m_Slicer.get2DSectionMeshes();
-  }
-  inline zObjGraphArray &get2DSectionGraphs() {
-    return m_Slicer.get2DSectionGraphs();
-  }
-  inline const zObjGraphArray &get2DSectionGraphs() const {
-    return m_Slicer.get2DSectionGraphs();
-  }
-  inline zObjGraphArray &get2DBracingGraphs() {
-    return m_Slicer.get2DBracingGraphs();
-  }
-  inline const zObjGraphArray &get2DBracingGraphs() const {
-    return m_Slicer.get2DBracingGraphs();
-  }
-
-  inline zObjMeshScalarField &getScalarField() {
-    return m_Slicer.getScalarField();
-  }
-  inline const zObjMeshScalarField &getScalarField() const {
-    return m_Slicer.getScalarField();
-  }
-
-  inline std::vector<zScalarArray> &getPathFields() {
-    return m_Slicer.getPathFields();
-  }
-  inline const std::vector<zScalarArray> &getPathFields() const {
-    return m_Slicer.getPathFields();
-  }
-  inline std::vector<zScalarArray> &getWidthFields() {
-    return m_Slicer.getWidthFields();
-  }
-  inline const std::vector<zScalarArray> &getWidthFields() const {
-    return m_Slicer.getWidthFields();
-  }
-  inline zObjGraphArray &getTrimSlotGraphs() {
-    return m_Slicer.getTrimSlotGraphs();
-  }
-  inline const zObjGraphArray &getTrimSlotGraphs() const {
-    return m_Slicer.getTrimSlotGraphs();
-  }
+  // NOTE: geometry/field outputs (U-mesh, V-loops, section meshes/graphs,
+  // 2D-unrolled counterparts, scalar field, path/width fields, trim slot
+  // graphs, boundary split indices, bracing params) are not forwarded here -
+  // access them via getSlicer().getXxx() instead, to avoid maintaining the
+  // same set of getters in two places.
 
   // NOTE: per-layer 2D/3D toolpath data is exposed via get2DPrintPaths()/
   // get3DPrintPaths() above (this class's own m_2DPrintPaths/m_3DPrintPaths,
@@ -298,12 +232,6 @@ public:
   // getSlicer().get2DPrintPaths()/get3DPrintPaths(), which hold the slicer's
   // raw, pre-cleanup paths.
 
-  inline const std::vector<int> &getBoundarySplitIndices() const {
-    return m_Slicer.getBoundarySplitIndices();
-  }
-  inline const BracingGraph &getBracingParams() const {
-    return m_Slicer.getBracingParams();
-  }
 };
 
 /** @}*/
