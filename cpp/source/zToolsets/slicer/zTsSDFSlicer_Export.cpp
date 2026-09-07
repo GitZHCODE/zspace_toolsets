@@ -34,23 +34,16 @@ using namespace zTsUtils;
 //---- Thin forwarders onto the generic implementations in zTsUtils (see
 //---- zTsUtils_Export.cpp), kept here so existing callers of
 //---- zTsSDFSlicer::colorPathField/colorWidthField/... keep working.
-//---- colorPathField forwards to zTsUtils::colorField with a fixed
-//---- purple -> yellow gradient (its own start/end colors are not exposed
-//---- as parameters, to preserve the existing 2-argument public API).
 
 ZSPACE_INLINE void
 zTsSDFSlicer::colorPathField(const zScalarArray &values,
                              std::vector<zColor> &outColors) {
-  static const zColor kStartColor(0.45f, 0.10f, 0.85f, 1.0f); // purple
-  static const zColor kEndColor(1.00f, 0.85f, 0.15f, 1.0f);   // yellow
-  zTsUtils::colorField(values, kStartColor, kEndColor, outColors);
+  zTsUtils::colorPathField(values, outColors);
 }
 
 ZSPACE_INLINE void zTsSDFSlicer::colorPathField(zObjMesh &mesh,
                                                 const zScalarArray &values) {
-  static const zColor kStartColor(0.45f, 0.10f, 0.85f, 1.0f); // purple
-  static const zColor kEndColor(1.00f, 0.85f, 0.15f, 1.0f);   // yellow
-  zTsUtils::colorField(mesh, values, kStartColor, kEndColor);
+  zTsUtils::colorPathField(mesh, values);
 }
 
 ZSPACE_INLINE zColor zTsSDFSlicer::hslToRgb(float h, float s, float l) {
@@ -394,12 +387,9 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
 
   // 6. 2D Colored Path Fields
   if (!pathFields.empty() && zFnMesh(m_ScalarField).numVertices() > 0) {
-    const zColor pathFieldStartColor(0.45f, 0.10f, 0.85f, 1.0f); // purple
-    const zColor pathFieldEndColor(1.00f, 0.85f, 0.15f, 1.0f);   // yellow
     std::vector<std::vector<zColor>> layerColors(pathFields.size());
     for (size_t l = 0; l < pathFields.size(); l++)
-      zTsUtils::colorField(pathFields[l], pathFieldStartColor,
-                           pathFieldEndColor, layerColors[l]);
+      zTsUtils::colorPathField(pathFields[l], layerColors[l]);
 
     std::string path = dir + "/path_fields.obj";
     if (zTsUtils::exportColoredMeshesToMultiOBJ(m_ScalarField, layerColors, path,

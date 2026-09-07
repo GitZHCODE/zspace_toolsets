@@ -90,51 +90,63 @@ ZSPACE_INLINE void generateColorPalette(int numColors,
   }
 }
 
-//---- Field-Mesh Coloring: Continuous Gradient Interpolation
+//---- Field-Mesh Coloring: Positive Values Solid, Negative Values a Gradient
 
-ZSPACE_INLINE void colorField(const zScalarArray &values,
-                              const zColor &startColor, const zColor &endColor,
-                              std::vector<zColor> &outColors) {
+ZSPACE_INLINE void colorPathField(const zScalarArray &values,
+                                  std::vector<zColor> &outColors,
+                                  const zColor &positiveColor,
+                                  const zColor &negativeColorNearZero,
+                                  const zColor &negativeColorAtMin) {
   const int n = static_cast<int>(values.size());
   outColors.resize(n);
   if (n == 0)
     return;
 
   double minVal = (std::numeric_limits<double>::max)();
-  double maxVal = -(std::numeric_limits<double>::max)();
-
   for (double value : values) {
     if (std::isfinite(value)) {
       minVal = (std::min)(minVal, value);
-      maxVal = (std::max)(maxVal, value);
     }
   }
 
-  const double range = maxVal - minVal;
+  const zColor gray(220.0f / 255.0f, 220.0f / 255.0f, 220.0f / 255.0f, 1.0f);
 
   for (int i = 0; i < n; i++) {
     const double value = values[i];
-    double t = (std::isfinite(value) && range > 1e-6)
-                   ? ((value - minVal) / range)
-                   : 0.5;
-    t = (std::max)(0.0, (std::min)(1.0, t));
-    outColors[i] =
-        zColor(float(startColor.r + (endColor.r - startColor.r) * t),
-               float(startColor.g + (endColor.g - startColor.g) * t),
-               float(startColor.b + (endColor.b - startColor.b) * t), 1.0f);
+    if (!std::isfinite(value)) {
+      outColors[i] = gray;
+      continue;
+    }
+
+    if (value < 0.0 && minVal < 0.0) {
+      double t = value / minVal; // 0 at zero, 1 at the most negative value
+      t = (std::max)(0.0, (std::min)(1.0, t));
+      outColors[i] = zColor(
+          float(negativeColorNearZero.r +
+                (negativeColorAtMin.r - negativeColorNearZero.r) * t),
+          float(negativeColorNearZero.g +
+                (negativeColorAtMin.g - negativeColorNearZero.g) * t),
+          float(negativeColorNearZero.b +
+                (negativeColorAtMin.b - negativeColorNearZero.b) * t),
+          1.0f);
+    } else {
+      outColors[i] = positiveColor;
+    }
   }
 }
 
-ZSPACE_INLINE void colorField(zObjMesh &mesh, const zScalarArray &values,
-                              const zColor &startColor,
-                              const zColor &endColor) {
+ZSPACE_INLINE void colorPathField(zObjMesh &mesh, const zScalarArray &values,
+                                  const zColor &positiveColor,
+                                  const zColor &negativeColorNearZero,
+                                  const zColor &negativeColorAtMin) {
   zFnMesh fnMesh(mesh);
   zColor *colors = fnMesh.getRawVertexColors();
   if (!colors)
     return;
 
   std::vector<zColor> computedColors;
-  colorField(values, startColor, endColor, computedColors);
+  colorPathField(values, computedColors, positiveColor, negativeColorNearZero,
+                 negativeColorAtMin);
 
   const int count =
       (std::min)(fnMesh.numVertices(), static_cast<int>(computedColors.size()));

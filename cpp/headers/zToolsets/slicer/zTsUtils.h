@@ -204,13 +204,23 @@ void generateColorPalette(int numColors, std::vector<zColor> &outColors,
                           unsigned int seed = 1337, float saturation = 0.85f,
                           float lightness = 0.50f);
 
-//---- Field-Mesh Coloring: Continuous Gradient Interpolated Between a Given
-//---- Start and End Color, by Each Value's Position in the [min, max] Range
+//---- Field-Mesh Coloring: Positive Values Solid, Negative Values a
+//---- Gradient Between Two Input Colors (near-zero -> most-negative)
 
-void colorField(const zScalarArray &values, const zColor &startColor,
-                const zColor &endColor, std::vector<zColor> &outColors);
-void colorField(zObjMesh &mesh, const zScalarArray &values,
-                const zColor &startColor, const zColor &endColor);
+void colorPathField(
+    const zScalarArray &values, std::vector<zColor> &outColors,
+    const zColor &positiveColor = zColor(1.0f, 1.0f, 1.0f, 1.0f),
+    const zColor &negativeColorNearZero = zColor(0.0f, 40.0f / 255.0f,
+                                                 240.0f / 255.0f, 1.0f),
+    const zColor &negativeColorAtMin = zColor(180.0f / 255.0f, 200.0f / 255.0f,
+                                              1.0f, 1.0f));
+void colorPathField(
+    zObjMesh &mesh, const zScalarArray &values,
+    const zColor &positiveColor = zColor(1.0f, 1.0f, 1.0f, 1.0f),
+    const zColor &negativeColorNearZero = zColor(0.0f, 40.0f / 255.0f,
+                                                 240.0f / 255.0f, 1.0f),
+    const zColor &negativeColorAtMin = zColor(180.0f / 255.0f, 200.0f / 255.0f,
+                                              1.0f, 1.0f));
 
 //---- Field-Mesh Coloring: Discrete Lookup by Index Into a Generated Color
 //---- List (one distinct color per unique value)
