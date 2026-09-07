@@ -578,42 +578,6 @@ ZSPACE_INLINE bool zTsPrintSyn::processLayer(zObjGraph &ioGraph,
   return true;
 }
 
-ZSPACE_INLINE bool zTsPrintSyn::processAllLayers(
-    std::vector<zObjGraph> &ioGraphs, std::vector<zFloatArray> &ioWeights,
-    float sampleLength, float featureAngleThreshold) {
-  const int totalLayers = int(ioGraphs.size());
-  if (totalLayers == 0) {
-    m_Status = "failed: No 2D contours available.";
-    printError("[zTsPrintSyn] " + m_Status);
-    return false;
-  }
-
-  const float actualSampleLength =
-      (sampleLength > 1e-4f) ? sampleLength : 0.005f;
-
-  const auto wallStart = std::chrono::high_resolution_clock::now();
-
-#pragma omp parallel for schedule(dynamic)
-  for (int l = 0; l < totalLayers; l++) {
-    zFloatArray &weights = (l < int(ioWeights.size())) ? ioWeights[l]
-                                                       : ioWeights.emplace_back();
-    processLayer(ioGraphs[l], weights, actualSampleLength,
-                 featureAngleThreshold);
-  }
-
-  const auto wallEnd = std::chrono::high_resolution_clock::now();
-  const double wallTotalMs =
-      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
-
-  std::ostringstream out;
-  out << "Post-processed " << totalLayers << " layers in " << std::fixed
-      << std::setprecision(2) << wallTotalMs << " ms (sampleLen="
-      << actualSampleLength << "mm)";
-  m_Status = out.str();
-  printSuccess("[zTsPrintSyn] " + m_Status);
-  return true;
-}
-
 ZSPACE_INLINE bool zTsPrintSyn::processPath(PrintPath &ioPath,
                                              float sampleLength,
                                              float featureAngleThreshold) {

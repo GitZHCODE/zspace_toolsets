@@ -82,19 +82,6 @@ public:
                     float sampleLength = 0.005f,
                     float featureAngleThreshold = 120.0f);
 
-  /*! \brief Processes all layers' 2D contour graphs in parallel.
-   *
-   *	\param[in,out]		ioGraphs				- array of 2D contour graphs.
-   *	\param[in,out]		ioWeights				- array of per-layer vertex line width weights.
-   *	\param[in]			sampleLength			- arc-length resampling step in mm (default 0.005).
-   *	\param[in]			featureAngleThreshold	- feature corner angle threshold in deg (default 120.0).
-   *	\return				bool					- true if successfully processed.
-   */
-  bool processAllLayers(std::vector<zObjGraph> &ioGraphs,
-                        std::vector<zFloatArray> &ioWeights,
-                        float sampleLength = 0.005f,
-                        float featureAngleThreshold = 120.0f);
-
   /*! \brief Prunes spurs, welds gaps, and extracts continuous ordered loop/chain sequence. */
   static bool buildClosedContourSequence(const zObjGraph &graph,
                                          std::vector<int> &sequence,

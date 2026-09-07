@@ -31,10 +31,7 @@
 
 #include <iostream>
 #include <mutex>
-#include <nlohmann/json.hpp>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace zSpace {
@@ -84,9 +81,6 @@ protected:
   //--------------------------
   //---- PROTECTED ATTRIBUTES
   //--------------------------
-
-  /*!	\brief core utilities Object  */
-  zUtilsCore coreUtils;
 
   //---- INPUTS (i_)
   /*!	\brief pointer to input mesh Object  */
@@ -191,15 +185,8 @@ public:
   const SlicerSettings &getSettings() const { return i_Settings; }
   SlicerSettings &getSettings() { return i_Settings; }
 
-  /*! \brief Sets target square cell size for SDF field meshes. */
-  void setFieldCellSize(float cellSize) {
-    i_Settings.fieldCellSize = (cellSize > 1e-6f) ? cellSize : 0.05f;
-  }
-  float getFieldCellSize() const { return i_Settings.fieldCellSize; }
-
   /*! \brief Sets input mesh object. */
   void setInputMesh(zObjMesh &inMesh) { i_InputMesh = &inMesh; }
-  inline void setSliceMesh(zObjMesh &inMesh) { setInputMesh(inMesh); }
 
   /*! \brief Sets input bracing graph object. */
   void setBracingGraph(zObjGraph &inGraph) { i_BracingGraph = &inGraph; }
@@ -217,13 +204,10 @@ public:
 
   /*! \brief Returns total computed layer count. */
   int getLayerCount() const { return int(sectionMeshes.size()); }
-  inline int getNumSections() const { return getLayerCount(); }
 
   /*! \brief Returns input mesh object. */
   zObjMesh &getInputMesh() { return *i_InputMesh; }
   const zObjMesh &getInputMesh() const { return *i_InputMesh; }
-  inline zObjMesh &getSliceMesh() { return getInputMesh(); }
-  inline const zObjMesh &getSliceMesh() const { return getInputMesh(); }
 
   /*! \brief Returns bottom U-mesh and U-loop graph. */
   zObjMesh &getUMesh() { return m_UMesh; }
@@ -268,18 +252,6 @@ public:
   /*! \brief Returns intermediate reusable 2D scalar field operator. */
   zObjMeshScalarField &getScalarField() { return m_ScalarField; }
   const zObjMeshScalarField &getScalarField() const { return m_ScalarField; }
-  inline zObjMeshScalarField &getFieldOperator() { return m_ScalarField; }
-  inline const zObjMeshScalarField &getFieldOperator() const {
-    return m_ScalarField;
-  }
-  inline zObjMeshScalarField &getPathFieldOperator() { return m_ScalarField; }
-  inline const zObjMeshScalarField &getPathFieldOperator() const {
-    return m_ScalarField;
-  }
-  inline zObjMeshScalarField &getWidthFieldOperator() { return m_ScalarField; }
-  inline const zObjMeshScalarField &getWidthFieldOperator() const {
-    return m_ScalarField;
-  }
 
   /*! \brief Returns 2D trim slot graphs. */
   zObjGraphArray &getTrimSlotGraphs() { return trimSlotGraphs; }
