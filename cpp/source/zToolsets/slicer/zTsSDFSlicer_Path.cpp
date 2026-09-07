@@ -48,14 +48,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computePath() {
 
 ZSPACE_INLINE bool zTsSDFSlicer::extract2DPrintPaths(
     std::vector<PrintPath> &outPaths) const {
-  const size_t totalLayers = _2DContourGraphs.size();
-  outPaths.resize(totalLayers);
-  for (size_t l = 0; l < totalLayers; l++) {
-    outPaths[l].graph = _2DContourGraphs[l];
-    if (l < contourWeights.size()) {
-      outPaths[l].widths = contourWeights[l];
-    }
-  }
+  outPaths = _2DPrintPaths;
   return !outPaths.empty();
 }
 
@@ -71,10 +64,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::project2DPrintPathsTo3D(
   }
 
   out3DPaths.assign(totalLayers, PrintPath());
-  contourGraphs.assign(totalLayers, zObjGraph());
-  contourWeights.assign(totalLayers, zFloatArray());
-  contourHeights.assign(totalLayers, zFloatArray());
-  contourNormals.assign(totalLayers, zVectorArray());
+  _3DPrintPaths.assign(totalLayers, PrintPath());
 
   zFloatArray meshVertexHeights;
   if (!m_VScalar.empty() && totalLayers > 1) {
@@ -102,10 +92,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::project2DPrintPathsTo3D(
           &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
     }
 
-    contourGraphs[l] = out3DPaths[l].graph;
-    contourWeights[l] = out3DPaths[l].widths;
-    contourHeights[l] = out3DPaths[l].heights;
-    contourNormals[l] = out3DPaths[l].normals;
+    _3DPrintPaths[l] = out3DPaths[l];
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();

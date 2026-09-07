@@ -37,10 +37,11 @@ zTsSDFSlicer::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
   zFnMesh fnOut(outMesh);
   fnOut.clear();
 
-  if (layerIdx < 0 || layerIdx >= int(contourGraphs.size()))
+  if (layerIdx < 0 || layerIdx >= int(_3DPrintPaths.size()))
     return;
 
-  zFnGraph fnContour(const_cast<zObjGraph &>(contourGraphs[layerIdx]));
+  const PrintPath &path = _3DPrintPaths[layerIdx];
+  zFnGraph fnContour(const_cast<zObjGraph &>(path.graph));
   zPointArray points;
   zIntArray edges;
   fnContour.getVertexPositions(points);
@@ -58,15 +59,9 @@ zTsSDFSlicer::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
     }
   }
 
-  const zFloatArray *layerWeights =
-      (layerIdx < int(contourWeights.size())) ? &contourWeights[layerIdx]
-                                             : nullptr;
-  const zFloatArray *layerHeights =
-      (layerIdx < int(contourHeights.size())) ? &contourHeights[layerIdx]
-                                             : nullptr;
-  const zVectorArray *layerNormals =
-      (layerIdx < int(contourNormals.size())) ? &contourNormals[layerIdx]
-                                             : nullptr;
+  const zFloatArray *layerWeights = &path.widths;
+  const zFloatArray *layerHeights = &path.heights;
+  const zVectorArray *layerNormals = &path.normals;
 
   zPointArray meshPositions;
   zIntArray polyCounts;
@@ -226,9 +221,14 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
   }
 
   // 2. 3D Toolpath Graphs
-  if (!contourGraphs.empty()) {
+  if (!_3DPrintPaths.empty()) {
+    zObjGraphArray toolpathGraphs;
+    toolpathGraphs.reserve(_3DPrintPaths.size());
+    for (const auto &p : _3DPrintPaths)
+      toolpathGraphs.push_back(p.graph);
+
     std::string path = dir + "/toolpath_graphs.obj";
-    if (zTsUtils::exportGraphToOBJ(contourGraphs, path, "toolpath_layer_"))
+    if (zTsUtils::exportGraphToOBJ(toolpathGraphs, path, "toolpath_layer_"))
       exportedFiles.push_back("toolpath_graphs.obj");
   }
 
@@ -271,10 +271,14 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
   }
 
   // 7. 2D Toolpaths (If generated)
-  if (!_2DContourGraphs.empty()) {
+  if (!_2DPrintPaths.empty()) {
+    zObjGraphArray contourGraphs2D;
+    contourGraphs2D.reserve(_2DPrintPaths.size());
+    for (const auto &p : _2DPrintPaths)
+      contourGraphs2D.push_back(p.graph);
+
     std::string path = dir + "/2D_contour_graphs.obj";
-    if (zTsUtils::exportGraphToOBJ(_2DContourGraphs, path,
-                                         "2D_contour_layer_"))
+    if (zTsUtils::exportGraphToOBJ(contourGraphs2D, path, "2D_contour_layer_"))
       exportedFiles.push_back("2D_contour_graphs.obj");
   }
 

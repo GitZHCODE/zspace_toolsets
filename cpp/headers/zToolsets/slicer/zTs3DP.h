@@ -292,43 +292,11 @@ public:
     return m_Slicer.getTrimSlotGraphs();
   }
 
-  inline zObjGraphArray &get2DContourGraphs() {
-    return m_Slicer.get2DContourGraphs();
-  }
-  inline const zObjGraphArray &get2DContourGraphs() const {
-    return m_Slicer.get2DContourGraphs();
-  }
-  inline std::vector<zFloatArray> &getContourWeights() {
-    return m_Slicer.getContourWeights();
-  }
-  inline const std::vector<zFloatArray> &getContourWeights() const {
-    return m_Slicer.getContourWeights();
-  }
-  inline std::vector<zFloatArray> &get2DContourWeights() {
-    return getContourWeights();
-  }
-  inline const std::vector<zFloatArray> &get2DContourWeights() const {
-    return getContourWeights();
-  }
-
-  inline zObjGraphArray &getContourGraphs() {
-    return m_Slicer.getContourGraphs();
-  }
-  inline const zObjGraphArray &getContourGraphs() const {
-    return m_Slicer.getContourGraphs();
-  }
-  inline std::vector<zFloatArray> &getContourHeights() {
-    return m_Slicer.getContourHeights();
-  }
-  inline const std::vector<zFloatArray> &getContourHeights() const {
-    return m_Slicer.getContourHeights();
-  }
-  inline std::vector<zVectorArray> &getContourNormals() {
-    return m_Slicer.getContourNormals();
-  }
-  inline const std::vector<zVectorArray> &getContourNormals() const {
-    return m_Slicer.getContourNormals();
-  }
+  // NOTE: per-layer 2D/3D toolpath data is exposed via get2DPrintPaths()/
+  // get3DPrintPaths() above (this class's own m_2DPrintPaths/m_3DPrintPaths,
+  // which reflect the zTsPrintSyn-cleaned result) - not by reaching into
+  // getSlicer().get2DPrintPaths()/get3DPrintPaths(), which hold the slicer's
+  // raw, pre-cleanup paths.
 
   inline const std::vector<int> &getBoundarySplitIndices() const {
     return m_Slicer.getBoundarySplitIndices();

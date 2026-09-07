@@ -768,7 +768,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
   pathFields.clear();
   widthFields.clear();
   trimSlotGraphs.clear();
-  _2DContourGraphs.clear();
+  _2DPrintPaths.clear();
 
   const int totalLayers = int(_2DSectionMeshes.size());
   if (totalLayers == 0 || _2DSectionGraphs.empty()) {
@@ -781,8 +781,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
   pathFields.assign(totalLayers, zScalarArray());
   widthFields.assign(totalLayers, zScalarArray());
   trimSlotGraphs.assign(totalLayers, zObjGraph());
-  _2DContourGraphs.assign(totalLayers, zObjGraph());
-  contourWeights.assign(totalLayers, zFloatArray());
+  _2DPrintPaths.assign(totalLayers, PrintPath());
 
   const float printBracingWidth = i_Settings.printBracingWidth;
   const float printOverlapWidth = i_Settings.printOverlapWidth;
@@ -881,8 +880,8 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
       widthFields[l] = widthValues;
       trimSlotGraphs[l] = bracingSlotsGraph;
 
-      _getPathGraph(localField, pathValues, widthValues, _2DContourGraphs[l],
-                    contourWeights[l]);
+      _getPathGraph(localField, pathValues, widthValues,
+                    _2DPrintPaths[l].graph, _2DPrintPaths[l].widths);
     }
   }
 

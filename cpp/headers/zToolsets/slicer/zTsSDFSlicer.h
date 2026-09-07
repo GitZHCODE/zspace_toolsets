@@ -152,20 +152,13 @@ protected:
   /*!	\brief container of 2D trim slot graphs  */
   zObjGraphArray trimSlotGraphs;
 
-  /*!	\brief container of 2D flat isocontour toolpath graphs  */
-  zObjGraphArray _2DContourGraphs;
+  /*!	\brief container of 2D flat isocontour print paths (graph + per-vertex
+   * extrusion widths) per layer  */
+  std::vector<PrintPath> _2DPrintPaths;
 
-  /*!	\brief container of 2D/3D isocontour vertex widths per layer  */
-  std::vector<zFloatArray> contourWeights;
-
-  /*!	\brief container of 3D contour vertex layer heights per layer  */
-  std::vector<zFloatArray> contourHeights;
-
-  /*!	\brief container of 3D contour vertex normal vectors per layer  */
-  std::vector<zVectorArray> contourNormals;
-
-  /*!	\brief container of 3D projected contour/toolpath graphs  */
-  zObjGraphArray contourGraphs;
+  /*!	\brief container of 3D projected print paths (graph + per-vertex
+   * widths/heights/normals) per layer  */
+  std::vector<PrintPath> _3DPrintPaths;
 
 public:
   //--------------------------
@@ -288,36 +281,17 @@ public:
     return m_ScalarField;
   }
 
-  /*! \brief Returns 2D trim slot and isocontour toolpath graphs. */
+  /*! \brief Returns 2D trim slot graphs. */
   zObjGraphArray &getTrimSlotGraphs() { return trimSlotGraphs; }
   const zObjGraphArray &getTrimSlotGraphs() const { return trimSlotGraphs; }
-  zObjGraphArray &get2DContourGraphs() { return _2DContourGraphs; }
-  const zObjGraphArray &get2DContourGraphs() const { return _2DContourGraphs; }
 
-  /*! \brief Returns contour vertex line widths per layer. */
-  inline std::vector<zFloatArray> &get2DContourWeights() {
-    return getContourWeights();
-  }
-  inline const std::vector<zFloatArray> &get2DContourWeights() const {
-    return getContourWeights();
-  }
-  std::vector<zFloatArray> &getContourWeights() { return contourWeights; }
-  const std::vector<zFloatArray> &getContourWeights() const {
-    return contourWeights;
-  }
+  /*! \brief Returns 2D flat isocontour print paths (graph + per-vertex widths). */
+  std::vector<PrintPath> &get2DPrintPaths() { return _2DPrintPaths; }
+  const std::vector<PrintPath> &get2DPrintPaths() const { return _2DPrintPaths; }
 
-  /*! \brief Returns 3D contour heights, normals and projected toolpath graphs.
-   */
-  std::vector<zFloatArray> &getContourHeights() { return contourHeights; }
-  const std::vector<zFloatArray> &getContourHeights() const {
-    return contourHeights;
-  }
-  std::vector<zVectorArray> &getContourNormals() { return contourNormals; }
-  const std::vector<zVectorArray> &getContourNormals() const {
-    return contourNormals;
-  }
-  zObjGraphArray &getContourGraphs() { return contourGraphs; }
-  const zObjGraphArray &getContourGraphs() const { return contourGraphs; }
+  /*! \brief Returns 3D projected print paths (graph + per-vertex widths/heights/normals). */
+  std::vector<PrintPath> &get3DPrintPaths() { return _3DPrintPaths; }
+  const std::vector<PrintPath> &get3DPrintPaths() const { return _3DPrintPaths; }
 
   /*! \brief Returns corner split indices and bracing barycentric params. */
   const std::vector<int> &getBoundarySplitIndices() const {
