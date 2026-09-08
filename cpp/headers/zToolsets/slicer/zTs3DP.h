@@ -96,32 +96,17 @@ public:
   }
 
   //----------------------------------------------------------------------
-  // Pipeline Execution Methods
+  // Pipeline Execution Methods (3 steps: slicer -> print-syn -> project)
   //----------------------------------------------------------------------
-  inline bool computeBasicStructure() {
-    m_Slicer.setSettings(m_Settings);
-    bool success = m_Slicer.computeBasicStructure();
-    m_Status = m_Slicer.getStatus();
-    return success;
-  }
 
-  inline bool computeSlice() {
+  /*! \brief Runs the full zTsSDFSlicer geometry pipeline (structure, slice,
+   * unroll, field) and extracts the resulting raw 2D print paths into
+   * this class's own m_2DPrintPaths.
+   */
+  inline bool computeSlicer() {
     m_Slicer.setSettings(m_Settings);
-    bool success = m_Slicer.computeSlice();
-    m_Status = m_Slicer.getStatus();
-    return success;
-  }
-
-  inline bool computeUnroll() {
-    m_Slicer.setSettings(m_Settings);
-    bool success = m_Slicer.computeUnroll();
-    m_Status = m_Slicer.getStatus();
-    return success;
-  }
-
-  inline bool computeField() {
-    m_Slicer.setSettings(m_Settings);
-    bool success = m_Slicer.computeField();
+    bool success = m_Slicer.computeBasicStructure() && m_Slicer.computeSlice() &&
+                   m_Slicer.computeUnroll() && m_Slicer.computeField();
     m_Status = m_Slicer.getStatus();
     if (success) {
       m_Slicer.extract2DPrintPaths(m_2DPrintPaths);
@@ -129,23 +114,24 @@ public:
     return success;
   }
 
-  inline bool computePostProcess() {
+  /*! \brief Cleans up/resamples m_2DPrintPaths in place via zTsPrintSyn,
+   * without linking the slicer and print-syn engines directly.
+   */
+  inline bool computePrintSyn() {
     if (m_2DPrintPaths.empty()) {
       m_Slicer.extract2DPrintPaths(m_2DPrintPaths);
     }
-    // Modify PrintPaths through zTsPrintSyn without linking slicer directly
     bool success = m_PrintSyn.processAllPaths(
         m_2DPrintPaths, m_PostProcessSettings.sampleLength,
         m_PostProcessSettings.featureAngleThreshold);
     m_Status = m_PrintSyn.getStatus();
-    if (!success)
-      return false;
-
-    // Slicer re-maps the modified 2D PrintPaths back to 3D section meshes
-    return computePath();
+    return success;
   }
 
-  inline bool computePath() {
+  /*! \brief Projects the (post-processed) m_2DPrintPaths back onto the 3D
+   * section meshes, producing m_3DPrintPaths.
+   */
+  inline bool projectTo3D() {
     m_Slicer.setSettings(m_Settings);
     bool success =
         m_Slicer.project2DPrintPathsTo3D(m_2DPrintPaths, m_3DPrintPaths);
@@ -153,19 +139,15 @@ public:
     return success;
   }
 
-  /*! \brief Runs the complete 3D printing pipeline end-to-end. */
+  /*! \brief Runs the complete 3D printing pipeline end-to-end
+   * (computeSlicer -> computePrintSyn -> projectTo3D).
+   */
   inline bool computePipeline() {
-    if (!computeBasicStructure())
+    if (!computeSlicer())
       return false;
-    if (!computeSlice())
+    if (!computePrintSyn())
       return false;
-    if (!computeUnroll())
-      return false;
-    if (!computeField())
-      return false;
-    if (!computePostProcess())
-      return false;
-    if (!computePath())
+    if (!projectTo3D())
       return false;
     return true;
   }
