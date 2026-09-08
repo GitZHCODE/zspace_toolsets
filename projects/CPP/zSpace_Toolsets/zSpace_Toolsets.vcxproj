@@ -250,11 +250,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL_OV|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Path.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL_OV|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Draw.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_DLL_OV|x64'">false</ExcludedFromBuild>

@@ -308,9 +308,6 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Field.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Path.cpp">
-      <Filter>Source Files\Slicer</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Draw.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>

@@ -309,17 +309,6 @@ public:
    */
   bool computeField();
 
-  /*! \brief Finalizes/validates the 2D isocontour print paths produced by
-   * computeField() (see _2DPrintPaths). Does NOT project them to 3D -
-   * that is a separate explicit step (see projectPathsTo3D), so
-   * that 2D post-processing (e.g. zTsPrintSyn) can run in between without
-   * this step re-running a 3D projection on unchanged data.
-   *
-   *	\return				bool
-   *	- true if successful.
-   */
-  bool computePath();
-
   /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D graphs, heights, and normals. */
   bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,
                         std::vector<PrintPath> &out3DPaths);
@@ -366,7 +355,6 @@ public:
 #include <source/zToolsets/slicer/zTsSDFSlicer_Structure.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Unroll.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Field.cpp>
-#include <source/zToolsets/slicer/zTsSDFSlicer_Path.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Draw.cpp>
 // clang-format on
 #endif
