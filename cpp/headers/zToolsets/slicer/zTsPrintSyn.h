@@ -53,34 +53,37 @@ namespace zSpace {
  */
 class ZSPACE_TOOLSETS zTsPrintSyn {
 protected:
+  /*!	\brief toolpath cleanup/resampling configuration settings  */
+  PrintSynSetting i_Settings;
+
   std::string m_Status;
 
 public:
   zTsPrintSyn();
   ~zTsPrintSyn();
 
+  /*! \brief Sets toolpath cleanup/resampling configuration settings. */
+  void setSettings(const PrintSynSetting &inSettings) {
+    i_Settings = inSettings;
+  }
+  const PrintSynSetting &getSettings() const { return i_Settings; }
+  PrintSynSetting &getSettings() { return i_Settings; }
+
   const std::string &getStatus() const { return m_Status; }
 
   /*! \brief Processes a single PrintPath (cleans graph, resamples arc-length, filters width glitches). */
-  bool processPath(PrintPath &ioPath, float sampleLength = 0.005f,
-                   float featureAngleThreshold = 120.0f);
+  bool processPath(PrintPath &ioPath);
 
   /*! \brief Processes all PrintPaths in parallel. */
-  bool processAllPaths(std::vector<PrintPath> &ioPaths,
-                       float sampleLength = 0.005f,
-                       float featureAngleThreshold = 120.0f);
+  bool processAllPaths(std::vector<PrintPath> &ioPaths);
 
   /*! \brief Processes a single layer's 2D contour graph and vertex line widths.
    *
    *	\param[in,out]		ioGraph					- 2D contour graph to clean, sort and resample.
    *	\param[in,out]		ioWeights				- per-vertex extrusion line width weights.
-   *	\param[in]			sampleLength			- arc-length resampling step in mm (default 0.005).
-   *	\param[in]			featureAngleThreshold	- feature corner angle threshold in deg (default 120.0).
    *	\return				bool					- true if successfully processed.
    */
-  bool processLayer(zObjGraph &ioGraph, zFloatArray &ioWeights,
-                    float sampleLength = 0.005f,
-                    float featureAngleThreshold = 120.0f);
+  bool processLayer(zObjGraph &ioGraph, zFloatArray &ioWeights);
 
   /*! \brief Prunes spurs, welds gaps, and extracts continuous ordered loop/chain sequence. */
   static bool buildClosedContourSequence(const zObjGraph &graph,

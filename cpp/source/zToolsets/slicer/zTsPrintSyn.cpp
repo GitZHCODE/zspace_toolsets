@@ -522,12 +522,15 @@ ZSPACE_INLINE void zTsPrintSyn::filterWidthGlitches(zFloatArray &widths,
 //----------------------------------------------------------------------
 
 ZSPACE_INLINE bool zTsPrintSyn::processLayer(zObjGraph &ioGraph,
-                                             zFloatArray &ioWeights,
-                                             float sampleLength,
-                                             float featureAngleThreshold) {
+                                             zFloatArray &ioWeights) {
   zFnGraph fnRaw(ioGraph);
   if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
     return false;
+
+  const float sampleLength = (i_Settings.sampleLength > 1e-4f)
+                                 ? i_Settings.sampleLength
+                                 : 0.005f;
+  const float featureAngleThreshold = i_Settings.featureAngleThreshold;
 
   std::vector<int> sequence;
   bool closed = false;
@@ -565,16 +568,12 @@ ZSPACE_INLINE bool zTsPrintSyn::processLayer(zObjGraph &ioGraph,
   return true;
 }
 
-ZSPACE_INLINE bool zTsPrintSyn::processPath(PrintPath &ioPath,
-                                             float sampleLength,
-                                             float featureAngleThreshold) {
-  return processLayer(ioPath.graph, ioPath.widths, sampleLength,
-                      featureAngleThreshold);
+ZSPACE_INLINE bool zTsPrintSyn::processPath(PrintPath &ioPath) {
+  return processLayer(ioPath.graph, ioPath.widths);
 }
 
-ZSPACE_INLINE bool zTsPrintSyn::processAllPaths(
-    std::vector<PrintPath> &ioPaths, float sampleLength,
-    float featureAngleThreshold) {
+ZSPACE_INLINE bool
+zTsPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0) {
     m_Status = "failed: No print paths available.";
@@ -582,14 +581,11 @@ ZSPACE_INLINE bool zTsPrintSyn::processAllPaths(
     return false;
   }
 
-  const float actualSampleLength =
-      (sampleLength > 1e-4f) ? sampleLength : 0.005f;
-
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
-    processPath(ioPaths[l], actualSampleLength, featureAngleThreshold);
+    processPath(ioPaths[l]);
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
@@ -599,7 +595,7 @@ ZSPACE_INLINE bool zTsPrintSyn::processAllPaths(
   std::ostringstream out;
   out << "Post-processed " << totalLayers << " print paths in " << std::fixed
       << std::setprecision(2) << wallTotalMs << " ms (sampleLen="
-      << actualSampleLength << "mm)";
+      << i_Settings.sampleLength << "mm)";
   m_Status = out.str();
   printSuccess("[zTsPrintSyn] " + m_Status);
   return true;

@@ -33,7 +33,6 @@ namespace zSpace {
 ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   m_2DPrintPaths.clear();
   m_3DPrintPaths.clear();
-  m_Slicer.setSettings(m_Settings);
   bool success = m_Slicer.computeBasicStructure() && m_Slicer.computeSlice() &&
                  m_Slicer.computeUnroll() &&
                  m_Slicer.computeField(m_2DPrintPaths);
@@ -42,15 +41,12 @@ ZSPACE_INLINE bool zTs3DP::computeSlicer() {
 }
 
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
-  bool success = m_PrintSyn.processAllPaths(
-      m_2DPrintPaths, m_PrintSynSetting.sampleLength,
-      m_PrintSynSetting.featureAngleThreshold);
+  bool success = m_PrintSyn.processAllPaths(m_2DPrintPaths);
   m_Status = m_PrintSyn.getStatus();
   return success;
 }
 
 ZSPACE_INLINE bool zTs3DP::projectTo3D() {
-  m_Slicer.setSettings(m_Settings);
   bool success = m_Slicer.projectPathsTo3D(m_2DPrintPaths, m_3DPrintPaths);
   m_Status = m_Slicer.getStatus();
   return success;

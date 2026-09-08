@@ -47,8 +47,6 @@ protected:
   //---- Input Geometry and Settings
   zObjMesh m_InputMesh;
   zObjGraph m_BracingGraph;
-  SlicerSettings m_Settings;
-  PrintSynSetting m_PrintSynSetting;
 
   //---- Sub-modules
   zTsSDFSlicer m_Slicer;
@@ -84,13 +82,12 @@ public:
   }
 
   inline void setSettings(const SlicerSettings &settings) {
-    m_Settings = settings;
     m_Slicer.setSettings(settings);
     m_Status = "Settings updated";
   }
 
   inline void setPrintSynSetting(const PrintSynSetting &settings) {
-    m_PrintSynSetting = settings;
+    m_PrintSyn.setSettings(settings);
     m_Status = "Post-process settings updated";
   }
 
@@ -149,14 +146,16 @@ public:
   inline bool isLoaded() const { return m_Slicer.isLoaded(); }
   inline const std::string &getStatus() const { return m_Status; }
 
-  inline SlicerSettings &getSettings() { return m_Settings; }
-  inline const SlicerSettings &getSettings() const { return m_Settings; }
+  inline SlicerSettings &getSettings() { return m_Slicer.getSettings(); }
+  inline const SlicerSettings &getSettings() const {
+    return m_Slicer.getSettings();
+  }
 
   inline PrintSynSetting &getPrintSynSetting() {
-    return m_PrintSynSetting;
+    return m_PrintSyn.getSettings();
   }
   inline const PrintSynSetting &getPrintSynSetting() const {
-    return m_PrintSynSetting;
+    return m_PrintSyn.getSettings();
   }
 
   inline zTsSDFSlicer &getSlicer() { return m_Slicer; }
