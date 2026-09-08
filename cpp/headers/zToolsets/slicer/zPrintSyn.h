@@ -81,19 +81,16 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Processes a single PrintPath (cleans graph, resamples arc-length, filters width glitches). */
-  bool processPath(PrintPath &ioPath);
+  /*! \brief Processes a single PrintPath in place: cleans its graph, resamples
+   * by arc-length, and filters width glitches. Operates on ioPath.graph/
+   * .widths only - .heights/.normals are left untouched.
+   *	\param[in,out]		ioPath					- print path to clean and resample.
+   *	\return				bool					- true if successfully processed.
+   */
+  bool processLayer(PrintPath &ioPath);
 
   /*! \brief Processes all PrintPaths in parallel. */
   bool processAllPaths(std::vector<PrintPath> &ioPaths);
-
-  /*! \brief Processes a single layer's 2D contour graph and vertex line widths.
-   *
-   *	\param[in,out]		ioGraph					- 2D contour graph to clean, sort and resample.
-   *	\param[in,out]		ioWeights				- per-vertex extrusion line width weights.
-   *	\return				bool					- true if successfully processed.
-   */
-  bool processLayer(zObjGraph &ioGraph, zFloatArray &ioWeights);
 
   /*! \brief Prunes spurs, welds gaps, and extracts continuous ordered loop/chain sequence. */
   static bool buildClosedContourSequence(const zObjGraph &graph,

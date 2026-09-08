@@ -521,8 +521,10 @@ ZSPACE_INLINE void zPrintSyn::filterWidthGlitches(zFloatArray &widths,
 // High-Level Layer Processing Methods
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zPrintSyn::processLayer(zObjGraph &ioGraph,
-                                             zFloatArray &ioWeights) {
+ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
+  zObjGraph &ioGraph = ioPath.graph;
+  zFloatArray &ioWeights = ioPath.widths;
+
   zFnGraph fnRaw(ioGraph);
   if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
     return false;
@@ -568,10 +570,6 @@ ZSPACE_INLINE bool zPrintSyn::processLayer(zObjGraph &ioGraph,
   return true;
 }
 
-ZSPACE_INLINE bool zPrintSyn::processPath(PrintPath &ioPath) {
-  return processLayer(ioPath.graph, ioPath.widths);
-}
-
 ZSPACE_INLINE bool
 zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
   const int totalLayers = int(ioPaths.size());
@@ -585,7 +583,7 @@ zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
 
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
-    processPath(ioPaths[l]);
+    processLayer(ioPaths[l]);
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
