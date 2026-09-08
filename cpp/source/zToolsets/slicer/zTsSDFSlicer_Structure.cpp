@@ -388,7 +388,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeBasicStructure() {
 
   // Compute barycentric parameterization of bracingGraph on 3D base mesh
   if (i_BracingGraph) {
-    parameterizeGraphOnMesh(*i_BracingGraph, m_UMesh, m_BracingParams);
+    parameterizeGraph(*i_BracingGraph, m_UMesh, m_BracingParams);
   }
 
   return true;

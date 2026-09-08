@@ -178,7 +178,7 @@ ZSPACE_INLINE bool samplePolyline(const zObjGraph &polylineGraph,
 
 //---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
 
-ZSPACE_INLINE bool parameterizeGraphOnMesh(const zObjGraph &inGraph,
+ZSPACE_INLINE bool parameterizeGraph(const zObjGraph &inGraph,
                                            zObjMesh &inMesh,
                                            ParameterGraph &outParams) {
   outParams.clear();
@@ -391,7 +391,7 @@ barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
                              const zFloatArray *vertexHeights,
                              zFloatArray *mappedHeights) {
   ParameterGraph tempParams;
-  if (!parameterizeGraphOnMesh(graph, inMesh2D, tempParams))
+  if (!parameterizeGraph(graph, inMesh2D, tempParams))
     return false;
   return realizeParameterGraph(tempParams, projectionMesh3D,
                                                graph, mappedNormals,

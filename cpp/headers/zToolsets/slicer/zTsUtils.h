@@ -166,7 +166,7 @@ bool samplePolyline(const zObjGraph &polylineGraph, const zScalarArray &scalars,
 
 //---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
 
-bool parameterizeGraphOnMesh(const zObjGraph &inGraph, zObjMesh &inMesh,
+bool parameterizeGraph(const zObjGraph &inGraph, zObjMesh &inMesh,
                              ParameterGraph &outParams);
 
 //---- Universal Barycentric Mesh Graph Reconstructor
