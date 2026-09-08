@@ -55,12 +55,6 @@ ZSPACE_INLINE bool zTsSDFSlicer::computePath() {
   return true;
 }
 
-ZSPACE_INLINE bool zTsSDFSlicer::extract2DPrintPaths(
-    std::vector<PrintPath> &outPaths) const {
-  outPaths = _2DPrintPaths;
-  return !outPaths.empty();
-}
-
 //---- MAIN COMPUTE METHODS: STEP 5 (PROJECT 2D PRINT PATHS TO 3D)
 
 ZSPACE_INLINE bool zTsSDFSlicer::project2DPrintPathsTo3D(

@@ -109,7 +109,7 @@ public:
                    m_Slicer.computeUnroll() && m_Slicer.computeField();
     m_Status = m_Slicer.getStatus();
     if (success) {
-      m_Slicer.extract2DPrintPaths(m_2DPrintPaths);
+      m_2DPrintPaths = m_Slicer.get2DPrintPaths();
     }
     return success;
   }
@@ -119,7 +119,7 @@ public:
    */
   inline bool computePrintSyn() {
     if (m_2DPrintPaths.empty()) {
-      m_Slicer.extract2DPrintPaths(m_2DPrintPaths);
+      m_2DPrintPaths = m_Slicer.get2DPrintPaths();
     }
     bool success = m_PrintSyn.processAllPaths(
         m_2DPrintPaths, m_PostProcessSettings.sampleLength,

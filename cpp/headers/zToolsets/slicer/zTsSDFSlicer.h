@@ -320,9 +320,6 @@ public:
    */
   bool computePath();
 
-  /*! \brief Extracts raw 2D PrintPaths from 2D isocontour graphs and width weights. */
-  bool extract2DPrintPaths(std::vector<PrintPath> &outPaths) const;
-
   /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D graphs, heights, and normals. */
   bool project2DPrintPathsTo3D(const std::vector<PrintPath> &in2DPaths,
                                std::vector<PrintPath> &out3DPaths);
