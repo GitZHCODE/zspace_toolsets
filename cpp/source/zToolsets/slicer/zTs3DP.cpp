@@ -155,9 +155,9 @@ ZSPACE_INLINE void zTs3DP::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
       w = 0.20f;
     float h = (layerHeights && i < int(layerHeights->size()))
                   ? (*layerHeights)[i]
-                  : m_Settings.layerSpacing;
+                  : m_Slicer.getSettings().layerSpacing;
     if (h <= 1e-4f)
-      h = m_Settings.layerSpacing;
+      h = m_Slicer.getSettings().layerSpacing;
 
     // 5. Generate 4 corner vertices for rectangular cross section
     const float halfW = w * 0.5f;
