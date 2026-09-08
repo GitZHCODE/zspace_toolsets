@@ -69,8 +69,11 @@ protected:
   std::string m_Status;
 
 public:
-  zPrintSyn();
-  ~zPrintSyn();
+  /*! \brief Default constructor. */
+  zPrintSyn() { m_Status = "Initialized"; }
+
+  /*! \brief Default destructor. */
+  ~zPrintSyn() {}
 
   /*! \brief Sets toolpath cleanup/resampling configuration settings. */
   void setSettings(const PrintSynSetting &inSettings) {

@@ -39,14 +39,6 @@ namespace zSpace {
 using namespace zTsUtils;
 
 //----------------------------------------------------------------------
-// Constructors & Destructors
-//----------------------------------------------------------------------
-
-ZSPACE_INLINE zPrintSyn::zPrintSyn() { m_Status = "Initialized"; }
-
-ZSPACE_INLINE zPrintSyn::~zPrintSyn() {}
-
-//----------------------------------------------------------------------
 // Algorithm Implementations
 //----------------------------------------------------------------------
 
@@ -73,7 +65,8 @@ ZSPACE_INLINE bool zPrintSyn::buildClosedContourSequence(
     return false;
   }
 
-  // Step 1: Build undirected adjacency list, discard self-loops and duplicate edges
+  // Step 1: Build undirected adjacency list, discard self-loops and duplicate
+  // edges
   std::vector<std::vector<int>> adj(numV);
   std::unordered_set<unsigned long long> edgeSet;
   for (size_t e = 0; e + 1 < edgeConnects.size(); e += 2) {
@@ -319,8 +312,7 @@ ZSPACE_INLINE bool zPrintSyn::buildClosedContourSequence(
       mergedAny = true;
 
       if (c1.size() >= 3 &&
-          vecDistSq(positions[c1.front()], positions[c1.back()]) <=
-              weldTolSq) {
+          vecDistSq(positions[c1.front()], positions[c1.back()]) <= weldTolSq) {
         closedLoops.push_back(c1);
         openChains.erase(openChains.begin() + bestI);
       }
@@ -418,8 +410,8 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
     const zFloatArray &heights, const zVectorArray &normals,
     const std::vector<int> &sequence, const std::vector<int> &featureFlags,
     bool closed, float sampleLength, zPointArray &outPoints,
-    zFloatArray &outWeights, zFloatArray &outHeights,
-    zVectorArray &outNormals, zIntArray &outEdges) {
+    zFloatArray &outWeights, zFloatArray &outHeights, zVectorArray &outNormals,
+    zIntArray &outEdges) {
   outPoints.clear();
   outWeights.clear();
   outHeights.clear();
@@ -536,7 +528,7 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
 }
 
 ZSPACE_INLINE void zPrintSyn::filterWidthGlitches(zFloatArray &widths,
-                                                   bool closed) {
+                                                  bool closed) {
   const int n = static_cast<int>(widths.size());
   if (n <= 2)
     return;
@@ -572,9 +564,8 @@ ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
   if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
     return false;
 
-  const float sampleLength = (i_Settings.sampleLength > 1e-4f)
-                                 ? i_Settings.sampleLength
-                                 : 0.005f;
+  const float sampleLength =
+      (i_Settings.sampleLength > 1e-4f) ? i_Settings.sampleLength : 0.005f;
   const float featureAngleThreshold = i_Settings.featureAngleThreshold;
 
   std::vector<int> sequence;
@@ -618,8 +609,7 @@ ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
   return true;
 }
 
-ZSPACE_INLINE bool
-zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
+ZSPACE_INLINE bool zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0) {
     m_Status = "failed: No print paths available.";
@@ -640,8 +630,8 @@ zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
 
   std::ostringstream out;
   out << "Post-processed " << totalLayers << " print paths in " << std::fixed
-      << std::setprecision(2) << wallTotalMs << " ms (sampleLen="
-      << i_Settings.sampleLength << "mm)";
+      << std::setprecision(2) << wallTotalMs
+      << " ms (sampleLen=" << i_Settings.sampleLength << "mm)";
   m_Status = out.str();
   printSuccess("[zPrintSyn] " + m_Status);
   return true;
