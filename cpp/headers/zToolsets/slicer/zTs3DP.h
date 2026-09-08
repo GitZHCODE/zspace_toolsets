@@ -134,7 +134,7 @@ public:
   inline bool projectTo3D() {
     m_Slicer.setSettings(m_Settings);
     bool success =
-        m_Slicer.project2DPrintPathsTo3D(m_2DPrintPaths, m_3DPrintPaths);
+        m_Slicer.projectPathsTo3D(m_2DPrintPaths, m_3DPrintPaths);
     m_Status = m_Slicer.getStatus();
     return success;
   }

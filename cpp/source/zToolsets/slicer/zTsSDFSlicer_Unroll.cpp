@@ -256,4 +256,64 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
   return true;
 }
 
+//---- MAIN COMPUTE METHODS: STEP 5 (PROJECT 2D PRINT PATHS BACK TO 3D)
+//---- Paired with computeUnroll() above - unroll flattens 3D -> 2D, this
+//---- is the inverse mapping, 2D -> 3D, for the (possibly post-processed)
+//---- print paths.
+
+ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
+    const std::vector<PrintPath> &in2DPaths,
+    std::vector<PrintPath> &out3DPaths) {
+  const int totalLayers = int(in2DPaths.size());
+  if (totalLayers == 0 || _2DSectionMeshes.empty() || sectionMeshes.empty()) {
+    m_Status = "failed: No 2D print paths or section meshes available for "
+               "projection.";
+    printError("[projectPathsTo3D] " + m_Status);
+    return false;
+  }
+
+  out3DPaths.assign(totalLayers, PrintPath());
+  _3DPrintPaths.assign(totalLayers, PrintPath());
+
+  zFloatArray meshVertexHeights;
+  if (!m_VScalar.empty() && totalLayers > 1) {
+    meshVertexHeights.resize(m_VScalar.size());
+    const float denom = float(totalLayers - 1);
+    for (size_t k = 0; k < m_VScalar.size(); k++) {
+      meshVertexHeights[k] = (!m_VScalar[k].empty())
+                                 ? float(m_VScalar[k].back() / denom)
+                                 : i_Settings.layerSpacing;
+    }
+  }
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    out3DPaths[l].graph = in2DPaths[l].graph;
+    out3DPaths[l].widths = in2DPaths[l].widths;
+
+    zFnGraph fnContour(out3DPaths[l].graph);
+    if (fnContour.numVertices() > 0 && l < int(_2DSectionMeshes.size()) &&
+        l < int(sectionMeshes.size())) {
+      barycentricProjectionTriMesh(
+          out3DPaths[l].graph, _2DSectionMeshes[l], sectionMeshes[l],
+          &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
+    }
+
+    _3DPrintPaths[l] = out3DPaths[l];
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Projected " << out3DPaths.size() << " 3D PrintPaths in "
+      << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
+  m_Status = out.str();
+  printSuccess("[projectPathsTo3D] " + m_Status);
+  return true;
+}
+
 } // namespace zSpace

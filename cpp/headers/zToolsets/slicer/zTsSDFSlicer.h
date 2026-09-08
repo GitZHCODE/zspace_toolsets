@@ -311,7 +311,7 @@ public:
 
   /*! \brief Finalizes/validates the 2D isocontour print paths produced by
    * computeField() (see _2DPrintPaths). Does NOT project them to 3D -
-   * that is a separate explicit step (see project2DPrintPathsTo3D), so
+   * that is a separate explicit step (see projectPathsTo3D), so
    * that 2D post-processing (e.g. zTsPrintSyn) can run in between without
    * this step re-running a 3D projection on unchanged data.
    *
@@ -321,8 +321,8 @@ public:
   bool computePath();
 
   /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D graphs, heights, and normals. */
-  bool project2DPrintPathsTo3D(const std::vector<PrintPath> &in2DPaths,
-                               std::vector<PrintPath> &out3DPaths);
+  bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,
+                        std::vector<PrintPath> &out3DPaths);
 
   /*! \brief Exports each layer's section mesh and 3D toolpath graph to
    * directory in OBJ format.
