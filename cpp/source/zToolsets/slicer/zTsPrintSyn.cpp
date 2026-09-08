@@ -24,7 +24,6 @@
 #include <chrono>
 #include <cmath>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <sstream>
 #include <unordered_map>
@@ -38,18 +37,6 @@
 namespace zSpace {
 
 using namespace zTsUtils;
-
-namespace {
-
-inline void printError(const std::string &msg) {
-  std::cerr << "\033[1;31m" << msg << "\033[0m\n" << std::flush;
-}
-
-inline void printSuccess(const std::string &msg) {
-  std::cout << "\033[1;32m" << msg << "\033[0m\n" << std::flush;
-}
-
-} // anonymous namespace
 
 //----------------------------------------------------------------------
 // Constructors & Destructors
