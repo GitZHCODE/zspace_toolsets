@@ -33,17 +33,26 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
-//---- MAIN COMPUTE METHODS: STEP 5 (PROJECT 2D CONTOUR PATHS TO 3D)
+//---- MAIN COMPUTE METHODS: STEP 4 (FINALIZE 2D PRINT PATHS)
 
 ZSPACE_INLINE bool zTsSDFSlicer::computePath() {
-  std::vector<PrintPath> raw2DPaths;
-  if (!extract2DPrintPaths(raw2DPaths)) {
-    m_Status = "failed: No 2D contours available. Call computeField() first.";
+  // computeField() already produced _2DPrintPaths (isocontour graph +
+  // per-vertex widths per layer). This step only validates/exposes that
+  // result - projecting to 3D is a separate, explicit step
+  // (project2DPrintPathsTo3D) so that 2D post-processing can run on
+  // _2DPrintPaths in between without this step redoing a 3D projection on
+  // data that hasn't changed.
+  if (_2DPrintPaths.empty()) {
+    m_Status = "failed: No 2D print paths available. Call computeField() first.";
     printError("[computePath] " + m_Status);
     return false;
   }
-  std::vector<PrintPath> out3DPaths;
-  return project2DPrintPathsTo3D(raw2DPaths, out3DPaths);
+
+  std::ostringstream out;
+  out << "2D print paths ready: " << _2DPrintPaths.size() << " layers.";
+  m_Status = out.str();
+  printSuccess("[computePath] " + m_Status);
+  return true;
 }
 
 ZSPACE_INLINE bool zTsSDFSlicer::extract2DPrintPaths(
@@ -51,6 +60,8 @@ ZSPACE_INLINE bool zTsSDFSlicer::extract2DPrintPaths(
   outPaths = _2DPrintPaths;
   return !outPaths.empty();
 }
+
+//---- MAIN COMPUTE METHODS: STEP 5 (PROJECT 2D PRINT PATHS TO 3D)
 
 ZSPACE_INLINE bool zTsSDFSlicer::project2DPrintPathsTo3D(
     const std::vector<PrintPath> &in2DPaths,

@@ -309,8 +309,11 @@ public:
    */
   bool computeField();
 
-  /*! \brief Computes 2D isocontour toolpaths and projects them back to 3D
-   * section meshes.
+  /*! \brief Finalizes/validates the 2D isocontour print paths produced by
+   * computeField() (see _2DPrintPaths). Does NOT project them to 3D -
+   * that is a separate explicit step (see project2DPrintPathsTo3D), so
+   * that 2D post-processing (e.g. zTsPrintSyn) can run in between without
+   * this step re-running a 3D projection on unchanged data.
    *
    *	\return				bool
    *	- true if successful.
