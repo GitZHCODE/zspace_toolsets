@@ -109,8 +109,7 @@ ZSPACE_INLINE void zTs3DP::drawPathMesh(const PrintPath &path,
                         points[nextIdx].z - points[prevIdx].z);
     } else {
       if (i == 0) {
-        pathDir = zVector(points[1].x - points[0].x,
-                          points[1].y - points[0].y,
+        pathDir = zVector(points[1].x - points[0].x, points[1].y - points[0].y,
                           points[1].z - points[0].z);
       } else if (i == N - 1) {
         pathDir = zVector(points[N - 1].x - points[N - 2].x,
@@ -284,9 +283,8 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
       zTsUtils::colorWidthField(widthFields[l], layerColors[l]);
 
     std::string path = dir + "/width_fields.obj";
-    if (zTsUtils::exportColoredMeshToOBJ(m_Slicer.getScalarField(),
-                                         layerColors, path,
-                                         "width_field_layer_"))
+    if (zTsUtils::exportColoredMeshToOBJ(m_Slicer.getScalarField(), layerColors,
+                                         path, "width_field_layer_"))
       exportedFiles.push_back("width_fields.obj");
   }
 
@@ -299,9 +297,8 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
       zTsUtils::colorPathField(pathFields[l], layerColors[l]);
 
     std::string path = dir + "/path_fields.obj";
-    if (zTsUtils::exportColoredMeshToOBJ(m_Slicer.getScalarField(),
-                                         layerColors, path,
-                                         "path_field_layer_"))
+    if (zTsUtils::exportColoredMeshToOBJ(m_Slicer.getScalarField(), layerColors,
+                                         path, "path_field_layer_"))
       exportedFiles.push_back("path_fields.obj");
   }
 
@@ -313,8 +310,7 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
       contourGraphs2D.push_back(p.graph);
 
     std::string path = dir + "/2D_contour_graphs.obj";
-    if (zTsUtils::exportGraphToOBJ(contourGraphs2D, path,
-                                   "2D_contour_layer_"))
+    if (zTsUtils::exportGraphToOBJ(contourGraphs2D, path, "2D_contour_layer_"))
       exportedFiles.push_back("2D_contour_graphs.obj");
   }
 

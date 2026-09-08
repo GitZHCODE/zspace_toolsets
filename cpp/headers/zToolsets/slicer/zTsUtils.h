@@ -57,42 +57,9 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
 //--------------------------
 //---- COMMON DATA STRUCTURES
 //--------------------------
-
-/*! \struct SlicerSettings
- *	\brief Configuration settings for geodesic slicing and SDF
- * field/toolpath generation. Consumed only by zTsSDFSlicer.
- */
-struct SlicerSettings {
-  int cornerStartVertexId = 21;
-  float layerSpacing = 1.0f;
-  bool topoSplit = true;
-  bool angleSplit = true;
-  float geometricAngleThreshold = 90.0f; // degrees (corner angle < threshold)
-
-  // SDF & Toolpath Parameters
-  bool doublelayerboundary = false;
-  std::vector<float> printBoundaryWidth = {0.5f};
-  float printBracingWidth = 0.5f;
-  float printOverlapWidth = 0.0f;
-  float trimSlotStaggerEven = 0.5f;
-  float trimSlotStaggerOdd = 0.5f;
-  int boundaryTrimSegmentId = 1;
-  float boundaryTrimSlotRatioEven = 0.45f;
-  float boundaryTrimSlotRatioOdd = 0.55f;
-
-  float fieldBoundingScale = 1.05f;
-  float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
-};
-
-/*! \struct PrintSynSetting
- *	\brief Configuration settings for 2D toolpath cleanup and resampling.
- * Consumed only by zTsPrintSyn.
- */
-struct PrintSynSetting {
-  float sampleLength = 0.15f; // arc-length resampling step (mm)
-  float featureAngleThreshold =
-      90.0f; // geometric feature corner angle threshold (deg)
-};
+// NOTE: SlicerSettings and PrintSynSetting are NOT declared here - each
+// lives in its own consumer's header (zTsSDFSlicer.h / zTsPrintSyn.h
+// respectively), since neither is shared between the two engines.
 
 /*! \struct ParameterGraph
  *	\brief Universal graph representation parameterized by 2D/3D mesh face

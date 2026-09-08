@@ -44,6 +44,16 @@ namespace zSpace {
 // zTsSDFSlicer and zTsPrintSyn can both use it without depending on
 // each other.
 
+/*! \struct PrintSynSetting
+ *	\brief Configuration settings for 2D toolpath cleanup and resampling.
+ * Consumed only by zTsPrintSyn.
+ */
+struct PrintSynSetting {
+  float sampleLength = 0.15f; // arc-length resampling step (mm)
+  float featureAngleThreshold =
+      90.0f; // geometric feature corner angle threshold (deg)
+};
+
 /*! \class zTsPrintSyn
  *	\brief Toolpath synthesis, cleanup, corner preservation, uniform resampling, and width filtering engine.
  *	\details Fully decoupled from zTsSDFSlicer: it only depends on zTsUtils.h

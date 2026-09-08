@@ -44,6 +44,32 @@ namespace zSpace {
  *  @{
  */
 
+/*! \struct SlicerSettings
+ *	\brief Configuration settings for geodesic slicing and SDF
+ * field/toolpath generation. Consumed only by zTsSDFSlicer.
+ */
+struct SlicerSettings {
+  int cornerStartVertexId = 21;
+  float layerSpacing = 1.0f;
+  bool topoSplit = true;
+  bool angleSplit = true;
+  float geometricAngleThreshold = 90.0f; // degrees (corner angle < threshold)
+
+  // SDF & Toolpath Parameters
+  bool doublelayerboundary = false;
+  std::vector<float> printBoundaryWidth = {0.5f};
+  float printBracingWidth = 0.5f;
+  float printOverlapWidth = 0.0f;
+  float trimSlotStaggerEven = 0.5f;
+  float trimSlotStaggerOdd = 0.5f;
+  int boundaryTrimSegmentId = 1;
+  float boundaryTrimSlotRatioEven = 0.45f;
+  float boundaryTrimSlotRatioOdd = 0.55f;
+
+  float fieldBoundingScale = 1.05f;
+  float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
+};
+
 /*! \class zTsSDFSlicer
  *	\brief A toolset for SDF based geodesic slicing and bracing generation.
  *	\details Fully decoupled from zTsPrintSyn: it only produces/consumes

@@ -406,10 +406,11 @@ ZSPACE_INLINE bool realizeParameterGraph(const ParameterGraph &inParams,
 
 //---- Barycentric Mesh-to-Mesh Graph Projection
 
-ZSPACE_INLINE bool remapGraph(
-    zObjGraph &graph, zObjMesh &inMesh2D, zObjMesh &projectionMesh3D,
-    zVectorArray *mappedNormals, const zFloatArray *vertexHeights,
-    zFloatArray *mappedHeights) {
+ZSPACE_INLINE bool remapGraph(zObjGraph &graph, zObjMesh &inMesh2D,
+                              zObjMesh &projectionMesh3D,
+                              zVectorArray *mappedNormals,
+                              const zFloatArray *vertexHeights,
+                              zFloatArray *mappedHeights) {
   ParameterGraph tempParams;
   if (!parameterizeGraph(graph, inMesh2D, tempParams))
     return false;
