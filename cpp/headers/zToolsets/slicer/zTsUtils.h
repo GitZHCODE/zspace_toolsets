@@ -136,6 +136,11 @@ struct PrintPath {
 
 namespace zTsUtils {
 
+//---- Thread-Safe Console Logging
+
+void printSuccess(const std::string &msg);
+void printError(const std::string &msg);
+
 //---- Basic Vector Utilities
 
 zVector vecSub(const zPoint &a, const zPoint &b);

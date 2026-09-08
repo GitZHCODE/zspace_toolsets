@@ -22,12 +22,33 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <limits>
+#include <mutex>
 #include <utility>
 #include <vector>
 
 namespace zSpace {
 namespace zTsUtils {
+
+//---- Thread-Safe Console Logging
+
+namespace {
+std::mutex &_getConsoleLogMutex() {
+  static std::mutex mtx;
+  return mtx;
+}
+} // anonymous namespace
+
+ZSPACE_INLINE void printSuccess(const std::string &msg) {
+  std::lock_guard<std::mutex> lock(_getConsoleLogMutex());
+  std::cout << "\033[1;32m" << msg << "\033[0m\n" << std::flush;
+}
+
+ZSPACE_INLINE void printError(const std::string &msg) {
+  std::lock_guard<std::mutex> lock(_getConsoleLogMutex());
+  std::cerr << "\033[1;31m" << msg << "\033[0m\n" << std::flush;
+}
 
 //---- Basic Vector Utilities
 
