@@ -81,9 +81,11 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Processes a single PrintPath in place: cleans its graph, resamples
-   * by arc-length, and filters width glitches. Operates on ioPath.graph/
-   * .widths only - .heights/.normals are left untouched.
+  /*! \brief Processes a single PrintPath in place: cleans its graph,
+   * resamples by arc-length, and filters width glitches - carrying
+   * .widths/.heights/.normals through the resample together with .graph.
+   * Works for both 2D paths (.heights/.normals empty) and 3D paths (all
+   * four populated), since empty channels are simply skipped.
    *	\param[in,out]		ioPath					- print path to clean and resample.
    *	\return				bool					- true if successfully processed.
    */
@@ -106,15 +108,17 @@ public:
                                   float angleThresholdDeg,
                                   std::vector<int> &outFeatureFlags);
 
-  /*! \brief Performs uniform arc-length resampling preserving detected feature corners. */
-  static void resampleContourWithWeights(const zPointArray &positions,
-                                        const zFloatArray &weights,
-                                        const std::vector<int> &sequence,
-                                        const std::vector<int> &featureFlags,
-                                        bool closed, float sampleLength,
-                                        zPointArray &outPoints,
-                                        zFloatArray &outWeights,
-                                        zIntArray &outEdges);
+  /*! \brief Performs uniform arc-length resampling preserving detected
+   * feature corners, carrying widths/heights/normals along with positions.
+   * heights/normals may be passed empty (2D paths) - they are then skipped
+   * and outHeights/outNormals come back empty too. */
+  static void resampleContourWithWeights(
+      const zPointArray &positions, const zFloatArray &weights,
+      const zFloatArray &heights, const zVectorArray &normals,
+      const std::vector<int> &sequence, const std::vector<int> &featureFlags,
+      bool closed, float sampleLength, zPointArray &outPoints,
+      zFloatArray &outWeights, zFloatArray &outHeights,
+      zVectorArray &outNormals, zIntArray &outEdges);
 
   /*! \brief Filters out localized 1-vertex extrusion width glitches and noise. */
   static void filterWidthGlitches(zFloatArray &widths, bool closed);

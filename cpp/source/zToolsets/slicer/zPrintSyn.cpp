@@ -415,18 +415,26 @@ ZSPACE_INLINE void zPrintSyn::detectFeatureAngles(
 
 ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
     const zPointArray &positions, const zFloatArray &weights,
+    const zFloatArray &heights, const zVectorArray &normals,
     const std::vector<int> &sequence, const std::vector<int> &featureFlags,
     bool closed, float sampleLength, zPointArray &outPoints,
-    zFloatArray &outWeights, zIntArray &outEdges) {
+    zFloatArray &outWeights, zFloatArray &outHeights,
+    zVectorArray &outNormals, zIntArray &outEdges) {
   outPoints.clear();
   outWeights.clear();
+  outHeights.clear();
+  outNormals.clear();
   outEdges.clear();
 
   const int N = static_cast<int>(sequence.size());
   if (N < 2 || sampleLength <= 1e-6f)
     return;
 
-  auto appendPoint = [&](const zPoint &p, float w) {
+  const bool hasHeights = !heights.empty();
+  const bool hasNormals = !normals.empty();
+
+  auto appendPoint = [&](const zPoint &p, float w, float h,
+                         const zVector &nrm) {
     if (!outPoints.empty()) {
       zVector d = vecSub(p, outPoints.back());
       if (d.length() < 1e-5)
@@ -434,6 +442,10 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
     }
     outPoints.push_back(p);
     outWeights.push_back(w);
+    if (hasHeights)
+      outHeights.push_back(h);
+    if (hasNormals)
+      outNormals.push_back(nrm);
   };
 
   const int numSegments = closed ? N : (N - 1);
@@ -444,11 +456,23 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
     const zPoint &p1 = positions[i1];
     float w0 = (i0 < static_cast<int>(weights.size())) ? weights[i0] : 0.04f;
     float w1 = (i1 < static_cast<int>(weights.size())) ? weights[i1] : 0.04f;
+    float h0 = (hasHeights && i0 < static_cast<int>(heights.size()))
+                   ? heights[i0]
+                   : 0.0f;
+    float h1 = (hasHeights && i1 < static_cast<int>(heights.size()))
+                   ? heights[i1]
+                   : 0.0f;
+    zVector n0 = (hasNormals && i0 < static_cast<int>(normals.size()))
+                     ? normals[i0]
+                     : zVector(0, 0, 1);
+    zVector n1 = (hasNormals && i1 < static_cast<int>(normals.size()))
+                     ? normals[i1]
+                     : zVector(0, 0, 1);
 
     zVector segVec = vecSub(p1, p0);
     const double segLen = segVec.length();
 
-    appendPoint(p0, w0);
+    appendPoint(p0, w0, h0, n0);
 
     if (segLen > sampleLength) {
       int steps = static_cast<int>(std::floor(segLen / sampleLength));
@@ -459,7 +483,14 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
         zPoint interpP(p0.x + t * segVec.x, p0.y + t * segVec.y,
                        p0.z + t * segVec.z);
         float interpW = static_cast<float>(w0 + t * (w1 - w0));
-        appendPoint(interpP, interpW);
+        float interpH = static_cast<float>(h0 + t * (h1 - h0));
+        zVector interpN(n0.x + t * (n1.x - n0.x), n0.y + t * (n1.y - n0.y),
+                        n0.z + t * (n1.z - n0.z));
+        if (interpN.length() > 1e-6)
+          interpN.normalize();
+        else
+          interpN = zVector(0, 0, 1);
+        appendPoint(interpP, interpW, interpH, interpN);
       }
     }
   }
@@ -468,7 +499,13 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
     int lastId = sequence[N - 1];
     float lastW =
         (lastId < static_cast<int>(weights.size())) ? weights[lastId] : 0.04f;
-    appendPoint(positions[lastId], lastW);
+    float lastH = (hasHeights && lastId < static_cast<int>(heights.size()))
+                      ? heights[lastId]
+                      : 0.0f;
+    zVector lastN = (hasNormals && lastId < static_cast<int>(normals.size()))
+                        ? normals[lastId]
+                        : zVector(0, 0, 1);
+    appendPoint(positions[lastId], lastW, lastH, lastN);
   }
 
   const int numPts = static_cast<int>(outPoints.size());
@@ -482,6 +519,10 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
       if (d.length() < 1e-4) {
         outPoints.pop_back();
         outWeights.pop_back();
+        if (hasHeights)
+          outHeights.pop_back();
+        if (hasNormals)
+          outNormals.pop_back();
         outEdges.pop_back();
         outEdges.pop_back();
       }
@@ -524,6 +565,8 @@ ZSPACE_INLINE void zPrintSyn::filterWidthGlitches(zFloatArray &widths,
 ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
   zObjGraph &ioGraph = ioPath.graph;
   zFloatArray &ioWeights = ioPath.widths;
+  zFloatArray &ioHeights = ioPath.heights;
+  zVectorArray &ioNormals = ioPath.normals;
 
   zFnGraph fnRaw(ioGraph);
   if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
@@ -554,10 +597,13 @@ ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
 
   zPointArray sampledPoints;
   zFloatArray sampledWeights;
+  zFloatArray sampledHeights;
+  zVectorArray sampledNormals;
   zIntArray sampledEdges;
-  resampleContourWithWeights(rawPositions, ioWeights, sequence, featureFlags,
-                             closed, sampleLength, sampledPoints, sampledWeights,
-                             sampledEdges);
+  resampleContourWithWeights(rawPositions, ioWeights, ioHeights, ioNormals,
+                             sequence, featureFlags, closed, sampleLength,
+                             sampledPoints, sampledWeights, sampledHeights,
+                             sampledNormals, sampledEdges);
 
   if (sampledPoints.size() < 3 || sampledEdges.size() < 4)
     return false;
@@ -567,6 +613,8 @@ ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
   fnRaw.clear();
   fnRaw.create(sampledPoints, sampledEdges);
   ioWeights = sampledWeights;
+  ioHeights = sampledHeights;
+  ioNormals = sampledNormals;
   return true;
 }
 
