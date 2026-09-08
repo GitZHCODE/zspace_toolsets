@@ -84,11 +84,12 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Processes a single PrintPath in place: cleans its graph,
-   * resamples by arc-length, and filters width glitches - carrying
-   * .widths/.heights/.normals through the resample together with .graph.
-   * Works for both 2D paths (.heights/.normals empty) and 3D paths (all
-   * four populated), since empty channels are simply skipped.
+  /*! \brief Processes a single PrintPath in place: runs
+   * buildClosedContourSequence -> resampleContour -> filterGlitches in
+   * sequence. Each step takes/returns the same PrintPath, carrying
+   * .widths/.heights/.normals along with .graph throughout. Works for both
+   * 2D paths (.heights/.normals empty) and 3D paths (all four populated),
+   * since empty channels are simply skipped.
    *	\param[in,out]		ioPath					- print path to clean and resample.
    *	\return				bool					- true if successfully processed.
    */
@@ -97,13 +98,17 @@ public:
   /*! \brief Processes all PrintPaths in parallel. */
   bool processAllPaths(std::vector<PrintPath> &ioPaths);
 
-  /*! \brief Prunes spurs, welds gaps, and extracts continuous ordered loop/chain sequence. */
-  static bool buildClosedContourSequence(const zObjGraph &graph,
-                                         std::vector<int> &sequence,
-                                         bool &closed,
-                                         std::string *outReason = nullptr,
+  /*! \brief Step 1: prunes spurs, welds gaps, extracts the longest
+   * continuous loop/chain, and rewrites ioPath.graph as that single clean,
+   * ordered sequence (widths/heights/normals reordered to match). Independent
+   * step - takes and returns a complete PrintPath.
+   *	\param[in,out]		ioPath					- print path to clean.
+   *	\return				bool					- true if a valid contour was extracted.
+   */
+  static bool buildClosedContourSequence(PrintPath &ioPath,
                                          double weldTolerance = 0.08,
-                                         double spurLengthThreshold = 1.0);
+                                         double spurLengthThreshold = 1.0,
+                                         std::string *outReason = nullptr);
 
   /*! \brief Detects geometric corner feature points preserving sharp angles. */
   static void detectFeatureAngles(const zPointArray &positions,
@@ -111,20 +116,24 @@ public:
                                   float angleThresholdDeg,
                                   std::vector<int> &outFeatureFlags);
 
-  /*! \brief Performs uniform arc-length resampling preserving detected
-   * feature corners, carrying widths/heights/normals along with positions.
-   * heights/normals may be passed empty (2D paths) - they are then skipped
-   * and outHeights/outNormals come back empty too. */
-  static void resampleContourWithWeights(
-      const zPointArray &positions, const zFloatArray &weights,
-      const zFloatArray &heights, const zVectorArray &normals,
-      const std::vector<int> &sequence, const std::vector<int> &featureFlags,
-      bool closed, float sampleLength, zPointArray &outPoints,
-      zFloatArray &outWeights, zFloatArray &outHeights,
-      zVectorArray &outNormals, zIntArray &outEdges);
+  /*! \brief Step 2: performs uniform arc-length resampling preserving
+   * detected feature corners, carrying widths/heights/normals along with
+   * positions (heights/normals skipped when empty). Assumes ioPath.graph is
+   * already a single ordered chain/loop (e.g. from
+   * buildClosedContourSequence). Reads sampleLength/featureAngleThreshold
+   * from this instance's settings. Independent step - takes and returns a
+   * complete PrintPath.
+   *	\param[in,out]		ioPath					- print path to resample.
+   *	\return				bool					- true if successfully resampled.
+   */
+  bool resampleContour(PrintPath &ioPath);
 
-  /*! \brief Filters out localized 1-vertex extrusion width glitches and noise. */
-  static void filterWidthGlitches(zFloatArray &widths, bool closed);
+  /*! \brief Step 3: filters out localized 1-vertex extrusion width glitches
+   * and noise in ioPath.widths (closed/open inferred from ioPath.graph).
+   * Independent step - takes and returns a complete PrintPath.
+   *	\param[in,out]		ioPath					- print path whose widths to filter.
+   */
+  static void filterGlitches(PrintPath &ioPath);
 };
 
 /** @}*/

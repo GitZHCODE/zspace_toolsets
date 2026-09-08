@@ -38,20 +38,39 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
+namespace {
+// Infers closed/open from whether the graph's edges include a wraparound
+// (vertex 0 <-> vertex N-1) - the same convention zTsUtils::buildPathMesh
+// uses. Valid once a PrintPath's graph has been put into a single ordered
+// chain/loop (e.g. by buildClosedContourSequence).
+bool _isClosedContour(const zObjGraph &graph) {
+  zFnGraph fn(const_cast<zObjGraph &>(graph));
+  const int N = fn.numVertices();
+  if (N < 3)
+    return false;
+  zIntArray edges;
+  fn.getEdgeData(edges);
+  for (size_t e = 0; e + 1 < edges.size(); e += 2) {
+    if ((edges[e] == 0 && edges[e + 1] == N - 1) ||
+        (edges[e + 1] == 0 && edges[e] == N - 1))
+      return true;
+  }
+  return false;
+}
+} // anonymous namespace
+
 //----------------------------------------------------------------------
 // Algorithm Implementations
 //----------------------------------------------------------------------
 
 ZSPACE_INLINE bool zPrintSyn::buildClosedContourSequence(
-    const zObjGraph &graph, std::vector<int> &sequence, bool &closed,
-    std::string *outReason, double weldTolerance, double spurLengthThreshold) {
-  zFnGraph fnGraph(const_cast<zObjGraph &>(graph));
+    PrintPath &ioPath, double weldTolerance, double spurLengthThreshold,
+    std::string *outReason) {
+  zFnGraph fnGraph(ioPath.graph);
   zPointArray positions;
   zIntArray edgeConnects;
   fnGraph.getVertexPositions(positions);
   fnGraph.getEdgeData(edgeConnects);
-  sequence.clear();
-  closed = false;
 
   const int numV = static_cast<int>(positions.size());
   const int numE = static_cast<int>(edgeConnects.size() / 2);
@@ -367,8 +386,52 @@ ZSPACE_INLINE bool zPrintSyn::buildClosedContourSequence(
     return false;
   }
 
-  sequence = bestSequence;
-  closed = isBestClosed;
+  // Rewrite ioPath as the single clean, ordered sequence: reorder
+  // widths/heights/normals to match, rebuild graph edges as a plain
+  // chain (plus a wraparound edge if closed).
+  const size_t M = bestSequence.size();
+  const bool hasHeights = !ioPath.heights.empty();
+  const bool hasNormals = !ioPath.normals.empty();
+
+  zPointArray newPositions(M);
+  zFloatArray newWidths(M, 0.04f);
+  zFloatArray newHeights;
+  zVectorArray newNormals;
+  if (hasHeights)
+    newHeights.assign(M, 0.0f);
+  if (hasNormals)
+    newNormals.assign(M, zVector(0, 0, 1));
+
+  for (size_t i = 0; i < M; i++) {
+    const int id = bestSequence[i];
+    newPositions[i] = positions[id];
+    if (id < static_cast<int>(ioPath.widths.size()))
+      newWidths[i] = ioPath.widths[id];
+    if (hasHeights && id < static_cast<int>(ioPath.heights.size()))
+      newHeights[i] = ioPath.heights[id];
+    if (hasNormals && id < static_cast<int>(ioPath.normals.size()))
+      newNormals[i] = ioPath.normals[id];
+  }
+
+  zIntArray newEdges;
+  newEdges.reserve(M * 2);
+  for (size_t i = 0; i + 1 < M; i++) {
+    newEdges.push_back(static_cast<int>(i));
+    newEdges.push_back(static_cast<int>(i + 1));
+  }
+  if (isBestClosed && M >= 3) {
+    newEdges.push_back(static_cast<int>(M - 1));
+    newEdges.push_back(0);
+  }
+
+  fnGraph.clear();
+  fnGraph.create(newPositions, newEdges);
+  ioPath.widths = newWidths;
+  if (hasHeights)
+    ioPath.heights = newHeights;
+  if (hasNormals)
+    ioPath.normals = newNormals;
+
   return true;
 }
 
@@ -405,25 +468,38 @@ ZSPACE_INLINE void zPrintSyn::detectFeatureAngles(
   }
 }
 
-ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
-    const zPointArray &positions, const zFloatArray &weights,
-    const zFloatArray &heights, const zVectorArray &normals,
-    const std::vector<int> &sequence, const std::vector<int> &featureFlags,
-    bool closed, float sampleLength, zPointArray &outPoints,
-    zFloatArray &outWeights, zFloatArray &outHeights, zVectorArray &outNormals,
-    zIntArray &outEdges) {
-  outPoints.clear();
-  outWeights.clear();
-  outHeights.clear();
-  outNormals.clear();
-  outEdges.clear();
-
-  const int N = static_cast<int>(sequence.size());
+ZSPACE_INLINE bool zPrintSyn::resampleContour(PrintPath &ioPath) {
+  zFnGraph fnGraph(ioPath.graph);
+  const int N = fnGraph.numVertices();
+  const float sampleLength =
+      (i_Settings.sampleLength > 1e-4f) ? i_Settings.sampleLength : 0.005f;
   if (N < 2 || sampleLength <= 1e-6f)
-    return;
+    return false;
 
+  const bool closed = _isClosedContour(ioPath.graph);
+
+  zPointArray positions;
+  fnGraph.getVertexPositions(positions);
+
+  std::vector<int> sequence(N);
+  for (int i = 0; i < N; i++)
+    sequence[i] = i;
+
+  std::vector<int> featureFlags;
+  detectFeatureAngles(positions, sequence, i_Settings.featureAngleThreshold,
+                      featureFlags);
+
+  const zFloatArray &weights = ioPath.widths;
+  const zFloatArray &heights = ioPath.heights;
+  const zVectorArray &normals = ioPath.normals;
   const bool hasHeights = !heights.empty();
   const bool hasNormals = !normals.empty();
+
+  zPointArray outPoints;
+  zFloatArray outWeights;
+  zFloatArray outHeights;
+  zVectorArray outNormals;
+  zIntArray outEdges;
 
   auto appendPoint = [&](const zPoint &p, float w, float h,
                          const zVector &nrm) {
@@ -525,10 +601,23 @@ ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
       }
     }
   }
+
+  if (outPoints.size() < 3 || outEdges.size() < 4)
+    return false;
+
+  fnGraph.clear();
+  fnGraph.create(outPoints, outEdges);
+  ioPath.widths = outWeights;
+  if (hasHeights)
+    ioPath.heights = outHeights;
+  if (hasNormals)
+    ioPath.normals = outNormals;
+  return true;
 }
 
-ZSPACE_INLINE void zPrintSyn::filterWidthGlitches(zFloatArray &widths,
-                                                  bool closed) {
+ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
+  const bool closed = _isClosedContour(ioPath.graph);
+  zFloatArray &widths = ioPath.widths;
   const int n = static_cast<int>(widths.size());
   if (n <= 2)
     return;
@@ -555,57 +644,11 @@ ZSPACE_INLINE void zPrintSyn::filterWidthGlitches(zFloatArray &widths,
 //----------------------------------------------------------------------
 
 ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
-  zObjGraph &ioGraph = ioPath.graph;
-  zFloatArray &ioWeights = ioPath.widths;
-  zFloatArray &ioHeights = ioPath.heights;
-  zVectorArray &ioNormals = ioPath.normals;
-
-  zFnGraph fnRaw(ioGraph);
-  if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
+  if (!buildClosedContourSequence(ioPath))
     return false;
-
-  const float sampleLength =
-      (i_Settings.sampleLength > 1e-4f) ? i_Settings.sampleLength : 0.005f;
-  const float featureAngleThreshold = i_Settings.featureAngleThreshold;
-
-  std::vector<int> sequence;
-  bool closed = false;
-  std::string failReason;
-  const double dynWeldTol =
-      (std::max)(0.08, static_cast<double>(sampleLength * 0.5));
-  if (!buildClosedContourSequence(ioGraph, sequence, closed, &failReason,
-                                  dynWeldTol) ||
-      sequence.size() < 3) {
+  if (!resampleContour(ioPath))
     return false;
-  }
-
-  zPointArray rawPositions;
-  fnRaw.getVertexPositions(rawPositions);
-
-  std::vector<int> featureFlags;
-  detectFeatureAngles(rawPositions, sequence, featureAngleThreshold,
-                      featureFlags);
-
-  zPointArray sampledPoints;
-  zFloatArray sampledWeights;
-  zFloatArray sampledHeights;
-  zVectorArray sampledNormals;
-  zIntArray sampledEdges;
-  resampleContourWithWeights(rawPositions, ioWeights, ioHeights, ioNormals,
-                             sequence, featureFlags, closed, sampleLength,
-                             sampledPoints, sampledWeights, sampledHeights,
-                             sampledNormals, sampledEdges);
-
-  if (sampledPoints.size() < 3 || sampledEdges.size() < 4)
-    return false;
-
-  filterWidthGlitches(sampledWeights, closed);
-
-  fnRaw.clear();
-  fnRaw.create(sampledPoints, sampledEdges);
-  ioWeights = sampledWeights;
-  ioHeights = sampledHeights;
-  ioNormals = sampledNormals;
+  filterGlitches(ioPath);
   return true;
 }
 
