@@ -81,15 +81,10 @@ public:
     m_Status = "Bracing graph updated";
   }
 
-  inline void setSettings(const SlicerSettings &settings) {
-    m_Slicer.setSettings(settings);
-    m_Status = "Settings updated";
-  }
-
-  inline void setPrintSynSetting(const PrintSynSetting &settings) {
-    m_PrintSyn.setSettings(settings);
-    m_Status = "Post-process settings updated";
-  }
+  // NOTE: no setSettings()/setPrintSynSetting() here - getSettings()/
+  // getPrintSynSetting() below already return mutable references straight
+  // into m_Slicer/m_PrintSyn, so callers assign through those instead
+  // (e.g. My3DP.getSettings() = mySettings;).
 
   //----------------------------------------------------------------------
   // Pipeline Execution Methods (3 steps: slicer -> print-syn -> project)
