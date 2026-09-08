@@ -189,9 +189,9 @@ bool _unrollMesh(zObjMesh &sourceMesh, const zIntPairArray &bsfHalfEdgePairs,
 //---- MAIN COMPUTE METHODS: STEP 2 (2D UNROLLING)
 
 ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
-  _2DSectionMeshes.clear();
-  _2DSectionGraphs.clear();
-  _2DBracingGraphs.clear();
+  sectionMeshes2D.clear();
+  sectionGraphs2D.clear();
+  bracingGraphs2D.clear();
 
   const int totalLayers = int(sectionMeshes.size());
   if (totalLayers == 0) {
@@ -211,17 +211,17 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
 
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
-  _2DSectionMeshes.assign(totalLayers, zObjMesh());
-  _2DSectionGraphs.assign(totalLayers, zObjGraph());
+  sectionMeshes2D.assign(totalLayers, zObjMesh());
+  sectionGraphs2D.assign(totalLayers, zObjGraph());
   if (!m_BracingParams.empty()) {
-    _2DBracingGraphs.assign(totalLayers, zObjGraph());
+    bracingGraphs2D.assign(totalLayers, zObjGraph());
   }
 
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
     if (_unrollMesh(sectionMeshes[l], bsfHalfEdgePairs,
-                    _2DSectionMeshes[l])) {
-      zFnMesh fnFlatMesh(_2DSectionMeshes[l]);
+                    sectionMeshes2D[l])) {
+      zFnMesh fnFlatMesh(sectionMeshes2D[l]);
       zPointArray flatMeshPos;
       fnFlatMesh.getVertexPositions(flatMeshPos);
 
@@ -233,12 +233,12 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
       if (N > 0 && N <= (int)flatMeshPos.size()) {
         zPointArray flatBoundPositions(flatMeshPos.begin(),
                                        flatMeshPos.begin() + N);
-        zFnGraph fnFlatGraph(_2DSectionGraphs[l]);
+        zFnGraph fnFlatGraph(sectionGraphs2D[l]);
         fnFlatGraph.create(flatBoundPositions, edgeConnects);
 
         if (!m_BracingParams.empty()) {
           realizeParameterGraph(
-              m_BracingParams, _2DSectionMeshes[l], _2DBracingGraphs[l]);
+              m_BracingParams, sectionMeshes2D[l], bracingGraphs2D[l]);
         }
       }
     }
@@ -249,7 +249,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
       std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
 
   std::ostringstream out;
-  out << "Computed unroll: " << _2DSectionMeshes.size() << " layers in "
+  out << "Computed unroll: " << sectionMeshes2D.size() << " layers in "
       << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
   m_Status = out.str();
   printSuccess("[computeUnroll] " + m_Status);
@@ -265,7 +265,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
     const std::vector<PrintPath> &in2DPaths,
     std::vector<PrintPath> &out3DPaths) {
   const int totalLayers = int(in2DPaths.size());
-  if (totalLayers == 0 || _2DSectionMeshes.empty() || sectionMeshes.empty()) {
+  if (totalLayers == 0 || sectionMeshes2D.empty() || sectionMeshes.empty()) {
     m_Status = "failed: No 2D print paths or section meshes available for "
                "projection.";
     printError("[projectPathsTo3D] " + m_Status);
@@ -273,7 +273,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
   }
 
   out3DPaths.assign(totalLayers, PrintPath());
-  _3DPrintPaths.assign(totalLayers, PrintPath());
+  printPaths3D.assign(totalLayers, PrintPath());
 
   zFloatArray meshVertexHeights;
   if (!m_VScalar.empty() && totalLayers > 1) {
@@ -294,14 +294,14 @@ ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
     out3DPaths[l].widths = in2DPaths[l].widths;
 
     zFnGraph fnContour(out3DPaths[l].graph);
-    if (fnContour.numVertices() > 0 && l < int(_2DSectionMeshes.size()) &&
+    if (fnContour.numVertices() > 0 && l < int(sectionMeshes2D.size()) &&
         l < int(sectionMeshes.size())) {
       remapGraph(
-          out3DPaths[l].graph, _2DSectionMeshes[l], sectionMeshes[l],
+          out3DPaths[l].graph, sectionMeshes2D[l], sectionMeshes[l],
           &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
     }
 
-    _3DPrintPaths[l] = out3DPaths[l];
+    printPaths3D[l] = out3DPaths[l];
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();

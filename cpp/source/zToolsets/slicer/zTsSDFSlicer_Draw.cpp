@@ -37,10 +37,10 @@ zTsSDFSlicer::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
   zFnMesh fnOut(outMesh);
   fnOut.clear();
 
-  if (layerIdx < 0 || layerIdx >= int(_3DPrintPaths.size()))
+  if (layerIdx < 0 || layerIdx >= int(printPaths3D.size()))
     return;
 
-  const PrintPath &path = _3DPrintPaths[layerIdx];
+  const PrintPath &path = printPaths3D[layerIdx];
   zFnGraph fnContour(const_cast<zObjGraph &>(path.graph));
   zPointArray points;
   zIntArray edges;
@@ -221,10 +221,10 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
   }
 
   // 2. 3D Toolpath Graphs
-  if (!_3DPrintPaths.empty()) {
+  if (!printPaths3D.empty()) {
     zObjGraphArray toolpathGraphs;
-    toolpathGraphs.reserve(_3DPrintPaths.size());
-    for (const auto &p : _3DPrintPaths)
+    toolpathGraphs.reserve(printPaths3D.size());
+    for (const auto &p : printPaths3D)
       toolpathGraphs.push_back(p.graph);
 
     std::string path = dir + "/toolpath_graphs.obj";
@@ -271,10 +271,10 @@ ZSPACE_INLINE bool zTsSDFSlicer::exportToOBJ(const std::string &directoryPath) {
   }
 
   // 7. 2D Toolpaths (If generated)
-  if (!_2DPrintPaths.empty()) {
+  if (!printPaths2D.empty()) {
     zObjGraphArray contourGraphs2D;
-    contourGraphs2D.reserve(_2DPrintPaths.size());
-    for (const auto &p : _2DPrintPaths)
+    contourGraphs2D.reserve(printPaths2D.size());
+    for (const auto &p : printPaths2D)
       contourGraphs2D.push_back(p.graph);
 
     std::string path = dir + "/2D_contour_graphs.obj";

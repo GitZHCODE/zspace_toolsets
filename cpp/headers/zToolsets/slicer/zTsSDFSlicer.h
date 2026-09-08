@@ -44,10 +44,6 @@ namespace zSpace {
  *  @{
  */
 
-// NOTE: SlicerSettings, ParameterGraph and PrintPath are shared types
-// declared in zTsUtils.h so that zTsSDFSlicer and zTsPrintSyn can both use
-// them without depending on each other.
-
 /*! \class zTsSDFSlicer
  *	\brief A toolset for SDF based geodesic slicing and bracing generation.
  *	\details Fully decoupled from zTsPrintSyn: it only produces/consumes
@@ -70,7 +66,6 @@ protected:
   /*!	\brief slicer configuration settings  */
   SlicerSettings i_Settings;
 
-  //---- MIDDLE / REUSABLE DATA (m_)
   /*!	\brief container of U-mesh (bottom basic mesh) Object  */
   zObjMesh m_UMesh;
 
@@ -107,13 +102,13 @@ protected:
   zObjGraphArray bracingGraphs;
 
   /*!	\brief container of 2D unrolled section mesh objects  */
-  zObjMeshArray _2DSectionMeshes;
+  zObjMeshArray sectionMeshes2D;
 
   /*!	\brief container of 2D unrolled section graph objects  */
-  zObjGraphArray _2DSectionGraphs;
+  zObjGraphArray sectionGraphs2D;
 
   /*!	\brief container of 2D unrolled layer bracing graph objects  */
-  zObjGraphArray _2DBracingGraphs;
+  zObjGraphArray bracingGraphs2D;
 
   /*!	\brief container of 2D SDF path scalar values per layer  */
   std::vector<zScalarArray> pathFields;
@@ -124,13 +119,11 @@ protected:
   /*!	\brief container of 2D trim slot graphs  */
   zObjGraphArray trimSlotGraphs;
 
-  /*!	\brief container of 2D flat isocontour print paths (graph + per-vertex
-   * extrusion widths) per layer  */
-  std::vector<PrintPath> _2DPrintPaths;
+  /*!	\brief container of 2D flat isocontour print paths  */
+  std::vector<PrintPath> printPaths2D;
 
-  /*!	\brief container of 3D projected print paths (graph + per-vertex
-   * widths/heights/normals) per layer  */
-  std::vector<PrintPath> _3DPrintPaths;
+  /*!	\brief container of 3D projected print paths  */
+  std::vector<PrintPath> printPaths3D;
 
 public:
   //--------------------------
@@ -210,18 +203,16 @@ public:
   const zObjGraphArray &getBracingGraphs() const { return bracingGraphs; }
 
   /*! \brief Returns 2D unrolled section mesh & graph objects. */
-  zObjMeshArray &get2DSectionMeshes() { return _2DSectionMeshes; }
-  const zObjMeshArray &get2DSectionMeshes() const { return _2DSectionMeshes; }
-  zObjGraphArray &get2DSectionGraphs() { return _2DSectionGraphs; }
-  const zObjGraphArray &get2DSectionGraphs() const { return _2DSectionGraphs; }
-  zObjGraphArray &get2DBracingGraphs() { return _2DBracingGraphs; }
-  const zObjGraphArray &get2DBracingGraphs() const { return _2DBracingGraphs; }
+  zObjMeshArray &get2DSectionMeshes() { return sectionMeshes2D; }
+  const zObjMeshArray &get2DSectionMeshes() const { return sectionMeshes2D; }
+  zObjGraphArray &get2DSectionGraphs() { return sectionGraphs2D; }
+  const zObjGraphArray &get2DSectionGraphs() const { return sectionGraphs2D; }
+  zObjGraphArray &get2DBracingGraphs() { return bracingGraphs2D; }
+  const zObjGraphArray &get2DBracingGraphs() const { return bracingGraphs2D; }
 
   /*! \brief Returns 2D SDF path and width scalar values per layer. */
   std::vector<zScalarArray> &getPathFields() { return pathFields; }
-  const std::vector<zScalarArray> &getPathFields() const {
-    return pathFields;
-  }
+  const std::vector<zScalarArray> &getPathFields() const { return pathFields; }
   std::vector<zScalarArray> &getWidthFields() { return widthFields; }
   const std::vector<zScalarArray> &getWidthFields() const {
     return widthFields;
@@ -235,21 +226,25 @@ public:
   zObjGraphArray &getTrimSlotGraphs() { return trimSlotGraphs; }
   const zObjGraphArray &getTrimSlotGraphs() const { return trimSlotGraphs; }
 
-  /*! \brief Returns 2D flat isocontour print paths (graph + per-vertex widths). */
-  std::vector<PrintPath> &get2DPrintPaths() { return _2DPrintPaths; }
-  const std::vector<PrintPath> &get2DPrintPaths() const { return _2DPrintPaths; }
+  /*! \brief Returns 2D flat isocontour print paths (graph + per-vertex widths).
+   */
+  std::vector<PrintPath> &get2DPrintPaths() { return printPaths2D; }
+  const std::vector<PrintPath> &get2DPrintPaths() const {
+    return printPaths2D;
+  }
 
-  /*! \brief Returns 3D projected print paths (graph + per-vertex widths/heights/normals). */
-  std::vector<PrintPath> &get3DPrintPaths() { return _3DPrintPaths; }
-  const std::vector<PrintPath> &get3DPrintPaths() const { return _3DPrintPaths; }
+  /*! \brief Returns 3D projected print paths (graph + per-vertex
+   * widths/heights/normals). */
+  std::vector<PrintPath> &get3DPrintPaths() { return printPaths3D; }
+  const std::vector<PrintPath> &get3DPrintPaths() const {
+    return printPaths3D;
+  }
 
   /*! \brief Returns corner split indices and bracing barycentric params. */
   const std::vector<int> &getBoundarySplitIndices() const {
     return m_BoundarySplitIndices;
   }
-  const ParameterGraph &getBracingParams() const {
-    return m_BracingParams;
-  }
+  const ParameterGraph &getBracingParams() const { return m_BracingParams; }
 
   //--------------------------
   //---- MAIN COMPUTE METHODS
@@ -287,7 +282,8 @@ public:
    */
   bool computeField();
 
-  /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D graphs, heights, and normals. */
+  /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D
+   * graphs, heights, and normals. */
   bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,
                         std::vector<PrintPath> &out3DPaths);
 
@@ -306,10 +302,12 @@ public:
   // utilities that don't depend on any slicer state. Call them via
   // zTsUtils::... (declared in zTsUtils.h) instead.
 
-  /*! \brief Builds 3D extruded rectangular pipe mesh for a specific toolpath layer.
+  /*! \brief Builds 3D extruded rectangular pipe mesh for a specific toolpath
+   * layer.
    *
    *	\param[in]			layerIdx		- layer index.
-   *	\param[out]			outMesh			- generated extruded pipe mesh.
+   *	\param[out]			outMesh			- generated
+   * extruded pipe mesh.
    */
   void drawPathMesh(int layerIdx, zObjMesh &outMesh) const;
 

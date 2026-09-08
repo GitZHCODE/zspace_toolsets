@@ -768,10 +768,10 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
   pathFields.clear();
   widthFields.clear();
   trimSlotGraphs.clear();
-  _2DPrintPaths.clear();
+  printPaths2D.clear();
 
-  const int totalLayers = int(_2DSectionMeshes.size());
-  if (totalLayers == 0 || _2DSectionGraphs.empty()) {
+  const int totalLayers = int(sectionMeshes2D.size());
+  if (totalLayers == 0 || sectionGraphs2D.empty()) {
     m_Status =
         "failed: No unrolled 2D meshes available. Call computeUnroll() first.";
     printError("[computeField] " + m_Status);
@@ -781,7 +781,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
   pathFields.assign(totalLayers, zScalarArray());
   widthFields.assign(totalLayers, zScalarArray());
   trimSlotGraphs.assign(totalLayers, zObjGraph());
-  _2DPrintPaths.assign(totalLayers, PrintPath());
+  printPaths2D.assign(totalLayers, PrintPath());
 
   const float printBracingWidth = i_Settings.printBracingWidth;
   const float printOverlapWidth = i_Settings.printOverlapWidth;
@@ -790,7 +790,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
 
   zDomain<zPoint> layerFieldBB;
   int resX = 0, resY = 0;
-  if (!_getboundingrect(_2DSectionMeshes, layerFieldBB,
+  if (!_getboundingrect(sectionMeshes2D, layerFieldBB,
                         i_Settings.fieldBoundingScale, targetCellSize, &resX,
                         &resY)) {
     m_Status =
@@ -821,13 +821,13 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
 #pragma omp for schedule(dynamic)
     for (int l = 0; l < totalLayers; l++) {
       std::vector<zObjGraph> boundarySegments;
-      zTsUtils::segmentGraph(_2DSectionGraphs[l], m_BoundarySplitIndices,
+      zTsUtils::segmentGraph(sectionGraphs2D[l], m_BoundarySplitIndices,
                             boundarySegments);
 
       zObjGraph flatBracingGraph;
       bool hasValidBracing = false;
-      if (l < int(_2DBracingGraphs.size())) {
-        flatBracingGraph = _2DBracingGraphs[l];
+      if (l < int(bracingGraphs2D.size())) {
+        flatBracingGraph = bracingGraphs2D[l];
         zFnGraph fnBracingCheck(flatBracingGraph);
         if (fnBracingCheck.numVertices() > 0 && fnBracingCheck.numEdges() > 0) {
           hasValidBracing = true;
@@ -872,7 +872,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
                          i_Settings.doublelayerboundary, &widthValues,
                          &idValues);
 
-      _computePathField(localField, _2DSectionGraphs[l], segmentGraphs,
+      _computePathField(localField, sectionGraphs2D[l], segmentGraphs,
                         segDistances, i_Settings.doublelayerboundary,
                         printOverlapWidth, &bracingSlotsGraph, &pathValues);
 
@@ -881,7 +881,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
       trimSlotGraphs[l] = bracingSlotsGraph;
 
       _getPathGraph(localField, pathValues, widthValues,
-                    _2DPrintPaths[l].graph, _2DPrintPaths[l].widths);
+                    printPaths2D[l].graph, printPaths2D[l].widths);
     }
   }
 
