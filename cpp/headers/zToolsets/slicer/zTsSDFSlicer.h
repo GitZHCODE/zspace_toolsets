@@ -119,12 +119,6 @@ protected:
   /*!	\brief container of 2D trim slot graphs  */
   zObjGraphArray trimSlotGraphs;
 
-  /*!	\brief container of 2D flat isocontour print paths  */
-  std::vector<PrintPath> printPaths2D;
-
-  /*!	\brief container of 3D projected print paths  */
-  std::vector<PrintPath> printPaths3D;
-
 public:
   //--------------------------
   //---- CONSTRUCTOR & DESTRUCTOR
@@ -226,20 +220,6 @@ public:
   zObjGraphArray &getTrimSlotGraphs() { return trimSlotGraphs; }
   const zObjGraphArray &getTrimSlotGraphs() const { return trimSlotGraphs; }
 
-  /*! \brief Returns 2D flat isocontour print paths (graph + per-vertex widths).
-   */
-  std::vector<PrintPath> &get2DPrintPaths() { return printPaths2D; }
-  const std::vector<PrintPath> &get2DPrintPaths() const {
-    return printPaths2D;
-  }
-
-  /*! \brief Returns 3D projected print paths (graph + per-vertex
-   * widths/heights/normals). */
-  std::vector<PrintPath> &get3DPrintPaths() { return printPaths3D; }
-  const std::vector<PrintPath> &get3DPrintPaths() const {
-    return printPaths3D;
-  }
-
   /*! \brief Returns corner split indices and bracing barycentric params. */
   const std::vector<int> &getBoundarySplitIndices() const {
     return m_BoundarySplitIndices;
@@ -275,41 +255,27 @@ public:
   bool computeUnroll();
 
   /*! \brief Computes 2D SDF scalar fields (path field, width field, and trim
-   * slots) for all unrolled layers.
+   * slots) for all unrolled layers, and extracts the resulting flat
+   * isocontour print paths into outPrintPaths2D.
    *
+   *	\param[out]			outPrintPaths2D	- 2D flat isocontour
+   * print paths (graph + per-vertex widths), one per layer.
    *	\return				bool
    *	- true if successful.
    */
-  bool computeField();
+  bool computeField(std::vector<PrintPath> &outPrintPaths2D);
 
   /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D
    * graphs, heights, and normals. */
   bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,
                         std::vector<PrintPath> &out3DPaths);
 
-  /*! \brief Exports each layer's section mesh and 3D toolpath graph to
-   * directory in OBJ format.
-   *
-   *	\param[in]			directoryPath			- export
-   * folder path (defaults to Desktop/SDF_Slicer_Export if empty).
-   *	\return				bool
-   *	- true if successful.
-   */
-  bool exportToOBJ(const std::string &directoryPath = "");
-
   // NOTE: color/palette helpers (colorPathField, colorWidthField, hslToRgb,
-  // generateColorPalette) are not members of zTsSDFSlicer - they are generic
-  // utilities that don't depend on any slicer state. Call them via
-  // zTsUtils::... (declared in zTsUtils.h) instead.
-
-  /*! \brief Builds 3D extruded rectangular pipe mesh for a specific toolpath
-   * layer.
-   *
-   *	\param[in]			layerIdx		- layer index.
-   *	\param[out]			outMesh			- generated
-   * extruded pipe mesh.
-   */
-  void drawPathMesh(int layerIdx, zObjMesh &outMesh) const;
+  // generateColorPalette), draw/export helpers (drawPathMesh, exportToOBJ)
+  // are not members of zTsSDFSlicer - drawing/exporting reads print-path
+  // data that only the caller (zTs3DP) owns, so those live at the zTs3DP
+  // level instead. Call zTsUtils::... (declared in zTsUtils.h) for the
+  // generic color/palette/OBJ-export utilities.
 
   // NOTE: translateMesh, translateGraph, and segmentGraph are not members of
   // zTsSDFSlicer - they are generic geometry utilities that don't depend on
@@ -331,7 +297,6 @@ public:
 #include <source/zToolsets/slicer/zTsSDFSlicer_Structure.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Unroll.cpp>
 #include <source/zToolsets/slicer/zTsSDFSlicer_Field.cpp>
-#include <source/zToolsets/slicer/zTsSDFSlicer_Draw.cpp>
 // clang-format on
 #endif
 

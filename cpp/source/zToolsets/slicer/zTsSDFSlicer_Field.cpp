@@ -764,11 +764,12 @@ bool _getboundingrect(const zObjMeshArray &flatMeshes,
 
 //---- MAIN COMPUTE METHODS: STEP 3 (2D SDF SCALAR FIELD)
 
-ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
+ZSPACE_INLINE bool
+zTsSDFSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
   pathFields.clear();
   widthFields.clear();
   trimSlotGraphs.clear();
-  printPaths2D.clear();
+  outPrintPaths2D.clear();
 
   const int totalLayers = int(sectionMeshes2D.size());
   if (totalLayers == 0 || sectionGraphs2D.empty()) {
@@ -781,7 +782,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
   pathFields.assign(totalLayers, zScalarArray());
   widthFields.assign(totalLayers, zScalarArray());
   trimSlotGraphs.assign(totalLayers, zObjGraph());
-  printPaths2D.assign(totalLayers, PrintPath());
+  outPrintPaths2D.assign(totalLayers, PrintPath());
 
   const float printBracingWidth = i_Settings.printBracingWidth;
   const float printOverlapWidth = i_Settings.printOverlapWidth;
@@ -881,7 +882,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeField() {
       trimSlotGraphs[l] = bracingSlotsGraph;
 
       _getPathGraph(localField, pathValues, widthValues,
-                    printPaths2D[l].graph, printPaths2D[l].widths);
+                    outPrintPaths2D[l].graph, outPrintPaths2D[l].widths);
     }
   }
 

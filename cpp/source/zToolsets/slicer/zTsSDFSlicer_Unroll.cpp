@@ -273,7 +273,6 @@ ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
   }
 
   out3DPaths.assign(totalLayers, PrintPath());
-  printPaths3D.assign(totalLayers, PrintPath());
 
   zFloatArray meshVertexHeights;
   if (!m_VScalar.empty() && totalLayers > 1) {
@@ -300,8 +299,6 @@ ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
           out3DPaths[l].graph, sectionMeshes2D[l], sectionMeshes[l],
           &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
     }
-
-    printPaths3D[l] = out3DPaths[l];
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();

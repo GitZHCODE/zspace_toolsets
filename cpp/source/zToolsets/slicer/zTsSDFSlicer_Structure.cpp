@@ -337,8 +337,6 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeBasicStructure() {
   pathFields.clear();
   widthFields.clear();
   trimSlotGraphs.clear();
-  printPaths2D.clear();
-  printPaths3D.clear();
   m_BracingParams.clear();
   zFnMesh(m_UMesh).clear();
   zFnGraph(m_ULoop).clear();
