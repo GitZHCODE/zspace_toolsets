@@ -48,7 +48,7 @@ protected:
   zObjMesh m_InputMesh;
   zObjGraph m_BracingGraph;
   SlicerSettings m_Settings;
-  PostProcessSettings m_PostProcessSettings;
+  PrintSynSetting m_PrintSynSetting;
 
   //---- Sub-modules
   zTsSDFSlicer m_Slicer;
@@ -89,8 +89,8 @@ public:
     m_Status = "Settings updated";
   }
 
-  inline void setPostProcessSettings(const PostProcessSettings &settings) {
-    m_PostProcessSettings = settings;
+  inline void setPrintSynSetting(const PrintSynSetting &settings) {
+    m_PrintSynSetting = settings;
     m_Status = "Post-process settings updated";
   }
 
@@ -152,11 +152,11 @@ public:
   inline SlicerSettings &getSettings() { return m_Settings; }
   inline const SlicerSettings &getSettings() const { return m_Settings; }
 
-  inline PostProcessSettings &getPostProcessSettings() {
-    return m_PostProcessSettings;
+  inline PrintSynSetting &getPrintSynSetting() {
+    return m_PrintSynSetting;
   }
-  inline const PostProcessSettings &getPostProcessSettings() const {
-    return m_PostProcessSettings;
+  inline const PrintSynSetting &getPrintSynSetting() const {
+    return m_PrintSynSetting;
   }
 
   inline zTsSDFSlicer &getSlicer() { return m_Slicer; }

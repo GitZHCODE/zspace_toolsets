@@ -43,8 +43,8 @@ ZSPACE_INLINE bool zTs3DP::computeSlicer() {
 
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
   bool success = m_PrintSyn.processAllPaths(
-      m_2DPrintPaths, m_PostProcessSettings.sampleLength,
-      m_PostProcessSettings.featureAngleThreshold);
+      m_2DPrintPaths, m_PrintSynSetting.sampleLength,
+      m_PrintSynSetting.featureAngleThreshold);
   m_Status = m_PrintSyn.getStatus();
   return success;
 }

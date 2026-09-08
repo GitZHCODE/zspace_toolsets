@@ -84,11 +84,11 @@ struct SlicerSettings {
   float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
 };
 
-/*! \struct PostProcessSettings
+/*! \struct PrintSynSetting
  *	\brief Configuration settings for 2D toolpath cleanup and resampling.
  * Consumed only by zTsPrintSyn.
  */
-struct PostProcessSettings {
+struct PrintSynSetting {
   float sampleLength = 0.15f; // arc-length resampling step (mm)
   float featureAngleThreshold =
       90.0f; // geometric feature corner angle threshold (deg)
