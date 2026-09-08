@@ -94,19 +94,18 @@ struct PostProcessSettings {
       90.0f; // geometric feature corner angle threshold (deg)
 };
 
-/*! \struct BracingGraph
+/*! \struct ParameterGraph
  *	\brief Universal graph representation parameterized by 2D/3D mesh face
  * barycentric coordinates.
  */
-struct BracingGraph {
+struct ParameterGraph {
   struct Vertex {
     int v0, v1, v2; // Triangle 3 vertex indices
     float u, v, w;  // Barycentric coordinate weights
   };
 
-  std::vector<Vertex> vertices; // Parameterized vertices array
-  zIntArray edgeConnects; // Edge topology connectivity [e0_v0, e0_v1, e1_v0,
-                          // e1_v1, ...]
+  std::vector<Vertex> vertices;
+  zIntArray edgeConnects;
 
   bool empty() const { return vertices.empty() || edgeConnects.empty(); }
   void clear() {
@@ -168,13 +167,13 @@ bool samplePolyline(const zObjGraph &polylineGraph, const zScalarArray &scalars,
 //---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
 
 bool parameterizeGraphOnMesh(const zObjGraph &inGraph, zObjMesh &inMesh,
-                             BracingGraph &outParams);
+                             ParameterGraph &outParams);
 
 //---- Universal Barycentric Mesh Graph Reconstructor
 
 bool reconstructGraphFromBarycentricParams(
-    const BracingGraph &inParams, zObjMesh &targetMesh,
-    zObjGraph &outGraph, zVectorArray *outNormals = nullptr,
+    const ParameterGraph &inParams, zObjMesh &targetMesh, zObjGraph &outGraph,
+    zVectorArray *outNormals = nullptr,
     const zFloatArray *vertexScalars = nullptr,
     zFloatArray *outHeights = nullptr);
 
@@ -225,20 +224,19 @@ void colorPathField(
 //---- Field-Mesh Coloring: Discrete Lookup by Index Into a Generated Color
 //---- List (one distinct color per unique value)
 
-void colorWidthField(const zScalarArray &values, std::vector<zColor> &outColors);
+void colorWidthField(const zScalarArray &values,
+                     std::vector<zColor> &outColors);
 void colorWidthField(zObjMesh &mesh, const zScalarArray &values);
 
 //---- Generic Multi-Object Wavefront OBJ Exporters
 
-bool exportMeshToOBJ(const zObjMeshArray &meshes,
-                            const std::string &filePath);
-bool exportGraphToOBJ(const zObjGraphArray &graphs,
+bool exportMeshToOBJ(const zObjMeshArray &meshes, const std::string &filePath);
+bool exportGraphToOBJ(const zObjGraphArray &graphs, const std::string &filePath,
+                      const std::string &objectPrefix = "layer_");
+bool exportColoredMeshToOBJ(const zObjMesh &baseMesh,
+                            const std::vector<std::vector<zColor>> &layerColors,
                             const std::string &filePath,
                             const std::string &objectPrefix = "layer_");
-bool exportColoredMeshToOBJ(
-    const zObjMesh &baseMesh,
-    const std::vector<std::vector<zColor>> &layerColors,
-    const std::string &filePath, const std::string &objectPrefix = "layer_");
 
 //---- Generic Mesh/Graph Transform & Segmentation
 
@@ -248,7 +246,8 @@ void translateMesh(zObjMesh &mesh, const zVector &offset);
 /*! \brief Generic 3D translation for all vertex positions of a graph. */
 void translateGraph(zObjGraph &graph, const zVector &offset);
 
-/*! \brief Segments a graph at specified split vertex indices. If no indices are provided, outputs original graph. */
+/*! \brief Segments a graph at specified split vertex indices. If no indices are
+ * provided, outputs original graph. */
 bool segmentGraph(const zObjGraph &sourceBoundaryGraph,
                   const std::vector<int> &splitIndices,
                   std::vector<zObjGraph> &outBoundarySegments);
