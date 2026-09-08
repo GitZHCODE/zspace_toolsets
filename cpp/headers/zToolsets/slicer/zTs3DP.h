@@ -127,10 +127,11 @@ public:
 
   /*! \brief Builds 3D extruded rectangular pipe mesh for a specific toolpath
    * layer.
-   *	\param[in]			layerIdx		- layer index.
+   *	\param[in]			path			- print path (3D graph +
+   * per-vertex widths/heights/normals) to build the pipe mesh from.
    *	\param[out]			outMesh			- generated extruded pipe mesh.
    */
-  void drawPathMesh(int layerIdx, zObjMesh &outMesh) const;
+  void drawPathMesh(const PrintPath &path, zObjMesh &outMesh) const;
 
   /*! \brief Exports each layer's section mesh and 3D toolpath graph to
    * directory in OBJ format.

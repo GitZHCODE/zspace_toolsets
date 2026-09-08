@@ -64,14 +64,11 @@ ZSPACE_INLINE bool zTs3DP::computePipeline() {
 
 //---- DRAW / PREVIEW MESH GENERATION
 
-ZSPACE_INLINE void zTs3DP::drawPathMesh(int layerIdx, zObjMesh &outMesh) const {
+ZSPACE_INLINE void zTs3DP::drawPathMesh(const PrintPath &path,
+                                        zObjMesh &outMesh) const {
   zFnMesh fnOut(outMesh);
   fnOut.clear();
 
-  if (layerIdx < 0 || layerIdx >= int(m_3DPrintPaths.size()))
-    return;
-
-  const PrintPath &path = m_3DPrintPaths[layerIdx];
   zFnGraph fnContour(const_cast<zObjGraph &>(path.graph));
   zPointArray points;
   zIntArray edges;
