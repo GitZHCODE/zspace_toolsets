@@ -171,13 +171,13 @@
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsUtils.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsSDFSlicer.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zSlicer.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTs3DP.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsPrintSyn.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zPrintSyn.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\base\zSpace_Toolsets.h">
@@ -299,19 +299,19 @@
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsUtils_Export.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Structure.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zSlicer_Structure.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Unroll.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zSlicer_Unroll.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsSDFSlicer_Field.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zSlicer_Field.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTs3DP.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsPrintSyn.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zPrintSyn.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">

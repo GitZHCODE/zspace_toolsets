@@ -50,7 +50,7 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
 // header does not include zObjMeshField.h (nothing in the shared-utils layer
 // needs zObjMeshScalarField), so redeclaring the typedef against an
 // undeclared type here fails to compile, and once zObjMeshField.h's own
-// `using zObjMeshScalarFieldArray = ...` is later seen (via zTsSDFSlicer.h),
+// `using zObjMeshScalarFieldArray = ...` is later seen (via zSlicer.h),
 // MSVC reports it as a redefinition with a mismatched type. Consumers that
 // need the array type should include zObjMeshField.h directly.
 
@@ -58,7 +58,7 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
 //---- COMMON DATA STRUCTURES
 //--------------------------
 // NOTE: SlicerSettings and PrintSynSetting are NOT declared here - each
-// lives in its own consumer's header (zTsSDFSlicer.h / zTsPrintSyn.h
+// lives in its own consumer's header (zSlicer.h / zPrintSyn.h
 // respectively), since neither is shared between the two engines.
 
 /*! \struct ParameterGraph
@@ -84,8 +84,8 @@ struct ParameterGraph {
 /*! \struct PrintPath
  *	\brief Encapsulates a complete printing toolpath including its graph,
  * line widths, layer heights, and normals.
- *	\details Shared exchange type between zTsSDFSlicer (produces raw 2D/3D
- * paths) and zTsPrintSyn (cleans up and resamples paths); neither engine class
+ *	\details Shared exchange type between zSlicer (produces raw 2D/3D
+ * paths) and zPrintSyn (cleans up and resamples paths); neither engine class
  * depends on the other.
  */
 struct PrintPath {
@@ -98,7 +98,7 @@ struct PrintPath {
 //--------------------------
 //---- COMMON GEOMETRY / TOPOLOGY UTILITIES
 //--------------------------
-// Shared low-level building blocks used by both zTsSDFSlicer and zTsPrintSyn.
+// Shared low-level building blocks used by both zSlicer and zPrintSyn.
 // Declared here, defined in zTsUtils.cpp (see ZSPACE_TOOLSETS_INLINE below).
 
 namespace zTsUtils {
@@ -174,10 +174,10 @@ void buildPathMesh(const PrintPath &path, float defaultLayerHeight,
 //--------------------------
 //---- FIELD-MESH COLORING & OBJ EXPORT UTILITIES
 //--------------------------
-// Shared coloring/export building blocks, currently used by zTsSDFSlicer's
-// exportToOBJ; kept here (rather than owned by zTsSDFSlicer) since they take
-// no dependency on any engine's internal state and are equally usable by any
-// future toolset. Declared here, defined in zTsUtils_Export.cpp.
+// Shared coloring/export building blocks, currently used by zTs3DP's
+// exportToOBJ; kept here (rather than owned by any single engine) since they
+// take no dependency on any engine's internal state and are equally usable by
+// any future toolset. Declared here, defined in zTsUtils_Export.cpp.
 
 //---- Color Format Conversion
 

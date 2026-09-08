@@ -10,8 +10,8 @@
 // Author : Vishu Bhooshan <vishu.bhooshan@zaha-hadid.com>
 //
 
-#ifndef ZSPACE_TS_GEOMETRY_SDFSLICER_H
-#define ZSPACE_TS_GEOMETRY_SDFSLICER_H
+#ifndef ZSPACE_TS_GEOMETRY_SLICER_H
+#define ZSPACE_TS_GEOMETRY_SLICER_H
 
 #pragma once
 
@@ -46,7 +46,7 @@ namespace zSpace {
 
 /*! \struct SlicerSettings
  *	\brief Configuration settings for geodesic slicing and SDF
- * field/toolpath generation. Consumed only by zTsSDFSlicer.
+ * field/toolpath generation. Consumed only by zSlicer.
  */
 struct SlicerSettings {
   int cornerStartVertexId = 21;
@@ -70,13 +70,13 @@ struct SlicerSettings {
   float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
 };
 
-/*! \class zTsSDFSlicer
+/*! \class zSlicer
  *	\brief A toolset for SDF based geodesic slicing and bracing generation.
- *	\details Fully decoupled from zTsPrintSyn: it only produces/consumes
+ *	\details Fully decoupled from zPrintSyn: it only produces/consumes
  *           PrintPath and ParameterGraph data (declared in zTsUtils.h),
- *           and never includes zTsPrintSyn.h.
+ *           and never includes zPrintSyn.h.
  */
-class ZSPACE_TOOLSETS zTsSDFSlicer {
+class ZSPACE_TOOLSETS zSlicer {
 protected:
   //--------------------------
   //---- PROTECTED ATTRIBUTES
@@ -151,19 +151,19 @@ public:
   //--------------------------
 
   /*! \brief Default constructor. */
-  zTsSDFSlicer() {
+  zSlicer() {
     i_InputMesh = nullptr;
     i_BracingGraph = nullptr;
     m_Status = "Ready";
   }
 
   /*! \brief Overloaded constructor with settings. */
-  explicit zTsSDFSlicer(const SlicerSettings &inSettings) : zTsSDFSlicer() {
+  explicit zSlicer(const SlicerSettings &inSettings) : zSlicer() {
     i_Settings = inSettings;
   }
 
   /*! \brief Default destructor. */
-  ~zTsSDFSlicer() {}
+  ~zSlicer() {}
 
   //--------------------------
   //---- SET METHODS
@@ -298,14 +298,14 @@ public:
 
   // NOTE: color/palette helpers (colorPathField, colorWidthField, hslToRgb,
   // generateColorPalette) and pipe-mesh construction (buildPathMesh) are not
-  // members of zTsSDFSlicer - they take no dependency on any engine's
+  // members of zSlicer - they take no dependency on any engine's
   // internal state, so they live as plain zTsUtils::... functions (declared
   // in zTsUtils.h) instead. exportToOBJ lives on zTs3DP, since it also
-  // aggregates zTs3DP's own print-path containers alongside zTsSDFSlicer's
+  // aggregates zTs3DP's own print-path containers alongside zSlicer's
   // geometry.
 
   // NOTE: translateMesh, translateGraph, and segmentGraph are not members of
-  // zTsSDFSlicer - they are generic geometry utilities that don't depend on
+  // zSlicer - they are generic geometry utilities that don't depend on
   // any slicer state. Call them via zTsUtils::... (declared in zTsUtils.h)
   // instead.
 };
@@ -321,10 +321,10 @@ public:
 // All defined OK so do nothing
 #else
 // clang-format off
-#include <source/zToolsets/slicer/zTsSDFSlicer_Structure.cpp>
-#include <source/zToolsets/slicer/zTsSDFSlicer_Unroll.cpp>
-#include <source/zToolsets/slicer/zTsSDFSlicer_Field.cpp>
+#include <source/zToolsets/slicer/zSlicer_Structure.cpp>
+#include <source/zToolsets/slicer/zSlicer_Unroll.cpp>
+#include <source/zToolsets/slicer/zSlicer_Field.cpp>
 // clang-format on
 #endif
 
-#endif // ZSPACE_TS_GEOMETRY_SDFSLICER_H
+#endif // ZSPACE_TS_GEOMETRY_SLICER_H

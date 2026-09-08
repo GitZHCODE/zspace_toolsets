@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zSlicer.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -325,7 +325,7 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
 
 //---- MAIN COMPUTE METHODS: STEP 1 (3D SLICING)
 
-ZSPACE_INLINE bool zTsSDFSlicer::computeBasicStructure() {
+ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
   m_VLoops.clear();
   m_VScalar.clear();
   sectionMeshes.clear();
@@ -392,7 +392,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeBasicStructure() {
   return true;
 }
 
-ZSPACE_INLINE bool zTsSDFSlicer::computeSlice() {
+ZSPACE_INLINE bool zSlicer::computeSlice() {
   sectionMeshes.clear();
   sectionGraphs.clear();
   bracingGraphs.clear();

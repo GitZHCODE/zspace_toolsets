@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zSlicer.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -765,7 +765,7 @@ bool _getboundingrect(const zObjMeshArray &flatMeshes,
 //---- MAIN COMPUTE METHODS: STEP 3 (2D SDF SCALAR FIELD)
 
 ZSPACE_INLINE bool
-zTsSDFSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
+zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
   pathFields.clear();
   widthFields.clear();
   trimSlotGraphs.clear();

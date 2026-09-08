@@ -41,12 +41,12 @@ namespace zSpace {
  */
 
 // NOTE: PrintPath is a shared type declared in zTsUtils.h so that
-// zTsSDFSlicer and zTsPrintSyn can both use it without depending on
+// zSlicer and zPrintSyn can both use it without depending on
 // each other.
 
 /*! \struct PrintSynSetting
  *	\brief Configuration settings for 2D toolpath cleanup and resampling.
- * Consumed only by zTsPrintSyn.
+ * Consumed only by zPrintSyn.
  */
 struct PrintSynSetting {
   float sampleLength = 0.15f; // arc-length resampling step (mm)
@@ -54,14 +54,14 @@ struct PrintSynSetting {
       90.0f; // geometric feature corner angle threshold (deg)
 };
 
-/*! \class zTsPrintSyn
+/*! \class zPrintSyn
  *	\brief Toolpath synthesis, cleanup, corner preservation, uniform resampling, and width filtering engine.
- *	\details Fully decoupled from zTsSDFSlicer: it only depends on zTsUtils.h
+ *	\details Fully decoupled from zSlicer: it only depends on zTsUtils.h
  *           (for the shared PrintPath type and shared vector/topology helpers)
- *           and never includes zTsSDFSlicer.h.
+ *           and never includes zSlicer.h.
  *	\since 1.0.0
  */
-class ZSPACE_TOOLSETS zTsPrintSyn {
+class ZSPACE_TOOLSETS zPrintSyn {
 protected:
   /*!	\brief toolpath cleanup/resampling configuration settings  */
   PrintSynSetting i_Settings;
@@ -69,8 +69,8 @@ protected:
   std::string m_Status;
 
 public:
-  zTsPrintSyn();
-  ~zTsPrintSyn();
+  zPrintSyn();
+  ~zPrintSyn();
 
   /*! \brief Sets toolpath cleanup/resampling configuration settings. */
   void setSettings(const PrintSynSetting &inSettings) {
@@ -133,7 +133,7 @@ public:
     defined(ZSPACE_TOOLSETS_DYNAMIC_LIBRARY)
 // All defined OK so do nothing
 #else
-#include <source/zToolsets/slicer/zTsPrintSyn.cpp>
+#include <source/zToolsets/slicer/zPrintSyn.cpp>
 #endif
 
 #endif // ZSPACE_TS_GEOMETRY_PRINTSYN_H

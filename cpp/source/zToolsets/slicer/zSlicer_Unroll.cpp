@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/slicer/zTsSDFSlicer.h>
+#include <headers/zToolsets/slicer/zSlicer.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -188,7 +188,7 @@ bool _unrollMesh(zObjMesh &sourceMesh, const zIntPairArray &bsfHalfEdgePairs,
 
 //---- MAIN COMPUTE METHODS: STEP 2 (2D UNROLLING)
 
-ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
+ZSPACE_INLINE bool zSlicer::computeUnroll() {
   sectionMeshes2D.clear();
   sectionGraphs2D.clear();
   bracingGraphs2D.clear();
@@ -261,7 +261,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
 //---- is the inverse mapping, 2D -> 3D, for the (possibly post-processed)
 //---- print paths.
 
-ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
+ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
     const std::vector<PrintPath> &in2DPaths,
     std::vector<PrintPath> &out3DPaths) {
   const int totalLayers = int(in2DPaths.size());

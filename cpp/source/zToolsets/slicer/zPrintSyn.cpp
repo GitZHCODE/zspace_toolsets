@@ -14,7 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <headers/zToolsets/slicer/zTsPrintSyn.h>
+#include <headers/zToolsets/slicer/zPrintSyn.h>
 
 #ifndef ZSPACE_INLINE
 #define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
@@ -42,15 +42,15 @@ using namespace zTsUtils;
 // Constructors & Destructors
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE zTsPrintSyn::zTsPrintSyn() { m_Status = "Initialized"; }
+ZSPACE_INLINE zPrintSyn::zPrintSyn() { m_Status = "Initialized"; }
 
-ZSPACE_INLINE zTsPrintSyn::~zTsPrintSyn() {}
+ZSPACE_INLINE zPrintSyn::~zPrintSyn() {}
 
 //----------------------------------------------------------------------
 // Algorithm Implementations
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
+ZSPACE_INLINE bool zPrintSyn::buildClosedContourSequence(
     const zObjGraph &graph, std::vector<int> &sequence, bool &closed,
     std::string *outReason, double weldTolerance, double spurLengthThreshold) {
   zFnGraph fnGraph(const_cast<zObjGraph &>(graph));
@@ -380,7 +380,7 @@ ZSPACE_INLINE bool zTsPrintSyn::buildClosedContourSequence(
   return true;
 }
 
-ZSPACE_INLINE void zTsPrintSyn::detectFeatureAngles(
+ZSPACE_INLINE void zPrintSyn::detectFeatureAngles(
     const zPointArray &positions, const std::vector<int> &sequence,
     float angleThresholdDeg, std::vector<int> &outFeatureFlags) {
   const int N = static_cast<int>(sequence.size());
@@ -413,7 +413,7 @@ ZSPACE_INLINE void zTsPrintSyn::detectFeatureAngles(
   }
 }
 
-ZSPACE_INLINE void zTsPrintSyn::resampleContourWithWeights(
+ZSPACE_INLINE void zPrintSyn::resampleContourWithWeights(
     const zPointArray &positions, const zFloatArray &weights,
     const std::vector<int> &sequence, const std::vector<int> &featureFlags,
     bool closed, float sampleLength, zPointArray &outPoints,
@@ -494,7 +494,7 @@ ZSPACE_INLINE void zTsPrintSyn::resampleContourWithWeights(
   }
 }
 
-ZSPACE_INLINE void zTsPrintSyn::filterWidthGlitches(zFloatArray &widths,
+ZSPACE_INLINE void zPrintSyn::filterWidthGlitches(zFloatArray &widths,
                                                    bool closed) {
   const int n = static_cast<int>(widths.size());
   if (n <= 2)
@@ -521,7 +521,7 @@ ZSPACE_INLINE void zTsPrintSyn::filterWidthGlitches(zFloatArray &widths,
 // High-Level Layer Processing Methods
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zTsPrintSyn::processLayer(zObjGraph &ioGraph,
+ZSPACE_INLINE bool zPrintSyn::processLayer(zObjGraph &ioGraph,
                                              zFloatArray &ioWeights) {
   zFnGraph fnRaw(ioGraph);
   if (fnRaw.numVertices() < 3 || fnRaw.numEdges() < 3)
@@ -568,16 +568,16 @@ ZSPACE_INLINE bool zTsPrintSyn::processLayer(zObjGraph &ioGraph,
   return true;
 }
 
-ZSPACE_INLINE bool zTsPrintSyn::processPath(PrintPath &ioPath) {
+ZSPACE_INLINE bool zPrintSyn::processPath(PrintPath &ioPath) {
   return processLayer(ioPath.graph, ioPath.widths);
 }
 
 ZSPACE_INLINE bool
-zTsPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
+zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0) {
     m_Status = "failed: No print paths available.";
-    printError("[zTsPrintSyn] " + m_Status);
+    printError("[zPrintSyn] " + m_Status);
     return false;
   }
 
@@ -597,7 +597,7 @@ zTsPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
       << std::setprecision(2) << wallTotalMs << " ms (sampleLen="
       << i_Settings.sampleLength << "mm)";
   m_Status = out.str();
-  printSuccess("[zTsPrintSyn] " + m_Status);
+  printSuccess("[zPrintSyn] " + m_Status);
   return true;
 }
 
