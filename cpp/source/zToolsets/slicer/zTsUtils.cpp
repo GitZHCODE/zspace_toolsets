@@ -337,6 +337,7 @@ ZSPACE_INLINE bool realizeParameterGraph(
     outHeights->assign(numVerts, 0.0f);
 
   const size_t numMeshVerts = targetPositions.size();
+  const bool wantHeights = vertexScalars && outHeights;
 
   for (size_t i = 0; i < numVerts; i++) {
     const auto &bv = inParams.vertices[i];
@@ -345,17 +346,15 @@ ZSPACE_INLINE bool realizeParameterGraph(
       return false;
     }
 
-    newPositions[i].x = targetPositions[bv.v0].x * bv.u +
-                        targetPositions[bv.v1].x * bv.v +
-                        targetPositions[bv.v2].x * bv.w;
-    newPositions[i].y = targetPositions[bv.v0].y * bv.u +
-                        targetPositions[bv.v1].y * bv.v +
-                        targetPositions[bv.v2].y * bv.w;
-    newPositions[i].z = targetPositions[bv.v0].z * bv.u +
-                        targetPositions[bv.v1].z * bv.v +
-                        targetPositions[bv.v2].z * bv.w;
+    const zPoint &p0 = targetPositions[bv.v0];
+    const zPoint &p1 = targetPositions[bv.v1];
+    const zPoint &p2 = targetPositions[bv.v2];
 
-    if (vertexScalars && outHeights) {
+    newPositions[i] = zPoint(p0.x * bv.u + p1.x * bv.v + p2.x * bv.w,
+                             p0.y * bv.u + p1.y * bv.v + p2.y * bv.w,
+                             p0.z * bv.u + p1.z * bv.v + p2.z * bv.w);
+
+    if (wantHeights) {
       float h0 =
           (bv.v0 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v0] : 0.0f;
       float h1 =
@@ -364,13 +363,10 @@ ZSPACE_INLINE bool realizeParameterGraph(
           (bv.v2 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v2] : 0.0f;
       (*outHeights)[i] = bv.u * h0 + bv.v * h1 + bv.w * h2;
     }
-  }
 
-  if (outNormals) {
-    for (size_t i = 0; i < numVerts; i++) {
-      const auto &bv = inParams.vertices[i];
-      zVector e0 = vecSub(targetPositions[bv.v1], targetPositions[bv.v0]);
-      zVector e1 = vecSub(targetPositions[bv.v2], targetPositions[bv.v0]);
+    if (outNormals) {
+      zVector e0 = vecSub(p1, p0);
+      zVector e1 = vecSub(p2, p0);
       zVector norm = vecCross(e0, e1);
       if (norm.length() > 1e-6)
         norm.normalize();
