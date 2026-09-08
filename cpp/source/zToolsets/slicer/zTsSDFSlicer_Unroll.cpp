@@ -296,7 +296,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::projectPathsTo3D(
     zFnGraph fnContour(out3DPaths[l].graph);
     if (fnContour.numVertices() > 0 && l < int(_2DSectionMeshes.size()) &&
         l < int(sectionMeshes.size())) {
-      barycentricProjectionTriMesh(
+      remapGraph(
           out3DPaths[l].graph, _2DSectionMeshes[l], sectionMeshes[l],
           &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
     }

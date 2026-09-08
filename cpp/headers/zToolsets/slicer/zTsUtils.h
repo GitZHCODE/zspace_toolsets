@@ -179,7 +179,7 @@ bool realizeParameterGraph(
 
 //---- Barycentric Mesh-to-Mesh Graph Projection
 
-bool barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
+bool remapGraph(zObjGraph &graph, zObjMesh &inMesh2D,
                                   zObjMesh &projectionMesh3D,
                                   zVectorArray *mappedNormals = nullptr,
                                   const zFloatArray *vertexHeights = nullptr,

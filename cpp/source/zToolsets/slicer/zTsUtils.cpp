@@ -178,9 +178,8 @@ ZSPACE_INLINE bool samplePolyline(const zObjGraph &polylineGraph,
 
 //---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
 
-ZSPACE_INLINE bool parameterizeGraph(const zObjGraph &inGraph,
-                                           zObjMesh &inMesh,
-                                           ParameterGraph &outParams) {
+ZSPACE_INLINE bool parameterizeGraph(const zObjGraph &inGraph, zObjMesh &inMesh,
+                                     ParameterGraph &outParams) {
   outParams.clear();
   zFnGraph fnGraph(const_cast<zObjGraph &>(inGraph));
   zPointArray graphPositions;
@@ -316,10 +315,12 @@ ZSPACE_INLINE bool parameterizeGraph(const zObjGraph &inGraph,
 
 //---- Universal Barycentric Mesh Graph Reconstructor
 
-ZSPACE_INLINE bool realizeParameterGraph(
-    const ParameterGraph &inParams, zObjMesh &targetMesh,
-    zObjGraph &outGraph, zVectorArray *outNormals,
-    const zFloatArray *vertexScalars, zFloatArray *outHeights) {
+ZSPACE_INLINE bool realizeParameterGraph(const ParameterGraph &inParams,
+                                         zObjMesh &targetMesh,
+                                         zObjGraph &outGraph,
+                                         zVectorArray *outNormals,
+                                         const zFloatArray *vertexHeights,
+                                         zFloatArray *outHeights) {
   if (inParams.empty())
     return false;
 
@@ -337,7 +338,7 @@ ZSPACE_INLINE bool realizeParameterGraph(
     outHeights->assign(numVerts, 0.0f);
 
   const size_t numMeshVerts = targetPositions.size();
-  const bool wantHeights = vertexScalars && outHeights;
+  const bool wantHeights = vertexHeights && outHeights;
 
   for (size_t i = 0; i < numVerts; i++) {
     const auto &bv = inParams.vertices[i];
@@ -356,11 +357,11 @@ ZSPACE_INLINE bool realizeParameterGraph(
 
     if (wantHeights) {
       float h0 =
-          (bv.v0 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v0] : 0.0f;
+          (bv.v0 < (int)vertexHeights->size()) ? (*vertexHeights)[bv.v0] : 0.0f;
       float h1 =
-          (bv.v1 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v1] : 0.0f;
+          (bv.v1 < (int)vertexHeights->size()) ? (*vertexHeights)[bv.v1] : 0.0f;
       float h2 =
-          (bv.v2 < (int)vertexScalars->size()) ? (*vertexScalars)[bv.v2] : 0.0f;
+          (bv.v2 < (int)vertexHeights->size()) ? (*vertexHeights)[bv.v2] : 0.0f;
       (*outHeights)[i] = bv.u * h0 + bv.v * h1 + bv.w * h2;
     }
 
@@ -384,18 +385,15 @@ ZSPACE_INLINE bool realizeParameterGraph(
 
 //---- Barycentric Mesh-to-Mesh Graph Projection
 
-ZSPACE_INLINE bool
-barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
-                             zObjMesh &projectionMesh3D,
-                             zVectorArray *mappedNormals,
-                             const zFloatArray *vertexHeights,
-                             zFloatArray *mappedHeights) {
+ZSPACE_INLINE bool remapGraph(
+    zObjGraph &graph, zObjMesh &inMesh2D, zObjMesh &projectionMesh3D,
+    zVectorArray *mappedNormals, const zFloatArray *vertexHeights,
+    zFloatArray *mappedHeights) {
   ParameterGraph tempParams;
   if (!parameterizeGraph(graph, inMesh2D, tempParams))
     return false;
-  return realizeParameterGraph(tempParams, projectionMesh3D,
-                                               graph, mappedNormals,
-                                               vertexHeights, mappedHeights);
+  return realizeParameterGraph(tempParams, projectionMesh3D, graph,
+                               mappedNormals, vertexHeights, mappedHeights);
 }
 
 } // namespace zTsUtils
