@@ -237,7 +237,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeUnroll() {
         fnFlatGraph.create(flatBoundPositions, edgeConnects);
 
         if (!m_BracingParams.empty()) {
-          reconstructGraphFromBarycentricParams(
+          realizeParameterGraph(
               m_BracingParams, _2DSectionMeshes[l], _2DBracingGraphs[l]);
         }
       }

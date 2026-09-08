@@ -171,7 +171,7 @@ bool parameterizeGraphOnMesh(const zObjGraph &inGraph, zObjMesh &inMesh,
 
 //---- Universal Barycentric Mesh Graph Reconstructor
 
-bool reconstructGraphFromBarycentricParams(
+bool realizeParameterGraph(
     const ParameterGraph &inParams, zObjMesh &targetMesh, zObjGraph &outGraph,
     zVectorArray *outNormals = nullptr,
     const zFloatArray *vertexScalars = nullptr,

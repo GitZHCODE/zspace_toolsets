@@ -316,7 +316,7 @@ ZSPACE_INLINE bool parameterizeGraphOnMesh(const zObjGraph &inGraph,
 
 //---- Universal Barycentric Mesh Graph Reconstructor
 
-ZSPACE_INLINE bool reconstructGraphFromBarycentricParams(
+ZSPACE_INLINE bool realizeParameterGraph(
     const ParameterGraph &inParams, zObjMesh &targetMesh,
     zObjGraph &outGraph, zVectorArray *outNormals,
     const zFloatArray *vertexScalars, zFloatArray *outHeights) {
@@ -397,7 +397,7 @@ barycentricProjectionTriMesh(zObjGraph &graph, zObjMesh &inMesh2D,
   ParameterGraph tempParams;
   if (!parameterizeGraphOnMesh(graph, inMesh2D, tempParams))
     return false;
-  return reconstructGraphFromBarycentricParams(tempParams, projectionMesh3D,
+  return realizeParameterGraph(tempParams, projectionMesh3D,
                                                graph, mappedNormals,
                                                vertexHeights, mappedHeights);
 }

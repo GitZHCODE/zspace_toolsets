@@ -452,7 +452,7 @@ ZSPACE_INLINE bool zTsSDFSlicer::computeSlice() {
                              secOldVertexIds, 0);
 
     if (!m_BracingParams.empty()) {
-      reconstructGraphFromBarycentricParams(
+      realizeParameterGraph(
           m_BracingParams, sectionMeshes[l], bracingGraphs[l]);
     }
   }
