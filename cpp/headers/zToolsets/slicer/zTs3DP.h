@@ -117,21 +117,15 @@ public:
   bool computePipeline();
 
   //----------------------------------------------------------------------
-  // Exporters & Render Helpers
+  // Exporters
   //----------------------------------------------------------------------
-  // NOTE: drawing/exporting reads print-path data that only zTs3DP owns
-  // (m_2DPrintPaths/m_3DPrintPaths, the zTsPrintSyn-cleaned result), so both
-  // methods live here rather than as zTsSDFSlicer members - zTsSDFSlicer no
-  // longer stores print paths itself. Section meshes, V-loops, bracing
-  // graphs, and the scalar field are read via m_Slicer's own getters.
-
-  /*! \brief Builds 3D extruded rectangular pipe mesh for a specific toolpath
-   * layer.
-   *	\param[in]			path			- print path (3D graph +
-   * per-vertex widths/heights/normals) to build the pipe mesh from.
-   *	\param[out]			outMesh			- generated extruded pipe mesh.
-   */
-  void drawPathMesh(const PrintPath &path, zObjMesh &outMesh) const;
+  // NOTE: exportToOBJ reads print-path data that only zTs3DP owns
+  // (m_2DPrintPaths/m_3DPrintPaths, the zTsPrintSyn-cleaned result), plus
+  // section meshes/V-loops/bracing/scalar-field data read via m_Slicer's own
+  // getters, so it lives here as an orchestrator rather than on either
+  // engine. Building a single toolpath's pipe mesh has no such dependency on
+  // zTs3DP's own state, so that's a plain zTsUtils::buildPathMesh(...) call
+  // instead - see zTsUtils.h.
 
   /*! \brief Exports each layer's section mesh and 3D toolpath graph to
    * directory in OBJ format.

@@ -157,6 +157,20 @@ bool remapGraph(zObjGraph &graph, zObjMesh &inMesh2D,
                                   const zFloatArray *vertexHeights = nullptr,
                                   zFloatArray *mappedHeights = nullptr);
 
+//---- Toolpath Pipe Mesh Construction
+
+/*! \brief Builds a 3D extruded rectangular pipe mesh from a print path's
+ * graph and per-vertex widths/heights/normals.
+ *	\param[in]			path				- print path
+ * (graph + per-vertex widths/heights/normals) to build the pipe mesh from.
+ *	\param[in]			defaultLayerHeight	- fallback extrusion
+ * height used where a vertex has no height/width data.
+ *	\param[out]			outMesh				- generated
+ * extruded pipe mesh.
+ */
+void buildPathMesh(const PrintPath &path, float defaultLayerHeight,
+                   zObjMesh &outMesh);
+
 //--------------------------
 //---- FIELD-MESH COLORING & OBJ EXPORT UTILITIES
 //--------------------------

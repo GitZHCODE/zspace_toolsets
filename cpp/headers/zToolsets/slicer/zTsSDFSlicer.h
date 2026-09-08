@@ -297,11 +297,12 @@ public:
                         std::vector<PrintPath> &out3DPaths);
 
   // NOTE: color/palette helpers (colorPathField, colorWidthField, hslToRgb,
-  // generateColorPalette), draw/export helpers (drawPathMesh, exportToOBJ)
-  // are not members of zTsSDFSlicer - drawing/exporting reads print-path
-  // data that only the caller (zTs3DP) owns, so those live at the zTs3DP
-  // level instead. Call zTsUtils::... (declared in zTsUtils.h) for the
-  // generic color/palette/OBJ-export utilities.
+  // generateColorPalette) and pipe-mesh construction (buildPathMesh) are not
+  // members of zTsSDFSlicer - they take no dependency on any engine's
+  // internal state, so they live as plain zTsUtils::... functions (declared
+  // in zTsUtils.h) instead. exportToOBJ lives on zTs3DP, since it also
+  // aggregates zTs3DP's own print-path containers alongside zTsSDFSlicer's
+  // geometry.
 
   // NOTE: translateMesh, translateGraph, and segmentGraph are not members of
   // zTsSDFSlicer - they are generic geometry utilities that don't depend on
