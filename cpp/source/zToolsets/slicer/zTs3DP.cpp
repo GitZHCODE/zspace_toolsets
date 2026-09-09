@@ -43,20 +43,10 @@ ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
   return success;
 }
 
-ZSPACE_INLINE bool zTs3DP::projectTo3D() {
-  bool success = m_Slicer.projectPathsTo3D(m_2DPrintPaths, m_3DPrintPaths);
+ZSPACE_INLINE bool zTs3DP::computeProjection() {
+  bool success = m_Slicer.computeProjection(m_2DPrintPaths, m_3DPrintPaths);
   m_Status = m_Slicer.getStatus();
   return success;
-}
-
-ZSPACE_INLINE bool zTs3DP::computePipeline() {
-  if (!computeSlicer())
-    return false;
-  if (!computePrintSyn())
-    return false;
-  if (!projectTo3D())
-    return false;
-  return true;
 }
 
 //---- EXPORT METHOD

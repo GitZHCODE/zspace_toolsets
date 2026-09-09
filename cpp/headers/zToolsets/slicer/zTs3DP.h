@@ -104,12 +104,20 @@ public:
   /*! \brief Projects the (post-processed) m_2DPrintPaths back onto the 3D
    * section meshes, producing m_3DPrintPaths.
    */
-  bool projectTo3D();
+  bool computeProjection();
 
   /*! \brief Runs the complete 3D printing pipeline end-to-end
-   * (computeSlicer -> computePrintSyn -> projectTo3D).
+   * (computeSlicer -> computePrintSyn -> computeProjection).
    */
-  bool computePipeline();
+  bool computePipeline() {
+    if (!computeSlicer())
+      return false;
+    if (!computePrintSyn())
+      return false;
+    if (!computeProjection())
+      return false;
+    return true;
+  }
 
   //----------------------------------------------------------------------
   // Exporters

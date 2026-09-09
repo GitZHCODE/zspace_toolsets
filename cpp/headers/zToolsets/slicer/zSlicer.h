@@ -310,6 +310,12 @@ public:
   bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,
                         std::vector<PrintPath> &out3DPaths);
 
+  /*! \brief Convenience orchestrator for projectPathsTo3D. */
+  bool computeProjection(const std::vector<PrintPath> &in2DPaths,
+                         std::vector<PrintPath> &out3DPaths) {
+    return projectPathsTo3D(in2DPaths, out3DPaths);
+  }
+
   // NOTE: color/palette helpers (colorPathField, colorWidthField, hslToRgb,
   // generateColorPalette) and pipe-mesh construction (buildPathMesh) are not
   // members of zSlicer - they take no dependency on any engine's
