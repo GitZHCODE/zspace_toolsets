@@ -45,13 +45,8 @@ namespace zSpace {
  *  @{
  */
 
-// NOTE: PrintPath is a shared type declared in zTsUtils.h so that
-// zSlicer and zPrintSyn can both use it without depending on
-// each other.
-
 /*! \struct PrintSynSetting
  *	\brief Configuration settings for 2D toolpath cleanup and resampling.
- * Consumed only by zPrintSyn.
  */
 struct PrintSynSetting {
   float sampleLength = 0.15f; // arc-length resampling step (mm)
@@ -60,27 +55,18 @@ struct PrintSynSetting {
 };
 
 /*! \class zPrintSyn
- *	\brief Toolpath synthesis, cleanup, corner preservation, uniform resampling, and width filtering engine.
- *	\details Fully decoupled from zSlicer: it only depends on zTsUtils.h
- *           (for the shared PrintPath type and shared vector/topology helpers)
- *           and never includes zSlicer.h.
+ *	\brief Toolpath cleanup, corner-preserving resampling, and width-filtering engine.
  *	\since 1.0.0
  */
 class ZSPACE_TOOLSETS zPrintSyn {
 protected:
-  /*!	\brief toolpath cleanup/resampling configuration settings  */
   PrintSynSetting i_Settings;
-
   std::string m_Status;
 
 public:
-  /*! \brief Default constructor. */
   zPrintSyn() { m_Status = "Initialized"; }
-
-  /*! \brief Default destructor. */
   ~zPrintSyn() {}
 
-  /*! \brief Sets toolpath cleanup/resampling configuration settings. */
   void setSettings(const PrintSynSetting &inSettings) {
     i_Settings = inSettings;
   }
@@ -89,13 +75,7 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Processes all PrintPaths in parallel: runs
-   * buildSequencePrintPath -> resamplePrintPath -> filterGlitches on each,
-   * in sequence. Each step takes/returns the same PrintPath, carrying
-   * .widths/.heights/.normals along with .graph throughout. Works for both
-   * 2D paths (.heights/.normals empty) and 3D paths (all four populated),
-   * since empty channels are simply skipped.
-   */
+  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches on every path, in parallel. */
   bool computePrintSyn(std::vector<PrintPath> &ioPaths) {
     const int totalLayers = int(ioPaths.size());
     if (totalLayers == 0) {
@@ -126,35 +106,16 @@ public:
     return true;
   }
 
-  /*! \brief Step 1: prunes spurs, welds gaps, extracts the longest
-   * continuous loop/chain, and rewrites ioPath.graph as that single clean,
-   * ordered sequence (widths/heights/normals reordered to match). Independent
-   * step - takes and returns a complete PrintPath.
-   *	\param[in,out]		ioPath					- print path to clean.
-   *	\return				bool					- true if a valid contour was extracted.
-   */
+  /*! \brief Step 1: prunes spurs, welds gaps, rewrites ioPath as the single cleaned ordered chain/loop. */
   static bool buildSequencePrintPath(PrintPath &ioPath,
                                      double weldTolerance = 0.08,
                                      double spurLengthThreshold = 1.0,
                                      std::string *outReason = nullptr);
 
-  /*! \brief Step 2: performs uniform arc-length resampling preserving
-   * detected feature corners, carrying widths/heights/normals along with
-   * positions (heights/normals skipped when empty). Assumes ioPath.graph is
-   * already a single ordered chain/loop (e.g. from
-   * buildSequencePrintPath). Reads sampleLength/featureAngleThreshold
-   * from this instance's settings. Independent step - takes and returns a
-   * complete PrintPath.
-   *	\param[in,out]		ioPath					- print path to resample.
-   *	\return				bool					- true if successfully resampled.
-   */
+  /*! \brief Step 2: arc-length resamples ioPath.graph, carrying widths/heights/normals along. */
   bool resamplePrintPath(PrintPath &ioPath);
 
-  /*! \brief Step 3: filters out localized 1-vertex extrusion width glitches
-   * and noise in ioPath.widths (closed/open inferred from ioPath.graph).
-   * Independent step - takes and returns a complete PrintPath.
-   *	\param[in,out]		ioPath					- print path whose widths to filter.
-   */
+  /*! \brief Step 3: filters localized width glitches in ioPath.widths. */
   static void filterGlitches(PrintPath &ioPath);
 };
 

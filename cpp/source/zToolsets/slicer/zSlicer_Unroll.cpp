@@ -37,9 +37,13 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
+//--------------------------
+//---- PRIVATE HELPERS
+//--------------------------
+
 namespace {
 
-// Dual Graph Computation and 2D Unrolling
+// Builds the dual graph and finds a BSF spanning path over face pairs.
 bool _computeDualGraph(zObjMesh &mesh, zIntPairArray &bsfHalfEdgePairs) {
   bsfHalfEdgePairs.clear();
   zFnMesh fnMesh(mesh);
@@ -97,6 +101,7 @@ bool _computeDualGraph(zObjMesh &mesh, zIntPairArray &bsfHalfEdgePairs) {
   return true;
 }
 
+// Flattens sourceMesh face-by-face along the BSF path into flattenedMesh.
 bool _unrollMesh(zObjMesh &sourceMesh, const zIntPairArray &bsfHalfEdgePairs,
                  zObjMesh &flattenedMesh) {
   zFnMesh fnSource(sourceMesh);
@@ -186,8 +191,11 @@ bool _unrollMesh(zObjMesh &sourceMesh, const zIntPairArray &bsfHalfEdgePairs,
 }
 } // anonymous namespace
 
-//---- MAIN COMPUTE METHODS: STEP 2 (2D UNROLLING)
+//--------------------------
+//---- PUBLIC METHODS: STEP 2 (2D UNROLLING)
+//--------------------------
 
+// Computes the dual graph BSF order, then unrolls each layer's section mesh to 2D.
 ZSPACE_INLINE bool zSlicer::computeUnroll() {
   sectionMeshes2D.clear();
   sectionGraphs2D.clear();
@@ -256,11 +264,11 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
   return true;
 }
 
-//---- MAIN COMPUTE METHODS: STEP 5 (PROJECT 2D PRINT PATHS BACK TO 3D)
-//---- Paired with computeUnroll() above - unroll flattens 3D -> 2D, this
-//---- is the inverse mapping, 2D -> 3D, for the (possibly post-processed)
-//---- print paths.
+//--------------------------
+//---- PUBLIC METHODS: STEP 5 (PROJECT 2D PRINT PATHS BACK TO 3D)
+//--------------------------
 
+// Inverse of computeUnroll: maps (possibly post-processed) 2D paths back to 3D.
 ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
     const std::vector<PrintPath> &in2DPaths,
     std::vector<PrintPath> &out3DPaths) {

@@ -39,9 +39,13 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
+//--------------------------
+//---- PRIVATE HELPERS
+//--------------------------
+
 namespace {
 
-// Perpendicular Trim Slots Generation
+// Builds a perpendicular trim slot segment at ratio t along a boundary/rib graph.
 bool _createPerpendicularSlot(const zObjGraph &sourceGraph, zObjGraph &outGraph,
                               zScalar t, zScalar trimLength) {
   zFnGraph fnSource(const_cast<zObjGraph &>(sourceGraph));
@@ -160,6 +164,7 @@ struct FastSegment {
   float minY, maxY;
 };
 
+// Converts a graph's edges into flat FastSegment records for fast distance queries.
 inline void computeFastSegments(const zObjGraph &graph,
                                 std::vector<FastSegment> &outSegments) {
   outSegments.clear();
@@ -204,6 +209,7 @@ inline void computeFastSegments(const zObjGraph &graph,
   }
 }
 
+// Computes per-point unsigned distance to the nearest FastSegment, minus offset.
 inline void computeFastDistanceField(const zPoint *points, int numPoints,
                                      const std::vector<FastSegment> &segments,
                                      zScalarArray &outDistances,
@@ -244,6 +250,7 @@ inline void computeFastDistanceField(const zPoint *points, int numPoints,
   }
 }
 
+// Computes per-point inside/outside sign (-1/1) via winding number against polygonGraph.
 inline void computeFastPolygon(const zPoint *points, int numPoints,
                                const zObjGraph &polygonGraph,
                                zScalarArray &outPolyField) {
@@ -323,7 +330,7 @@ inline void computeFastPolygon(const zPoint *points, int numPoints,
   }
 }
 
-// SegmentGraph data structure to simplify field computation inputs
+// Groups a boundary/bracing graph with its print width, offset and trim ratio.
 struct SegmentGraph {
   zObjGraph graph;
   int type = 0;        // 0: Outer Boundary, 1: Internal Bracing
@@ -338,7 +345,7 @@ struct SegmentGraph {
         trim(inTrim) {}
 };
 
-// SDF Fields Calculation Core
+// Computes per-field-vertex distance to each segment graph.
 void _computeSegmentField(zObjMeshScalarField &field,
                           const std::vector<SegmentGraph> &segmentGraphs,
                           std::vector<zScalarArray> &outSegDistances) {
@@ -358,6 +365,7 @@ void _computeSegmentField(zObjMeshScalarField &field,
   }
 }
 
+// Assigns each field vertex the print width of its dominating (nearest) segment.
 void _computeWidthField(zObjMeshScalarField &field,
                         const std::vector<zScalarArray> &segDistances,
                         const std::vector<SegmentGraph> &segmentGraphs,
@@ -419,6 +427,7 @@ void _computeWidthField(zObjMeshScalarField &field,
     *outIdField = idValues;
 }
 
+// Convenience wrapper: builds FastSegments for graph then computes offset distance field.
 inline void _evaluateGraphDistance(const zPoint *points, int n,
                                    const zObjGraph &graph, float halfWidth,
                                    std::vector<FastSegment> &fastEdgesBuffer,
@@ -429,7 +438,7 @@ inline void _evaluateGraphDistance(const zPoint *points, int n,
   computeFastDistanceField(points, n, fastEdgesBuffer, outDist, halfWidth);
 }
 
-// Unified 2D path field computation supporting single-perimeter and double-perimeter
+// Combines outer wall and internal rib fields (with trim slots) into the final SDF path field.
 void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
                        const std::vector<SegmentGraph> &segmentGraphs,
                        const std::vector<zScalarArray> &segDistances,
@@ -609,6 +618,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     *outPathField = pathValues;
 }
 
+// Extracts the zero-isocontour of pathVals as a graph, interpolating widths onto it.
 void _getPathGraph(zObjMeshScalarField &pathFieldMesh,
                    const zScalarArray &pathVals, const zScalarArray &widthVals,
                    zObjGraph &outPathGraph, zFloatArray &outVertexWeights) {
@@ -706,7 +716,7 @@ void _getPathGraph(zObjMeshScalarField &pathFieldMesh,
   }
 }
 
-// Bounding Rectangle Calculation
+// Computes a cell-aligned bounding rectangle and resolution for the flat meshes.
 bool _getboundingrect(const zObjMeshArray &flatMeshes,
                       zDomain<zPoint> &outBounds, double scaleFactor = 1.00,
                       double targetCellSize = 0.05, int *outResX = nullptr,
@@ -762,8 +772,11 @@ bool _getboundingrect(const zObjMeshArray &flatMeshes,
 
 } // anonymous namespace
 
-//---- MAIN COMPUTE METHODS: STEP 3 (2D SDF SCALAR FIELD)
+//--------------------------
+//---- PUBLIC METHODS: STEP 3 (2D SDF SCALAR FIELD)
+//--------------------------
 
+// Builds the SDF path/width fields per layer and extracts flat 2D print paths.
 ZSPACE_INLINE bool
 zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
   pathFields.clear();

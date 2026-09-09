@@ -46,24 +46,16 @@ namespace zSpace {
 typedef std::vector<zObjMesh> zObjMeshArray;
 typedef std::vector<zObjGraph> zObjGraphArray;
 typedef std::vector<zObjGraph *> zObjGraphPointerArray;
-// NOTE: zObjMeshScalarFieldArray is intentionally not declared here. This
-// header does not include zObjMeshField.h (nothing in the shared-utils layer
-// needs zObjMeshScalarField), so redeclaring the typedef against an
-// undeclared type here fails to compile, and once zObjMeshField.h's own
-// `using zObjMeshScalarFieldArray = ...` is later seen (via zSlicer.h),
-// MSVC reports it as a redefinition with a mismatched type. Consumers that
-// need the array type should include zObjMeshField.h directly.
+// zObjMeshScalarFieldArray intentionally not typedef'd here - collides with
+// zObjMeshField.h's own definition. Include zObjMeshField.h directly instead.
 
 //--------------------------
 //---- COMMON DATA STRUCTURES
 //--------------------------
-// NOTE: SlicerSettings and PrintSynSetting are NOT declared here - each
-// lives in its own consumer's header (zSlicer.h / zPrintSyn.h
-// respectively), since neither is shared between the two engines.
+// SlicerSettings/PrintSynSetting live in zSlicer.h/zPrintSyn.h respectively.
 
 /*! \struct ParameterGraph
- *	\brief Universal graph representation parameterized by 2D/3D mesh face
- * barycentric coordinates.
+ *	\brief Graph parameterized by 2D/3D mesh face barycentric coordinates.
  */
 struct ParameterGraph {
   struct Vertex {
@@ -82,11 +74,7 @@ struct ParameterGraph {
 };
 
 /*! \struct PrintPath
- *	\brief Encapsulates a complete printing toolpath including its graph,
- * line widths, layer heights, and normals.
- *	\details Shared exchange type between zSlicer (produces raw 2D/3D
- * paths) and zPrintSyn (cleans up and resamples paths); neither engine class
- * depends on the other.
+ *	\brief Shared toolpath exchange type between zSlicer and zPrintSyn.
  */
 struct PrintPath {
   zObjGraph graph;
@@ -98,8 +86,6 @@ struct PrintPath {
 //--------------------------
 //---- COMMON GEOMETRY / TOPOLOGY UTILITIES
 //--------------------------
-// Shared low-level building blocks used by both zSlicer and zPrintSyn.
-// Declared here, defined in zTsUtils.cpp (see ZSPACE_TOOLSETS_INLINE below).
 
 namespace zTsUtils {
 
@@ -130,10 +116,7 @@ void combineGraphObjects(const zObjGraphArray &sources, zObjGraph &outGraph);
 
 //---- Single-Chain Graph Closed/Open Detection
 
-/*! \brief Infers whether a graph representing a single ordered polyline
- * chain/loop (e.g. a print path's contour) is closed, by checking for a
- * wraparound edge between vertex 0 and vertex N-1. Only meaningful once the
- * graph's vertices are in a single walk order. */
+/*! \brief Infers closed/open from a wraparound edge (vertex 0 <-> N-1). */
 bool isClosedGraph(const zObjGraph &graph);
 
 //---- Universal Polyline Sampling by Arc-Length with Optional Tangent Vector
@@ -167,25 +150,13 @@ bool remapGraph(zObjGraph &graph, zObjMesh &inMesh2D,
 
 //---- Toolpath Pipe Mesh Construction
 
-/*! \brief Builds a 3D extruded rectangular pipe mesh from a print path's
- * graph and per-vertex widths/heights/normals.
- *	\param[in]			path				- print path
- * (graph + per-vertex widths/heights/normals) to build the pipe mesh from.
- *	\param[in]			defaultLayerHeight	- fallback extrusion
- * height used where a vertex has no height/width data.
- *	\param[out]			outMesh				- generated
- * extruded pipe mesh.
- */
+/*! \brief Builds a 3D extruded pipe mesh from a print path. */
 void buildPathMesh(const PrintPath &path, float defaultLayerHeight,
                    zObjMesh &outMesh);
 
 //--------------------------
 //---- FIELD-MESH COLORING & OBJ EXPORT UTILITIES
 //--------------------------
-// Shared coloring/export building blocks, currently used by zTs3DP's
-// exportToOBJ; kept here (rather than owned by any single engine) since they
-// take no dependency on any engine's internal state and are equally usable by
-// any future toolset. Declared here, defined in zTsUtils_Export.cpp.
 
 //---- Color Format Conversion
 
@@ -234,14 +205,13 @@ bool exportColoredMeshToOBJ(const zObjMesh &baseMesh,
 
 //---- Generic Mesh/Graph Transform & Segmentation
 
-/*! \brief Generic 3D translation for all vertex positions of a mesh. */
+/*! \brief Translates all vertex positions of a mesh. */
 void translateMesh(zObjMesh &mesh, const zVector &offset);
 
-/*! \brief Generic 3D translation for all vertex positions of a graph. */
+/*! \brief Translates all vertex positions of a graph. */
 void translateGraph(zObjGraph &graph, const zVector &offset);
 
-/*! \brief Segments a graph at specified split vertex indices. If no indices are
- * provided, outputs original graph. */
+/*! \brief Segments a graph at specified split vertex indices. */
 bool segmentGraph(const zObjGraph &sourceBoundaryGraph,
                   const std::vector<int> &splitIndices,
                   std::vector<zObjGraph> &outBoundarySegments);

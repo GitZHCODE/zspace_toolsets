@@ -40,6 +40,10 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
+//--------------------------
+//---- PRIVATE HELPERS
+//--------------------------
+
 namespace {
 
 // UV Start Halfedge Search
@@ -200,6 +204,7 @@ void _createBoundaryEdgeGraph(zObjMesh &mesh, zObjGraph &outGraph,
   }
 }
 
+// Extracts U-mesh, U-loop, and V-loop graphs by walking the UV grid.
 bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
                  zItMeshHalfEdge heVStart, int numSegments, bool topoSplit,
                  bool angleSplit, float angleThresholdDeg, zObjMesh &uMeshObj,
@@ -323,8 +328,11 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
 
 } // anonymous namespace
 
-//---- MAIN COMPUTE METHODS: STEP 1 (3D SLICING)
+//--------------------------
+//---- PUBLIC METHODS: STEP 1 (3D SLICING)
+//--------------------------
 
+// Extracts corner UV start, U-mesh, U-loop, V-loops, and bracing parameterization.
 ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
   m_VLoops.clear();
   m_VScalar.clear();
@@ -392,6 +400,7 @@ ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
   return true;
 }
 
+// Interpolates layer section meshes/boundaries/bracing along the V-loops.
 ZSPACE_INLINE bool zSlicer::computeSlice() {
   sectionMeshes.clear();
   sectionGraphs.clear();

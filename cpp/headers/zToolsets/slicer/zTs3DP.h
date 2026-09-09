@@ -36,27 +36,20 @@ namespace zSpace {
  */
 
 /*! \class zTs3DP
- *	\brief Master facade and pipeline controller for robotic 3D printing toolpath generation.
- *	\details Wires together two fully decoupled engines - zSlicer (geometry/SDF slicing)
- *           and zPrintSyn (toolpath cleanup) - which share no dependency on each other and
- *           only exchange data through the common PrintPath type declared in zTsUtils.h.
+ *	\brief Facade wiring zSlicer (SDF slicing) and zPrintSyn (toolpath cleanup) into one pipeline.
  *	\since 1.0.0
  */
 class ZSPACE_TOOLSETS zTs3DP {
 protected:
-  //---- Input Geometry and Settings
   zObjMesh m_InputMesh;
   zObjGraph m_BracingGraph;
 
-  //---- Sub-modules
   zSlicer m_Slicer;
   zPrintSyn m_PrintSyn;
 
-  //---- Decoupled PrintPath Containers
   std::vector<PrintPath> m_2DPrintPaths;
   std::vector<PrintPath> m_3DPrintPaths;
 
-  //---- Status
   std::string m_Status;
 
 public:
@@ -81,34 +74,23 @@ public:
     m_Status = "Bracing graph updated";
   }
 
-  // NOTE: no setSettings()/setPrintSynSetting() here - getSettings()/
-  // getPrintSynSetting() below already return mutable references straight
-  // into m_Slicer/m_PrintSyn, so callers assign through those instead
-  // (e.g. My3DP.getSettings() = mySettings;).
+  // getSettings()/getPrintSynSetting() below return mutable references into
+  // m_Slicer/m_PrintSyn - assign through those instead of a setter.
 
   //----------------------------------------------------------------------
-  // Pipeline Execution Methods (3 steps: slicer -> print-syn -> project)
+  // Pipeline Execution Methods
   //----------------------------------------------------------------------
 
-  /*! \brief Runs the full zSlicer geometry pipeline (structure, slice,
-   * unroll, field) and extracts the resulting raw 2D print paths into
-   * this class's own m_2DPrintPaths.
-   */
+  /*! \brief Runs m_Slicer's geometry pipeline, extracting 2D print paths into m_2DPrintPaths. */
   bool computeSlicer();
 
-  /*! \brief Cleans up/resamples m_2DPrintPaths in place via zPrintSyn,
-   * without linking the slicer and print-syn engines directly.
-   */
+  /*! \brief Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn. */
   bool computePrintSyn();
 
-  /*! \brief Projects the (post-processed) m_2DPrintPaths back onto the 3D
-   * section meshes, producing m_3DPrintPaths.
-   */
+  /*! \brief Projects m_2DPrintPaths back onto the 3D section meshes, producing m_3DPrintPaths. */
   bool computeProjection();
 
-  /*! \brief Runs the complete 3D printing pipeline end-to-end
-   * (computeSlicer -> computePrintSyn -> computeProjection).
-   */
+  /*! \brief Runs computeSlicer -> computePrintSyn -> computeProjection. */
   bool computePipeline() {
     if (!computeSlicer())
       return false;
@@ -122,20 +104,8 @@ public:
   //----------------------------------------------------------------------
   // Exporters
   //----------------------------------------------------------------------
-  // NOTE: exportToOBJ reads print-path data that only zTs3DP owns
-  // (m_2DPrintPaths/m_3DPrintPaths, the zPrintSyn-cleaned result), plus
-  // section meshes/V-loops/bracing/scalar-field data read via m_Slicer's own
-  // getters, so it lives here as an orchestrator rather than on either
-  // engine. Building a single toolpath's pipe mesh has no such dependency on
-  // zTs3DP's own state, so that's a plain zTsUtils::buildPathMesh(...) call
-  // instead - see zTsUtils.h.
 
-  /*! \brief Exports each layer's section mesh and 3D toolpath graph to
-   * directory in OBJ format.
-   *	\param[in]			directoryPath	- export folder path
-   * (defaults to Desktop/SDF_Slicer_Export if empty).
-   *	\return				bool - true if successful.
-   */
+  /*! \brief Exports each layer's section mesh and 3D toolpath graph to directory in OBJ format. */
   bool exportToOBJ(const std::string &directoryPath = "");
 
   //----------------------------------------------------------------------
@@ -179,18 +149,9 @@ public:
   inline zObjGraph &getBracingGraph() { return m_BracingGraph; }
   inline const zObjGraph &getBracingGraph() const { return m_BracingGraph; }
 
-  // NOTE: geometry/field outputs (U-mesh, V-loops, section meshes/graphs,
-  // 2D-unrolled counterparts, scalar field, path/width fields, trim slot
-  // graphs, boundary split indices, bracing params) are not forwarded here -
-  // access them via getSlicer().getXxx() instead, to avoid maintaining the
-  // same set of getters in two places.
-
-  // NOTE: per-layer 2D/3D toolpath data is exposed via get2DPrintPaths()/
-  // get3DPrintPaths() above. zSlicer does not store print paths itself
-  // (computeField()/projectPathsTo3D() write directly into this class's own
-  // m_2DPrintPaths/m_3DPrintPaths via out-parameters), so this is the only
-  // place print-path data lives.
-
+  // Other geometry/field outputs (U-mesh, V-loops, section meshes/graphs,
+  // scalar field, etc.) are accessed via getSlicer().getXxx() instead of
+  // being forwarded here.
 };
 
 /** @}*/

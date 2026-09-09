@@ -33,10 +33,13 @@ namespace zSpace {
 
 using namespace zTsUtils;
 
+//--------------------------
+//---- PRIVATE HELPERS
+//--------------------------
+
 namespace {
 
-// Detects geometric corner feature points preserving sharp angles. Internal
-// helper for resamplePrintPath - not part of zPrintSyn's public interface.
+// Flags sequence indices whose turn angle is below the feature threshold.
 void _detectFeatureAngles(const zPointArray &positions,
                           const std::vector<int> &sequence,
                           float angleThresholdDeg,
@@ -73,10 +76,11 @@ void _detectFeatureAngles(const zPointArray &positions,
 
 } // anonymous namespace
 
-//----------------------------------------------------------------------
-// Algorithm Implementations
-//----------------------------------------------------------------------
+//--------------------------
+//---- PUBLIC METHODS
+//--------------------------
 
+// Prunes spurs, welds gaps, and rewrites ioPath as the single cleaned chain/loop.
 ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(PrintPath &ioPath,
                                                      double weldTolerance,
                                                      double spurLengthThreshold,
@@ -450,6 +454,7 @@ ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(PrintPath &ioPath,
   return true;
 }
 
+// Arc-length resamples ioPath.graph, carrying widths/heights/normals along.
 ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
@@ -597,6 +602,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   return true;
 }
 
+// Smooths localized width glitches (isolated spikes/dips) in ioPath.widths.
 ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
   const bool closed = isClosedGraph(ioPath.graph);
   zFloatArray &widths = ioPath.widths;

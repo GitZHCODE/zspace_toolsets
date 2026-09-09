@@ -27,8 +27,11 @@
 
 namespace zSpace {
 
+//--------------------------
 //---- PIPELINE EXECUTION METHODS
+//--------------------------
 
+// Runs m_Slicer's geometry pipeline, extracting 2D print paths.
 ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   m_2DPrintPaths.clear();
   m_3DPrintPaths.clear();
@@ -37,20 +40,25 @@ ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   return success;
 }
 
+// Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn.
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
   bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths);
   m_Status = m_PrintSyn.getStatus();
   return success;
 }
 
+// Projects m_2DPrintPaths back onto the 3D section meshes.
 ZSPACE_INLINE bool zTs3DP::computeProjection() {
   bool success = m_Slicer.computeProjection(m_2DPrintPaths, m_3DPrintPaths);
   m_Status = m_Slicer.getStatus();
   return success;
 }
 
+//--------------------------
 //---- EXPORT METHOD
+//--------------------------
 
+// Exports each layer's section mesh and 3D toolpath graph to directory in OBJ format.
 ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
   std::string dir = directoryPath;
   if (dir.empty()) {

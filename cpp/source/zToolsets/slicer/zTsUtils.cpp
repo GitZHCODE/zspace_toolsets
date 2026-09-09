@@ -34,11 +34,16 @@ namespace zTsUtils {
 //---- Thread-Safe Console Logging
 
 namespace {
+// Private: shared mutex guarding console output.
 std::mutex &_getConsoleLogMutex() {
   static std::mutex mtx;
   return mtx;
 }
 } // anonymous namespace
+
+//--------------------------
+//---- PUBLIC FUNCTIONS
+//--------------------------
 
 ZSPACE_INLINE void printSuccess(const std::string &msg) {
   std::lock_guard<std::mutex> lock(_getConsoleLogMutex());
