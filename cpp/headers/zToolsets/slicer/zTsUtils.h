@@ -203,6 +203,11 @@ bool exportColoredMeshToOBJ(const zObjMesh &baseMesh,
                             const std::string &filePath,
                             const std::string &objectPrefix = "layer_");
 
+//---- Wavefront OBJ Graph Importer
+
+/*! \brief Reads a graph's v/l lines from an OBJ file (all objects merged). */
+bool readGraphFromOBJ(const std::string &filePath, zObjGraph &outGraph);
+
 //---- Generic Mesh/Graph Transform & Segmentation
 
 /*! \brief Translates all vertex positions of a mesh. */

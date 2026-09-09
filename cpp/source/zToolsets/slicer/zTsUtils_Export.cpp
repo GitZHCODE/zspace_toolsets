@@ -25,6 +25,7 @@
 #include <fstream>
 #include <limits>
 #include <random>
+#include <sstream>
 #include <unordered_set>
 #include <vector>
 
@@ -415,6 +416,46 @@ exportGraphToOBJ(const zObjGraphArray &graphs, const std::string &filePath,
   }
 
   ofs.close();
+  return true;
+}
+
+//---- Wavefront OBJ Graph Importer
+
+ZSPACE_INLINE bool readGraphFromOBJ(const std::string &filePath,
+                                    zObjGraph &outGraph) {
+  std::ifstream ifs(filePath);
+  if (!ifs.is_open())
+    return false;
+
+  zPointArray positions;
+  zIntArray edgeConnects;
+  std::string line;
+  while (std::getline(ifs, line)) {
+    std::istringstream iss(line);
+    std::string tag;
+    iss >> tag;
+    if (tag == "v") {
+      double x = 0.0, y = 0.0, z = 0.0;
+      iss >> x >> y >> z;
+      positions.push_back(zPoint(x, y, z));
+    } else if (tag == "l") {
+      std::vector<int> indices;
+      int idx;
+      while (iss >> idx)
+        indices.push_back(idx - 1); // OBJ indices are 1-based
+      for (size_t k = 0; k + 1 < indices.size(); k++) {
+        edgeConnects.push_back(indices[k]);
+        edgeConnects.push_back(indices[k + 1]);
+      }
+    }
+  }
+
+  if (positions.empty() || edgeConnects.empty())
+    return false;
+
+  zFnGraph fnGraph(outGraph);
+  fnGraph.clear();
+  fnGraph.create(positions, edgeConnects);
   return true;
 }
 
