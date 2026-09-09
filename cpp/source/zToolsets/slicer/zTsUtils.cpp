@@ -136,6 +136,23 @@ ZSPACE_INLINE void combineGraphObjects(const zObjGraphArray &sources,
     fnOut.create(positions, edgeConnects);
 }
 
+//---- Single-Chain Graph Closed/Open Detection
+
+ZSPACE_INLINE bool isClosedGraph(const zObjGraph &graph) {
+  zFnGraph fn(const_cast<zObjGraph &>(graph));
+  const int N = fn.numVertices();
+  if (N < 3)
+    return false;
+  zIntArray edges;
+  fn.getEdgeData(edges);
+  for (size_t e = 0; e + 1 < edges.size(); e += 2) {
+    if ((edges[e] == 0 && edges[e + 1] == N - 1) ||
+        (edges[e + 1] == 0 && edges[e] == N - 1))
+      return true;
+  }
+  return false;
+}
+
 //---- Universal Polyline Sampling by Arc-Length with Optional Tangent Vector
 
 ZSPACE_INLINE bool samplePolyline(const zPoint *positions,
@@ -428,21 +445,12 @@ ZSPACE_INLINE void buildPathMesh(const PrintPath &path,
 
   zFnGraph fnContour(const_cast<zObjGraph &>(path.graph));
   zPointArray points;
-  zIntArray edges;
   fnContour.getVertexPositions(points);
-  fnContour.getEdgeData(edges);
   const int N = int(points.size());
   if (N < 2)
     return;
 
-  bool closed = false;
-  for (size_t e = 0; e + 1 < edges.size(); e += 2) {
-    if ((edges[e] == 0 && edges[e + 1] == N - 1) ||
-        (edges[e + 1] == 0 && edges[e] == N - 1)) {
-      closed = true;
-      break;
-    }
-  }
+  const bool closed = isClosedGraph(path.graph);
 
   const zFloatArray *layerWeights = &path.widths;
   const zFloatArray *layerHeights = &path.heights;

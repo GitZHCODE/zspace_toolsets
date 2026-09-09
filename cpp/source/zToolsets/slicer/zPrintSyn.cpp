@@ -39,33 +39,53 @@ namespace zSpace {
 using namespace zTsUtils;
 
 namespace {
-// Infers closed/open from whether the graph's edges include a wraparound
-// (vertex 0 <-> vertex N-1) - the same convention zTsUtils::buildPathMesh
-// uses. Valid once a PrintPath's graph has been put into a single ordered
-// chain/loop (e.g. by buildSequencePrintPath).
-bool _isClosedGraph(const zObjGraph &graph) {
-  zFnGraph fn(const_cast<zObjGraph &>(graph));
-  const int N = fn.numVertices();
+
+// Detects geometric corner feature points preserving sharp angles. Internal
+// helper for resamplePrintPath - not part of zPrintSyn's public interface.
+void _detectFeatureAngles(const zPointArray &positions,
+                          const std::vector<int> &sequence,
+                          float angleThresholdDeg,
+                          std::vector<int> &outFeatureFlags) {
+  const int N = static_cast<int>(sequence.size());
+  outFeatureFlags.assign(N, 0);
   if (N < 3)
-    return false;
-  zIntArray edges;
-  fn.getEdgeData(edges);
-  for (size_t e = 0; e + 1 < edges.size(); e += 2) {
-    if ((edges[e] == 0 && edges[e + 1] == N - 1) ||
-        (edges[e + 1] == 0 && edges[e] == N - 1))
-      return true;
+    return;
+
+  const double thresholdRad =
+      static_cast<double>(angleThresholdDeg) * (3.14159265358979323846 / 180.0);
+
+  for (int i = 0; i < N; i++) {
+    int prevId = sequence[(i - 1 + N) % N];
+    int curId = sequence[i];
+    int nextId = sequence[(i + 1) % N];
+
+    zVector v0 = vecSub(positions[prevId], positions[curId]);
+    zVector v1 = vecSub(positions[nextId], positions[curId]);
+    const double len0 = v0.length();
+    const double len1 = v1.length();
+    if (len0 < 1e-6 || len1 < 1e-6)
+      continue;
+
+    double cosTheta = vecDot(v0, v1) / (len0 * len1);
+    cosTheta = (std::max)(-1.0, (std::min)(1.0, cosTheta));
+    const double angleRad = std::acos(cosTheta);
+
+    if (angleRad < thresholdRad) {
+      outFeatureFlags[i] = 1;
+    }
   }
-  return false;
 }
+
 } // anonymous namespace
 
 //----------------------------------------------------------------------
 // Algorithm Implementations
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(
-    PrintPath &ioPath, double weldTolerance, double spurLengthThreshold,
-    std::string *outReason) {
+ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(PrintPath &ioPath,
+                                                     double weldTolerance,
+                                                     double spurLengthThreshold,
+                                                     std::string *outReason) {
   zFnGraph fnGraph(ioPath.graph);
   zPointArray positions;
   zIntArray edgeConnects;
@@ -435,39 +455,6 @@ ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(
   return true;
 }
 
-ZSPACE_INLINE void zPrintSyn::detectFeatureAngles(
-    const zPointArray &positions, const std::vector<int> &sequence,
-    float angleThresholdDeg, std::vector<int> &outFeatureFlags) {
-  const int N = static_cast<int>(sequence.size());
-  outFeatureFlags.assign(N, 0);
-  if (N < 3)
-    return;
-
-  const double thresholdRad =
-      static_cast<double>(angleThresholdDeg) * (3.14159265358979323846 / 180.0);
-
-  for (int i = 0; i < N; i++) {
-    int prevId = sequence[(i - 1 + N) % N];
-    int curId = sequence[i];
-    int nextId = sequence[(i + 1) % N];
-
-    zVector v0 = vecSub(positions[prevId], positions[curId]);
-    zVector v1 = vecSub(positions[nextId], positions[curId]);
-    const double len0 = v0.length();
-    const double len1 = v1.length();
-    if (len0 < 1e-6 || len1 < 1e-6)
-      continue;
-
-    double cosTheta = vecDot(v0, v1) / (len0 * len1);
-    cosTheta = (std::max)(-1.0, (std::min)(1.0, cosTheta));
-    const double angleRad = std::acos(cosTheta);
-
-    if (angleRad < thresholdRad) {
-      outFeatureFlags[i] = 1;
-    }
-  }
-}
-
 ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
@@ -476,7 +463,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   if (N < 2 || sampleLength <= 1e-6f)
     return false;
 
-  const bool closed = _isClosedGraph(ioPath.graph);
+  const bool closed = isClosedGraph(ioPath.graph);
 
   zPointArray positions;
   fnGraph.getVertexPositions(positions);
@@ -486,7 +473,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     sequence[i] = i;
 
   std::vector<int> featureFlags;
-  detectFeatureAngles(positions, sequence, i_Settings.featureAngleThreshold,
+  _detectFeatureAngles(positions, sequence, i_Settings.featureAngleThreshold,
                       featureFlags);
 
   const zFloatArray &weights = ioPath.widths;
@@ -616,7 +603,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
 }
 
 ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
-  const bool closed = _isClosedGraph(ioPath.graph);
+  const bool closed = isClosedGraph(ioPath.graph);
   zFloatArray &widths = ioPath.widths;
   const int n = static_cast<int>(widths.size());
   if (n <= 2)

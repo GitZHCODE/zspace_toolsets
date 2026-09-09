@@ -128,6 +128,14 @@ void getFaceVerticesFromHalfedge(zItMeshHalfEdge &heStart, bool forward,
 
 void combineGraphObjects(const zObjGraphArray &sources, zObjGraph &outGraph);
 
+//---- Single-Chain Graph Closed/Open Detection
+
+/*! \brief Infers whether a graph representing a single ordered polyline
+ * chain/loop (e.g. a print path's contour) is closed, by checking for a
+ * wraparound edge between vertex 0 and vertex N-1. Only meaningful once the
+ * graph's vertices are in a single walk order. */
+bool isClosedGraph(const zObjGraph &graph);
+
 //---- Universal Polyline Sampling by Arc-Length with Optional Tangent Vector
 
 bool samplePolyline(const zPoint *positions, const zScalar *scalars,

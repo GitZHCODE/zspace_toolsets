@@ -105,12 +105,6 @@ public:
                                      double spurLengthThreshold = 1.0,
                                      std::string *outReason = nullptr);
 
-  /*! \brief Detects geometric corner feature points preserving sharp angles. */
-  static void detectFeatureAngles(const zPointArray &positions,
-                                  const std::vector<int> &sequence,
-                                  float angleThresholdDeg,
-                                  std::vector<int> &outFeatureFlags);
-
   /*! \brief Step 2: performs uniform arc-length resampling preserving
    * detected feature corners, carrying widths/heights/normals along with
    * positions (heights/normals skipped when empty). Assumes ioPath.graph is
