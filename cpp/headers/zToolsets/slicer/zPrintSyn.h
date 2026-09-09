@@ -24,9 +24,14 @@
 #include <zspace/zInterface/objects/zObjGraph.h>
 #include <zspace/zInterface/objects/zObjMesh.h>
 
-#include <iostream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <vector>
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
 namespace zSpace {
 
@@ -91,7 +96,35 @@ public:
    * 2D paths (.heights/.normals empty) and 3D paths (all four populated),
    * since empty channels are simply skipped.
    */
-  bool computePrintSyn(std::vector<PrintPath> &ioPaths);
+  bool computePrintSyn(std::vector<PrintPath> &ioPaths) {
+    const int totalLayers = int(ioPaths.size());
+    if (totalLayers == 0) {
+      m_Status = "failed: No print paths available.";
+      zTsUtils::printError("[zPrintSyn] " + m_Status);
+      return false;
+    }
+
+    const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for schedule(dynamic)
+    for (int l = 0; l < totalLayers; l++) {
+      if (buildSequencePrintPath(ioPaths[l]) && resamplePrintPath(ioPaths[l])) {
+        filterGlitches(ioPaths[l]);
+      }
+    }
+
+    const auto wallEnd = std::chrono::high_resolution_clock::now();
+    const double wallTotalMs =
+        std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+    std::ostringstream out;
+    out << "Post-processed " << totalLayers << " print paths in " << std::fixed
+        << std::setprecision(2) << wallTotalMs
+        << " ms (sampleLen=" << i_Settings.sampleLength << "mm)";
+    m_Status = out.str();
+    zTsUtils::printSuccess("[zPrintSyn] " + m_Status);
+    return true;
+  }
 
   /*! \brief Step 1: prunes spurs, welds gaps, extracts the longest
    * continuous loop/chain, and rewrites ioPath.graph as that single clean,

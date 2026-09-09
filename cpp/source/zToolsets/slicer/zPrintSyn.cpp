@@ -21,18 +21,13 @@
 #endif
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
-#include <iomanip>
 #include <limits>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#if defined(_OPENMP)
-#include <omp.h>
-#endif
 
 namespace zSpace {
 
@@ -624,40 +619,6 @@ ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
       continue;
     widths[i] = prevWidth;
   }
-}
-
-//----------------------------------------------------------------------
-// High-Level Layer Processing Methods
-//----------------------------------------------------------------------
-
-ZSPACE_INLINE bool zPrintSyn::computePrintSyn(std::vector<PrintPath> &ioPaths) {
-  const int totalLayers = int(ioPaths.size());
-  if (totalLayers == 0) {
-    m_Status = "failed: No print paths available.";
-    printError("[zPrintSyn] " + m_Status);
-    return false;
-  }
-
-  const auto wallStart = std::chrono::high_resolution_clock::now();
-
-#pragma omp parallel for schedule(dynamic)
-  for (int l = 0; l < totalLayers; l++) {
-    if (buildSequencePrintPath(ioPaths[l]) && resamplePrintPath(ioPaths[l])) {
-      filterGlitches(ioPaths[l]);
-    }
-  }
-
-  const auto wallEnd = std::chrono::high_resolution_clock::now();
-  const double wallTotalMs =
-      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
-
-  std::ostringstream out;
-  out << "Post-processed " << totalLayers << " print paths in " << std::fixed
-      << std::setprecision(2) << wallTotalMs
-      << " ms (sampleLen=" << i_Settings.sampleLength << "mm)";
-  m_Status = out.str();
-  printSuccess("[zPrintSyn] " + m_Status);
-  return true;
 }
 
 } // namespace zSpace
