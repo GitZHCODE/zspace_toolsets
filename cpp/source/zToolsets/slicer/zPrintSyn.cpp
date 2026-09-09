@@ -630,7 +630,7 @@ ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
 // High-Level Layer Processing Methods
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
+ZSPACE_INLINE bool zPrintSyn::processPrintPath(std::vector<PrintPath> &ioPaths) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0) {
     m_Status = "failed: No print paths available.";
