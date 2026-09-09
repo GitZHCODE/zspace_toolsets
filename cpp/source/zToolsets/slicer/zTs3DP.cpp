@@ -40,7 +40,7 @@ ZSPACE_INLINE bool zTs3DP::computeSlicer() {
 }
 
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
-  bool success = m_PrintSyn.processPrintPath(m_2DPrintPaths);
+  bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths);
   m_Status = m_PrintSyn.getStatus();
   return success;
 }

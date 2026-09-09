@@ -91,7 +91,7 @@ public:
    * 2D paths (.heights/.normals empty) and 3D paths (all four populated),
    * since empty channels are simply skipped.
    */
-  bool processPrintPath(std::vector<PrintPath> &ioPaths);
+  bool computePrintSyn(std::vector<PrintPath> &ioPaths);
 
   /*! \brief Step 1: prunes spurs, welds gaps, extracts the longest
    * continuous loop/chain, and rewrites ioPath.graph as that single clean,
