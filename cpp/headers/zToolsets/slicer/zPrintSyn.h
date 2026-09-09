@@ -84,18 +84,13 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Processes a single PrintPath in place: runs
-   * buildClosedContourSequence -> resampleContour -> filterGlitches in
-   * sequence. Each step takes/returns the same PrintPath, carrying
+  /*! \brief Processes all PrintPaths in parallel: runs
+   * buildSequencePrintPath -> resamplePrintPath -> filterGlitches on each,
+   * in sequence. Each step takes/returns the same PrintPath, carrying
    * .widths/.heights/.normals along with .graph throughout. Works for both
    * 2D paths (.heights/.normals empty) and 3D paths (all four populated),
    * since empty channels are simply skipped.
-   *	\param[in,out]		ioPath					- print path to clean and resample.
-   *	\return				bool					- true if successfully processed.
    */
-  bool processLayer(PrintPath &ioPath);
-
-  /*! \brief Processes all PrintPaths in parallel. */
   bool processAllPaths(std::vector<PrintPath> &ioPaths);
 
   /*! \brief Step 1: prunes spurs, welds gaps, extracts the longest
@@ -105,10 +100,10 @@ public:
    *	\param[in,out]		ioPath					- print path to clean.
    *	\return				bool					- true if a valid contour was extracted.
    */
-  static bool buildClosedContourSequence(PrintPath &ioPath,
-                                         double weldTolerance = 0.08,
-                                         double spurLengthThreshold = 1.0,
-                                         std::string *outReason = nullptr);
+  static bool buildSequencePrintPath(PrintPath &ioPath,
+                                     double weldTolerance = 0.08,
+                                     double spurLengthThreshold = 1.0,
+                                     std::string *outReason = nullptr);
 
   /*! \brief Detects geometric corner feature points preserving sharp angles. */
   static void detectFeatureAngles(const zPointArray &positions,
@@ -120,13 +115,13 @@ public:
    * detected feature corners, carrying widths/heights/normals along with
    * positions (heights/normals skipped when empty). Assumes ioPath.graph is
    * already a single ordered chain/loop (e.g. from
-   * buildClosedContourSequence). Reads sampleLength/featureAngleThreshold
+   * buildSequencePrintPath). Reads sampleLength/featureAngleThreshold
    * from this instance's settings. Independent step - takes and returns a
    * complete PrintPath.
    *	\param[in,out]		ioPath					- print path to resample.
    *	\return				bool					- true if successfully resampled.
    */
-  bool resampleContour(PrintPath &ioPath);
+  bool resamplePrintPath(PrintPath &ioPath);
 
   /*! \brief Step 3: filters out localized 1-vertex extrusion width glitches
    * and noise in ioPath.widths (closed/open inferred from ioPath.graph).

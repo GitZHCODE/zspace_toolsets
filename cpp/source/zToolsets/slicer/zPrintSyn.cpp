@@ -42,8 +42,8 @@ namespace {
 // Infers closed/open from whether the graph's edges include a wraparound
 // (vertex 0 <-> vertex N-1) - the same convention zTsUtils::buildPathMesh
 // uses. Valid once a PrintPath's graph has been put into a single ordered
-// chain/loop (e.g. by buildClosedContourSequence).
-bool _isClosedContour(const zObjGraph &graph) {
+// chain/loop (e.g. by buildSequencePrintPath).
+bool _isClosedGraph(const zObjGraph &graph) {
   zFnGraph fn(const_cast<zObjGraph &>(graph));
   const int N = fn.numVertices();
   if (N < 3)
@@ -63,7 +63,7 @@ bool _isClosedContour(const zObjGraph &graph) {
 // Algorithm Implementations
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zPrintSyn::buildClosedContourSequence(
+ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(
     PrintPath &ioPath, double weldTolerance, double spurLengthThreshold,
     std::string *outReason) {
   zFnGraph fnGraph(ioPath.graph);
@@ -468,7 +468,7 @@ ZSPACE_INLINE void zPrintSyn::detectFeatureAngles(
   }
 }
 
-ZSPACE_INLINE bool zPrintSyn::resampleContour(PrintPath &ioPath) {
+ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
   const float sampleLength =
@@ -476,7 +476,7 @@ ZSPACE_INLINE bool zPrintSyn::resampleContour(PrintPath &ioPath) {
   if (N < 2 || sampleLength <= 1e-6f)
     return false;
 
-  const bool closed = _isClosedContour(ioPath.graph);
+  const bool closed = _isClosedGraph(ioPath.graph);
 
   zPointArray positions;
   fnGraph.getVertexPositions(positions);
@@ -616,7 +616,7 @@ ZSPACE_INLINE bool zPrintSyn::resampleContour(PrintPath &ioPath) {
 }
 
 ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
-  const bool closed = _isClosedContour(ioPath.graph);
+  const bool closed = _isClosedGraph(ioPath.graph);
   zFloatArray &widths = ioPath.widths;
   const int n = static_cast<int>(widths.size());
   if (n <= 2)
@@ -643,15 +643,6 @@ ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
 // High-Level Layer Processing Methods
 //----------------------------------------------------------------------
 
-ZSPACE_INLINE bool zPrintSyn::processLayer(PrintPath &ioPath) {
-  if (!buildClosedContourSequence(ioPath))
-    return false;
-  if (!resampleContour(ioPath))
-    return false;
-  filterGlitches(ioPath);
-  return true;
-}
-
 ZSPACE_INLINE bool zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0) {
@@ -664,7 +655,9 @@ ZSPACE_INLINE bool zPrintSyn::processAllPaths(std::vector<PrintPath> &ioPaths) {
 
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
-    processLayer(ioPaths[l]);
+    if (buildSequencePrintPath(ioPaths[l]) && resamplePrintPath(ioPaths[l])) {
+      filterGlitches(ioPaths[l]);
+    }
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
