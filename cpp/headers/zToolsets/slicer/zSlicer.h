@@ -291,6 +291,17 @@ public:
    */
   bool computeField(std::vector<PrintPath> &outPrintPaths2D);
 
+  /*! \brief Runs the full geometry pipeline in order: computeBasicStructure
+   * -> computeSlice -> computeUnroll -> computeField, extracting the
+   * resulting raw 2D print paths into outPrintPaths2D. Convenience
+   * orchestrator for the four steps above.
+   *	\param[out]			outPrintPaths2D	- 2D flat isocontour
+   * print paths (graph + per-vertex widths), one per layer.
+   *	\return				bool
+   *	- true if successful.
+   */
+  bool computeSlicer(std::vector<PrintPath> &outPrintPaths2D);
+
   /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D
    * graphs, heights, and normals. */
   bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,

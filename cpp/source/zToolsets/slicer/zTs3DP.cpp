@@ -32,9 +32,7 @@ namespace zSpace {
 ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   m_2DPrintPaths.clear();
   m_3DPrintPaths.clear();
-  bool success = m_Slicer.computeBasicStructure() && m_Slicer.computeSlice() &&
-                 m_Slicer.computeUnroll() &&
-                 m_Slicer.computeField(m_2DPrintPaths);
+  bool success = m_Slicer.computeSlicer(m_2DPrintPaths);
   m_Status = m_Slicer.getStatus();
   return success;
 }

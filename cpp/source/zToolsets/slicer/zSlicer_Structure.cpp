@@ -468,4 +468,12 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
   return true;
 }
 
+//---- COMBINED COMPUTE METHOD (STEPS 1-4)
+
+ZSPACE_INLINE bool
+zSlicer::computeSlicer(std::vector<PrintPath> &outPrintPaths2D) {
+  return computeBasicStructure() && computeSlice() && computeUnroll() &&
+         computeField(outPrintPaths2D);
+}
+
 } // namespace zSpace
