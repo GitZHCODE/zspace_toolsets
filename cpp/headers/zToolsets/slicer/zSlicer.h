@@ -300,7 +300,10 @@ public:
    *	\return				bool
    *	- true if successful.
    */
-  bool computeSlicer(std::vector<PrintPath> &outPrintPaths2D);
+  bool computeSlicer(std::vector<PrintPath> &outPrintPaths2D) {
+    return computeBasicStructure() && computeSlice() && computeUnroll() &&
+           computeField(outPrintPaths2D);
+  }
 
   /*! \brief Projects 2D PrintPaths back to 3D section meshes, populating 3D
    * graphs, heights, and normals. */
