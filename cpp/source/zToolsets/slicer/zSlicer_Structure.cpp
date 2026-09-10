@@ -363,9 +363,9 @@ ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
     return false;
   }
 
-  const int startVID = (i_Settings.cornerStartVertexId >= 0 &&
-                        i_Settings.cornerStartVertexId < fn.numVertices())
-                           ? i_Settings.cornerStartVertexId
+  const int startVID = (i_Settings.StartCornerVertexID >= 0 &&
+                        i_Settings.StartCornerVertexID < fn.numVertices())
+                           ? i_Settings.StartCornerVertexID
                            : 0;
 
   zItMeshHalfEdge heUStart, heVStart;
@@ -379,8 +379,8 @@ ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
   m_BoundarySplitIndices.clear();
 
   if (!_walkUVLoop(*i_InputMesh, heUStart, heVStart, numSegments,
-                   i_Settings.topoSplit, i_Settings.angleSplit,
-                   i_Settings.geometricAngleThreshold, m_UMesh, m_ULoop,
+                   i_Settings.TopoSplit, i_Settings.AngleSplit,
+                   i_Settings.AngleSplitTol, m_UMesh, m_ULoop,
                    m_VLoops, m_VScalar, m_BoundarySplitIndices)) {
     m_VLoops.clear();
     m_VScalar.clear();
@@ -407,7 +407,7 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
   bracingGraphs.clear();
 
   if (m_VLoops.empty() || m_VScalar.empty() ||
-      i_Settings.layerSpacing <= 0.0f) {
+      i_Settings.LayerSpacing <= 0.0f) {
     m_Status = "failed: No V-loops available.";
     printError("[computeSlice] " + m_Status);
     return false;
@@ -429,7 +429,7 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
   }
 
   const int totalContours =
-      (std::max)(1, int(std::ceil(minLoopLength / i_Settings.layerSpacing)));
+      (std::max)(1, int(std::ceil(minLoopLength / i_Settings.LayerSpacing)));
   const int totalLayers = totalContours + 1;
 
   const auto wallStart = std::chrono::high_resolution_clock::now();

@@ -49,8 +49,8 @@ namespace zSpace {
  *	\brief Configuration settings for 2D toolpath cleanup and resampling.
  */
 struct PrintSynSetting {
-  float sampleLength = 0.15f; // arc-length resampling step (mm)
-  float featureAngleThreshold =
+  float ResampleLength = 0.15f; // arc-length resampling step (mm)
+  float FeatureAngleTol =
       90.0f; // geometric feature corner angle threshold (deg)
 };
 
@@ -100,7 +100,7 @@ public:
     std::ostringstream out;
     out << "Post-processed " << totalLayers << " print paths in " << std::fixed
         << std::setprecision(2) << wallTotalMs
-        << " ms (sampleLen=" << i_Settings.sampleLength << "mm)";
+        << " ms (sampleLen=" << i_Settings.ResampleLength << "mm)";
     m_Status = out.str();
     zTsUtils::printSuccess("[zPrintSyn] " + m_Status);
     return true;

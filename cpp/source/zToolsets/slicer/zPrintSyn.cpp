@@ -459,7 +459,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
   const float sampleLength =
-      (i_Settings.sampleLength > 1e-4f) ? i_Settings.sampleLength : 0.005f;
+      (i_Settings.ResampleLength > 1e-4f) ? i_Settings.ResampleLength : 0.005f;
   if (N < 2 || sampleLength <= 1e-6f)
     return false;
 
@@ -473,7 +473,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     sequence[i] = i;
 
   std::vector<int> featureFlags;
-  _detectFeatureAngles(positions, sequence, i_Settings.featureAngleThreshold,
+  _detectFeatureAngles(positions, sequence, i_Settings.FeatureAngleTol,
                       featureFlags);
 
   const zFloatArray &weights = ioPath.widths;

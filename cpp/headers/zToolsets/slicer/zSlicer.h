@@ -48,25 +48,25 @@ namespace zSpace {
  *	\brief Configuration settings for geodesic slicing and SDF/toolpath generation.
  */
 struct SlicerSettings {
-  int cornerStartVertexId = 21;
-  float layerSpacing = 1.0f;
-  bool topoSplit = true;
-  bool angleSplit = true;
-  float geometricAngleThreshold = 90.0f; // degrees (corner angle < threshold)
+  int StartCornerVertexID = 21;
+  float LayerSpacing = 1.0f;
+  bool TopoSplit = true;
+  bool AngleSplit = true;
+  float AngleSplitTol = 90.0f; // degrees (corner angle < threshold)
 
   // SDF & Toolpath Parameters
-  bool doublelayerboundary = false;
-  std::vector<float> printBoundaryWidth = {0.5f};
-  float printBracingWidth = 0.5f;
-  float printOverlapWidth = 0.0f;
-  float trimSlotStaggerEven = 0.5f;
-  float trimSlotStaggerOdd = 0.5f;
-  int boundaryTrimSegmentId = 1;
-  float boundaryTrimSlotRatioEven = 0.45f;
-  float boundaryTrimSlotRatioOdd = 0.55f;
+  bool DoubleBoundary = false;
+  std::vector<float> BoundaryWidth = {0.5f};
+  float BracingWidth = 0.5f;
+  float OverlapWidth = 0.0f;
+  float BracingSlotEven = 0.5f;
+  float BracingSlotOdd = 0.5f;
+  int BoundarySlotID = 1;
+  float BoundarySlotEven = 0.45f;
+  float BoundarySlotOdd = 0.55f;
 
-  float fieldBoundingScale = 1.05f;
-  float fieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
+  float FieldScaleUp = 1.05f;
+  float FieldCellSize = 0.05f; // Target square grid cell size (default 0.05)
 };
 
 /*! \class zSlicer

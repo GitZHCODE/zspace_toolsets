@@ -817,15 +817,15 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
   trimSlotGraphs.assign(totalLayers, zObjGraph());
   outPrintPaths2D.assign(totalLayers, PrintPath());
 
-  const float printBracingWidth = i_Settings.printBracingWidth;
-  const float printOverlapWidth = i_Settings.printOverlapWidth;
+  const float printBracingWidth = i_Settings.BracingWidth;
+  const float printOverlapWidth = i_Settings.OverlapWidth;
   const float targetCellSize =
-      (i_Settings.fieldCellSize > 1e-6f) ? i_Settings.fieldCellSize : 0.05f;
+      (i_Settings.FieldCellSize > 1e-6f) ? i_Settings.FieldCellSize : 0.05f;
 
   zDomain<zPoint> layerFieldBB;
   int resX = 0, resY = 0;
   if (!_getboundingrect(sectionMeshes2D, layerFieldBB,
-                        i_Settings.fieldBoundingScale, targetCellSize, &resX,
+                        i_Settings.FieldScaleUp, targetCellSize, &resX,
                         &resY)) {
     m_Status =
         "failed: Could not compute bounding rectangle for unrolled meshes.";
@@ -833,7 +833,7 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
     return false;
   }
 
-  const std::vector<float> &edgeWidths = i_Settings.printBoundaryWidth;
+  const std::vector<float> &edgeWidths = i_Settings.BoundaryWidth;
   const float defaultEdgeWidth =
       (!edgeWidths.empty()) ? edgeWidths.back() : 0.5f;
 
@@ -877,10 +877,10 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
             (seg < (int)edgeWidths.size()) ? edgeWidths[seg] : defaultEdgeWidth;
         const float setW = (std::max)(1e-4f, rawW);
         float boundaryTrimRatio = 0.0f;
-        if (seg == i_Settings.boundaryTrimSegmentId) {
+        if (seg == i_Settings.BoundarySlotID) {
           boundaryTrimRatio = (l % 2 == 0)
-                                  ? i_Settings.boundaryTrimSlotRatioEven
-                                  : i_Settings.boundaryTrimSlotRatioOdd;
+                                  ? i_Settings.BoundarySlotEven
+                                  : i_Settings.BoundarySlotOdd;
         }
         segmentGraphs.emplace_back(boundarySegments[seg], 0, setW, 0.5f * setW,
                                    boundaryTrimRatio);
@@ -888,8 +888,8 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
 
       if (hasValidBracing) {
         const float bracingTrimRatio = (l % 2 == 0)
-                                           ? i_Settings.trimSlotStaggerEven
-                                           : i_Settings.trimSlotStaggerOdd;
+                                           ? i_Settings.BracingSlotEven
+                                           : i_Settings.BracingSlotOdd;
         segmentGraphs.emplace_back(flatBracingGraph, 1, printBracingWidth, 0.0f,
                                    bracingTrimRatio);
       }
@@ -903,11 +903,11 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
       _computeSegmentField(localField, segmentGraphs, segDistances);
 
       _computeWidthField(localField, segDistances, segmentGraphs,
-                         i_Settings.doublelayerboundary, printOverlapWidth,
+                         i_Settings.DoubleBoundary, printOverlapWidth,
                          &widthValues, &idValues);
 
       _computePathField(localField, sectionGraphs2D[l], segmentGraphs,
-                        segDistances, i_Settings.doublelayerboundary,
+                        segDistances, i_Settings.DoubleBoundary,
                         printOverlapWidth, &bracingSlotsGraph, &pathValues);
 
       pathFields[l] = pathValues;

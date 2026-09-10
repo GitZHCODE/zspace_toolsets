@@ -289,7 +289,7 @@ ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
     for (size_t k = 0; k < m_VScalar.size(); k++) {
       meshVertexHeights[k] = (!m_VScalar[k].empty())
                                  ? float(m_VScalar[k].back() / denom)
-                                 : i_Settings.layerSpacing;
+                                 : i_Settings.LayerSpacing;
     }
   }
 
