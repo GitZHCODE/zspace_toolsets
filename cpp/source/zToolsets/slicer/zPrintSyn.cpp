@@ -454,7 +454,14 @@ ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(PrintPath &ioPath,
   return true;
 }
 
-// Arc-length resamples ioPath.graph, carrying widths/heights/normals along.
+// Fixed-spacing arc-length resample of ioPath.graph, carrying
+// widths/heights/normals along. The sampling phase resets at each
+// preserved feature/corner vertex (and at the open path's true endpoint)
+// so those land exactly on an output point instead of being smoothed
+// over; everywhere else, output points are placed at a uniform
+// sampleLength apart regardless of the input's original vertex spacing
+// (unlike a simple "subdivide long segments" pass, this can also make
+// an already-dense input coarser).
 ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
@@ -503,38 +510,47 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
       outNormals.push_back(nrm);
   };
 
+  auto weightAt = [&](int id) {
+    return (id < static_cast<int>(weights.size())) ? weights[id] : 0.04f;
+  };
+  auto heightAt = [&](int id) {
+    return (hasHeights && id < static_cast<int>(heights.size()))
+               ? heights[id]
+               : 0.0f;
+  };
+  auto normalAt = [&](int id) {
+    return (hasNormals && id < static_cast<int>(normals.size()))
+               ? normals[id]
+               : zVector(0, 0, 1);
+  };
+
   const int numSegments = closed ? N : (N - 1);
+
+  // Emit the path's start vertex and reset the sampling phase there.
+  const int firstId = sequence[0];
+  appendPoint(positions[firstId], weightAt(firstId), heightAt(firstId),
+             normalAt(firstId));
+  double distSinceSample = 0.0;
+
   for (int seg = 0; seg < numSegments; seg++) {
     int i0 = sequence[seg];
     int i1 = sequence[(seg + 1) % N];
     const zPoint &p0 = positions[i0];
     const zPoint &p1 = positions[i1];
-    float w0 = (i0 < static_cast<int>(weights.size())) ? weights[i0] : 0.04f;
-    float w1 = (i1 < static_cast<int>(weights.size())) ? weights[i1] : 0.04f;
-    float h0 = (hasHeights && i0 < static_cast<int>(heights.size()))
-                   ? heights[i0]
-                   : 0.0f;
-    float h1 = (hasHeights && i1 < static_cast<int>(heights.size()))
-                   ? heights[i1]
-                   : 0.0f;
-    zVector n0 = (hasNormals && i0 < static_cast<int>(normals.size()))
-                     ? normals[i0]
-                     : zVector(0, 0, 1);
-    zVector n1 = (hasNormals && i1 < static_cast<int>(normals.size()))
-                     ? normals[i1]
-                     : zVector(0, 0, 1);
+    float w0 = weightAt(i0), w1 = weightAt(i1);
+    float h0 = heightAt(i0), h1 = heightAt(i1);
+    zVector n0 = normalAt(i0), n1 = normalAt(i1);
 
     zVector segVec = vecSub(p1, p0);
     const double segLen = segVec.length();
 
-    appendPoint(p0, w0, h0, n0);
-
-    if (segLen > sampleLength) {
-      int steps = static_cast<int>(std::floor(segLen / sampleLength));
-      for (int s = 1; s <= steps; s++) {
-        double t = static_cast<double>(s * sampleLength) / segLen;
-        if (t >= 1.0 - 1e-4)
-          break;
+    if (segLen > 1e-9) {
+      // March along this segment, continuing the running phase carried
+      // over from previous segments, placing one sample every
+      // sampleLength regardless of how long/short this segment is.
+      double remaining = sampleLength - distSinceSample;
+      while (remaining < segLen) {
+        const double t = remaining / segLen;
         zPoint interpP(p0.x + t * segVec.x, p0.y + t * segVec.y,
                        p0.z + t * segVec.z);
         float interpW = static_cast<float>(w0 + t * (w1 - w0));
@@ -546,21 +562,20 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
         else
           interpN = zVector(0, 0, 1);
         appendPoint(interpP, interpW, interpH, interpN);
+        remaining += sampleLength;
       }
+      distSinceSample = segLen - (remaining - sampleLength);
     }
-  }
 
-  if (!closed && N > 0) {
-    int lastId = sequence[N - 1];
-    float lastW =
-        (lastId < static_cast<int>(weights.size())) ? weights[lastId] : 0.04f;
-    float lastH = (hasHeights && lastId < static_cast<int>(heights.size()))
-                      ? heights[lastId]
-                      : 0.0f;
-    zVector lastN = (hasNormals && lastId < static_cast<int>(normals.size()))
-                        ? normals[lastId]
-                        : zVector(0, 0, 1);
-    appendPoint(positions[lastId], lastW, lastH, lastN);
+    // Force-emit i1 (and reset the phase there) if it's the open path's
+    // true endpoint or a preserved feature/corner vertex.
+    const bool isLastOpenVertex = (!closed && seg == numSegments - 1);
+    const bool isFeature =
+        (i1 < int(featureFlags.size())) && featureFlags[i1] != 0;
+    if (isLastOpenVertex || isFeature) {
+      appendPoint(p1, w1, h1, n1);
+      distSinceSample = 0.0;
+    }
   }
 
   const int numPts = static_cast<int>(outPoints.size());
