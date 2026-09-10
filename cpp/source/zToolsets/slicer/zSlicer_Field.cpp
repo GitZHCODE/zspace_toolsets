@@ -369,7 +369,7 @@ void _computeSegmentField(zObjMeshScalarField &field,
 void _computeWidthField(zObjMeshScalarField &field,
                         const std::vector<zScalarArray> &segDistances,
                         const std::vector<SegmentGraph> &segmentGraphs,
-                        bool doublelayerboundary,
+                        bool doublelayerboundary, zScalar overlapWidth,
                         zScalarArray *outWidthField = nullptr,
                         zScalarArray *outIdField = nullptr) {
   zFnMeshScalarField fnField(field);
@@ -384,16 +384,19 @@ void _computeWidthField(zObjMeshScalarField &field,
 
   const int numSegs = static_cast<int>(segmentGraphs.size());
 
-  // Precompute actual print bead width for each segment ID
+  // Precompute actual print bead width for each segment ID. For dual-track
+  // segments (double-layer outer boundary, and internal bracing which is
+  // always dual-track) each track's own width grows/shrinks with
+  // overlapWidth so the combined span of both tracks stays pinned to the
+  // preset segment width (see matching offset math in _computePathField).
   std::vector<zScalar> actualPrintWidths(numSegs);
   for (int k = 0; k < numSegs; k++) {
     const bool isOuter = (segmentGraphs[k].type == 0);
-    if (isOuter) {
-      actualPrintWidths[k] =
-          doublelayerboundary ? (0.5 * segmentGraphs[k].width) : segmentGraphs[k].width;
+    if (isOuter && !doublelayerboundary) {
+      actualPrintWidths[k] = segmentGraphs[k].width;
     } else {
-      // Internal bracing is printed with dual tracks; single track width is halved
-      actualPrintWidths[k] = 0.5 * segmentGraphs[k].width;
+      actualPrintWidths[k] = (std::max)(
+          zScalar(1e-4), 0.5 * segmentGraphs[k].width + 0.5 * overlapWidth);
     }
   }
 
@@ -483,10 +486,15 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
       double maxInner = -(std::numeric_limits<double>::max)();
       for (int k : outerIndices) {
         const zScalar w = segmentGraphs[k].width;
-        const zScalar beadW = 0.5 * w;
+        // Each track's own width grows/shrinks with overlapWidth so the
+        // combined outer-to-inner span stays pinned to the preset width w:
+        // track 1 always starts at offset 0, track 2's far edge always
+        // lands at offset w.
+        const zScalar beadW =
+            (std::max)(zScalar(1e-4), 0.5 * w + 0.5 * overlapWidth);
         const zScalar d = segDistances[k][i];
         const zScalar phi1 = (isInside ? -d : d) + 0.5 * beadW;
-        const zScalar phi2 = (isInside ? -d : d) + 1.5 * beadW - overlapWidth;
+        const zScalar phi2 = (isInside ? -d : d) + (w - 0.5 * beadW);
         if (phi1 > maxOuter)
           maxOuter = phi1;
         if (phi2 > maxInner)
@@ -523,7 +531,10 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
       zObjGraph slotGraph;
       const zScalar w = segmentGraphs[k].width;
-      const zScalar beadW = doublelayerboundary ? (0.5 * w) : w;
+      const zScalar beadW =
+          doublelayerboundary
+              ? (std::max)(zScalar(1e-4), 0.5 * w + 0.5 * overlapWidth)
+              : w;
       if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph, trimRatio,
                                    w * 1.5)) {
         allSlotGraphs.push_back(slotGraph);
@@ -556,10 +567,17 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
 
   for (int k : ribIndices) {
     const zScalar w = segmentGraphs[k].width;
-    const zScalar ribBeadW = 0.5 * w;
+    // Bracing is always dual-track, symmetric about the centerline. Each
+    // track's width grows/shrinks with overlapWidth while its own offset
+    // shrinks to match, so the two tracks' outer edges stay pinned at
+    // +-0.5*w (combined span stays pinned to the preset width w) while the
+    // physical overlap/gap between the two tracks equals overlapWidth.
+    const zScalar ribBeadW =
+        (std::max)(zScalar(1e-4), 0.5 * w + 0.5 * overlapWidth);
+    const zScalar ribOffset = 0.5 * w - 0.5 * ribBeadW;
     zScalarArray singleRibField(n, 0.0);
     for (int i = 0; i < n; i++) {
-      singleRibField[i] = segDistances[k][i] - 0.5 * ribBeadW;
+      singleRibField[i] = segDistances[k][i] - ribOffset;
     }
 
     const zScalar trimRatio = segmentGraphs[k].trim;
@@ -883,8 +901,8 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
       _computeSegmentField(localField, segmentGraphs, segDistances);
 
       _computeWidthField(localField, segDistances, segmentGraphs,
-                         i_Settings.doublelayerboundary, &widthValues,
-                         &idValues);
+                         i_Settings.doublelayerboundary, printOverlapWidth,
+                         &widthValues, &idValues);
 
       _computePathField(localField, sectionGraphs2D[l], segmentGraphs,
                         segDistances, i_Settings.doublelayerboundary,
