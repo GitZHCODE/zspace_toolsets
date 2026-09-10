@@ -396,7 +396,8 @@ void _computeWidthField(zObjMeshScalarField &field,
       actualPrintWidths[k] = segmentGraphs[k].width;
     } else {
       actualPrintWidths[k] = (std::max)(
-          zScalar(1e-4), 0.5 * segmentGraphs[k].width + 0.5 * overlapWidth);
+          zScalar(1e-4),
+          zScalar(0.5 * segmentGraphs[k].width + 0.5 * overlapWidth));
     }
   }
 
@@ -490,8 +491,8 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
         // combined outer-to-inner span stays pinned to the preset width w:
         // track 1 always starts at offset 0, track 2's far edge always
         // lands at offset w.
-        const zScalar beadW =
-            (std::max)(zScalar(1e-4), 0.5 * w + 0.5 * overlapWidth);
+        const zScalar beadW = (std::max)(
+            zScalar(1e-4), zScalar(0.5 * w + 0.5 * overlapWidth));
         const zScalar d = segDistances[k][i];
         const zScalar phi1 = (isInside ? -d : d) + 0.5 * beadW;
         const zScalar phi2 = (isInside ? -d : d) + (w - 0.5 * beadW);
@@ -533,7 +534,8 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
       const zScalar w = segmentGraphs[k].width;
       const zScalar beadW =
           doublelayerboundary
-              ? (std::max)(zScalar(1e-4), 0.5 * w + 0.5 * overlapWidth)
+              ? (std::max)(zScalar(1e-4),
+                          zScalar(0.5 * w + 0.5 * overlapWidth))
               : w;
       if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph, trimRatio,
                                    w * 1.5)) {
@@ -572,8 +574,8 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     // shrinks to match, so the two tracks' outer edges stay pinned at
     // +-0.5*w (combined span stays pinned to the preset width w) while the
     // physical overlap/gap between the two tracks equals overlapWidth.
-    const zScalar ribBeadW =
-        (std::max)(zScalar(1e-4), 0.5 * w + 0.5 * overlapWidth);
+    const zScalar ribBeadW = (std::max)(
+        zScalar(1e-4), zScalar(0.5 * w + 0.5 * overlapWidth));
     const zScalar ribOffset = 0.5 * w - 0.5 * ribBeadW;
     zScalarArray singleRibField(n, 0.0);
     for (int i = 0; i < n; i++) {
