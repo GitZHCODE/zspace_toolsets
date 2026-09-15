@@ -75,7 +75,7 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches on every layer's inner/outer track paths, in parallel per layer. */
+  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches -> orientAndWeldLayer on every layer's inner/outer track paths, in parallel per layer. */
   bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths) {
     const int totalLayers = int(ioPaths.size());
     if (totalLayers == 0) {
@@ -94,6 +94,7 @@ public:
           filterGlitches(path);
         }
       }
+      orientAndWeldLayer(ioPaths[l]);
 #pragma omp atomic
       totalPaths += int(ioPaths[l].size());
     }
@@ -122,6 +123,18 @@ public:
 
   /*! \brief Step 3: filters localized width glitches in ioPath.widths. */
   static void filterGlitches(PrintPath &ioPath);
+
+  /*! \brief Step 4: orients one layer's 1-2 ring paths into a single closed loop - a lone path is forced CCW; an inner+outer pair has inner forced CCW and placed first, with outer welded onto its end (starting from inner's end point), closing the loop. Replaces ringPaths with the single merged result. */
+  static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
+
+  /*! \brief Cuts a gap of width `width` out of ioPath's closed graph, centered on the point of ioPath nearest to nearPoint. The forward-offset cut point becomes the new start, the backward-offset one the new end. */
+  static bool breakPrintPath(PrintPath &ioPath, const zPoint &nearPoint,
+                             float width);
+
+  /*! \brief Concatenates every layer's single (post-orientAndWeldLayer) PrintPath end-to-start into one continuous bottom-to-top PrintPath. */
+  static bool
+  chainLayersIntoOnePath(const std::vector<std::vector<PrintPath>> &layeredPaths,
+                        PrintPath &outCombined);
 };
 
 /** @}*/
