@@ -47,8 +47,8 @@ protected:
   zSlicer m_Slicer;
   zPrintSyn m_PrintSyn;
 
-  std::vector<PrintPath> m_2DPrintPaths;
-  std::vector<PrintPath> m_3DPrintPaths;
+  std::vector<std::vector<PrintPath>> m_2DPrintPaths;
+  std::vector<std::vector<PrintPath>> m_3DPrintPaths;
 
   std::string m_Status;
 
@@ -132,12 +132,16 @@ public:
   inline zPrintSyn &getPrintSyn() { return m_PrintSyn; }
   inline const zPrintSyn &getPrintSyn() const { return m_PrintSyn; }
 
-  inline std::vector<PrintPath> &get2DPrintPaths() { return m_2DPrintPaths; }
-  inline const std::vector<PrintPath> &get2DPrintPaths() const {
+  inline std::vector<std::vector<PrintPath>> &get2DPrintPaths() {
     return m_2DPrintPaths;
   }
-  inline std::vector<PrintPath> &get3DPrintPaths() { return m_3DPrintPaths; }
-  inline const std::vector<PrintPath> &get3DPrintPaths() const {
+  inline const std::vector<std::vector<PrintPath>> &get2DPrintPaths() const {
+    return m_2DPrintPaths;
+  }
+  inline std::vector<std::vector<PrintPath>> &get3DPrintPaths() {
+    return m_3DPrintPaths;
+  }
+  inline const std::vector<std::vector<PrintPath>> &get3DPrintPaths() const {
     return m_3DPrintPaths;
   }
 

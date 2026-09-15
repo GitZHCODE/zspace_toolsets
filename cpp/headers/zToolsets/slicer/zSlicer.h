@@ -203,22 +203,22 @@ public:
   /*! \brief 2D unrolling for all 3D section meshes, boundary graphs, bracing graphs. */
   bool computeUnroll();
 
-  /*! \brief 2D SDF scalar fields; extracts flat isocontour print paths into outPrintPaths2D. */
-  bool computeField(std::vector<PrintPath> &outPrintPaths2D);
+  /*! \brief 2D SDF scalar fields; extracts flat isocontour print paths (split per layer into inner/outer tracks) into outPrintPaths2D. */
+  bool computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D);
 
   /*! \brief Runs computeBasicStructure -> computeSlice -> computeUnroll -> computeField. */
-  bool computeSlicer(std::vector<PrintPath> &outPrintPaths2D) {
+  bool computeSlicer(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
     return computeBasicStructure() && computeSlice() && computeUnroll() &&
            computeField(outPrintPaths2D);
   }
 
   /*! \brief Projects 2D PrintPaths back to 3D section meshes. */
-  bool projectPathsTo3D(const std::vector<PrintPath> &in2DPaths,
-                        std::vector<PrintPath> &out3DPaths);
+  bool projectPathsTo3D(const std::vector<std::vector<PrintPath>> &in2DPaths,
+                        std::vector<std::vector<PrintPath>> &out3DPaths);
 
   /*! \brief Convenience orchestrator for projectPathsTo3D. */
-  bool computeProjection(const std::vector<PrintPath> &in2DPaths,
-                         std::vector<PrintPath> &out3DPaths) {
+  bool computeProjection(const std::vector<std::vector<PrintPath>> &in2DPaths,
+                         std::vector<std::vector<PrintPath>> &out3DPaths) {
     return projectPathsTo3D(in2DPaths, out3DPaths);
   }
 

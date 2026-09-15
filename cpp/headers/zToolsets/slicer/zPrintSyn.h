@@ -75,8 +75,8 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches on every path, in parallel. */
-  bool computePrintSyn(std::vector<PrintPath> &ioPaths) {
+  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches on every layer's inner/outer track paths, in parallel per layer. */
+  bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths) {
     const int totalLayers = int(ioPaths.size());
     if (totalLayers == 0) {
       m_Status = "failed: No print paths available.";
@@ -85,12 +85,17 @@ public:
     }
 
     const auto wallStart = std::chrono::high_resolution_clock::now();
+    int totalPaths = 0;
 
 #pragma omp parallel for schedule(dynamic)
     for (int l = 0; l < totalLayers; l++) {
-      if (buildSequencePrintPath(ioPaths[l]) && resamplePrintPath(ioPaths[l])) {
-        filterGlitches(ioPaths[l]);
+      for (auto &path : ioPaths[l]) {
+        if (buildSequencePrintPath(path) && resamplePrintPath(path)) {
+          filterGlitches(path);
+        }
       }
+#pragma omp atomic
+      totalPaths += int(ioPaths[l].size());
     }
 
     const auto wallEnd = std::chrono::high_resolution_clock::now();
@@ -98,7 +103,7 @@ public:
         std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
 
     std::ostringstream out;
-    out << "Post-processed " << totalLayers << " print paths in " << std::fixed
+    out << "Post-processed " << totalPaths << " print paths in " << std::fixed
         << std::setprecision(2) << wallTotalMs
         << " ms (sampleLen=" << i_Settings.ResampleLength << "mm)";
     m_Status = out.str();
@@ -106,7 +111,7 @@ public:
     return true;
   }
 
-  /*! \brief Step 1: prunes spurs, welds gaps, rewrites ioPath as the single cleaned ordered chain/loop. */
+  /*! \brief Step 1: directly rebuilds ioPath.graph from its existing vertex order (already cleaned/split/ordered upstream during extraction). */
   static bool buildSequencePrintPath(PrintPath &ioPath,
                                      double weldTolerance = 0.08,
                                      double spurLengthThreshold = 1.0,

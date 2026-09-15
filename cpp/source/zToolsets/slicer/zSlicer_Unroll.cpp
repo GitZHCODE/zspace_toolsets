@@ -268,10 +268,11 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
 //---- PUBLIC METHODS: STEP 5 (PROJECT 2D PRINT PATHS BACK TO 3D)
 //--------------------------
 
-// Inverse of computeUnroll: maps (possibly post-processed) 2D paths back to 3D.
+// Inverse of computeUnroll: maps (possibly post-processed) 2D paths back to
+// 3D. Each layer's inner/outer track PrintPaths are projected independently.
 ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
-    const std::vector<PrintPath> &in2DPaths,
-    std::vector<PrintPath> &out3DPaths) {
+    const std::vector<std::vector<PrintPath>> &in2DPaths,
+    std::vector<std::vector<PrintPath>> &out3DPaths) {
   const int totalLayers = int(in2DPaths.size());
   if (totalLayers == 0 || sectionMeshes2D.empty() || sectionMeshes.empty()) {
     m_Status = "failed: No 2D print paths or section meshes available for "
@@ -280,7 +281,10 @@ ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
     return false;
   }
 
-  out3DPaths.assign(totalLayers, PrintPath());
+  out3DPaths.assign(totalLayers, std::vector<PrintPath>());
+  for (int l = 0; l < totalLayers; l++) {
+    out3DPaths[l].assign(in2DPaths[l].size(), PrintPath());
+  }
 
   zFloatArray meshVertexHeights;
   if (!m_VScalar.empty() && totalLayers > 1) {
@@ -293,20 +297,26 @@ ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
     }
   }
 
+  int totalPaths = 0;
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
-    out3DPaths[l].graph = in2DPaths[l].graph;
-    out3DPaths[l].widths = in2DPaths[l].widths;
+    for (size_t r = 0; r < in2DPaths[l].size(); r++) {
+      out3DPaths[l][r].graph = in2DPaths[l][r].graph;
+      out3DPaths[l][r].widths = in2DPaths[l][r].widths;
+      out3DPaths[l][r].isOuterTrack = in2DPaths[l][r].isOuterTrack;
 
-    zFnGraph fnContour(out3DPaths[l].graph);
-    if (fnContour.numVertices() > 0 && l < int(sectionMeshes2D.size()) &&
-        l < int(sectionMeshes.size())) {
-      remapGraph(
-          out3DPaths[l].graph, sectionMeshes2D[l], sectionMeshes[l],
-          &out3DPaths[l].normals, &meshVertexHeights, &out3DPaths[l].heights);
+      zFnGraph fnContour(out3DPaths[l][r].graph);
+      if (fnContour.numVertices() > 0 && l < int(sectionMeshes2D.size()) &&
+          l < int(sectionMeshes.size())) {
+        remapGraph(out3DPaths[l][r].graph, sectionMeshes2D[l], sectionMeshes[l],
+                   &out3DPaths[l][r].normals, &meshVertexHeights,
+                   &out3DPaths[l][r].heights);
+      }
     }
+#pragma omp atomic
+    totalPaths += int(in2DPaths[l].size());
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
@@ -314,8 +324,8 @@ ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
       std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
 
   std::ostringstream out;
-  out << "Projected " << out3DPaths.size() << " 3D PrintPaths in "
-      << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
+  out << "Projected " << totalPaths << " 3D PrintPaths in " << std::fixed
+      << std::setprecision(2) << wallTotalMs << " ms";
   m_Status = out.str();
   printSuccess("[projectPathsTo3D] " + m_Status);
   return true;

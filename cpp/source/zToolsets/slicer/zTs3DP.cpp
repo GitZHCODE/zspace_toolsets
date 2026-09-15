@@ -83,9 +83,9 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
   // 2. 3D Toolpath Graphs
   if (!m_3DPrintPaths.empty()) {
     zObjGraphArray toolpathGraphs;
-    toolpathGraphs.reserve(m_3DPrintPaths.size());
-    for (const auto &p : m_3DPrintPaths)
-      toolpathGraphs.push_back(p.graph);
+    for (const auto &layerPaths : m_3DPrintPaths)
+      for (const auto &p : layerPaths)
+        toolpathGraphs.push_back(p.graph);
 
     std::string path = dir + "/toolpath_graphs.obj";
     if (zTsUtils::exportGraphToOBJ(toolpathGraphs, path, "toolpath_layer_"))
@@ -138,9 +138,9 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
   // 7. 2D Toolpaths (If generated)
   if (!m_2DPrintPaths.empty()) {
     zObjGraphArray contourGraphs2D;
-    contourGraphs2D.reserve(m_2DPrintPaths.size());
-    for (const auto &p : m_2DPrintPaths)
-      contourGraphs2D.push_back(p.graph);
+    for (const auto &layerPaths : m_2DPrintPaths)
+      for (const auto &p : layerPaths)
+        contourGraphs2D.push_back(p.graph);
 
     std::string path = dir + "/2D_contour_graphs.obj";
     if (zTsUtils::exportGraphToOBJ(contourGraphs2D, path, "2D_contour_layer_"))

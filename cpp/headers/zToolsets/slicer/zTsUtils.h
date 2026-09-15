@@ -81,10 +81,11 @@ struct PrintPath {
   zFloatArray widths;
   zFloatArray heights;
   zVectorArray normals;
-  // Per-vertex double-layer boundary track tag: 1 = outer track, 0 = inner
-  // track. Empty when not applicable (single-perimeter boundary, or paths
-  // with no double-layer distinction).
-  zFloatArray trackIds;
+  // Whether this path is the double-layer boundary's outer track. Each
+  // PrintPath is homogeneous (inner/outer are split into separate entries
+  // upstream), so a single flag is enough. Single-perimeter/bracing-only
+  // paths default false (treated as "inner").
+  bool isOuterTrack = false;
 };
 
 //--------------------------

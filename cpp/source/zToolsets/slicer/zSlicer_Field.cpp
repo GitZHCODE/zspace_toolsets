@@ -457,8 +457,8 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
   const int n = fnField.numFieldValues();
   zScalarArray pathValues(n, 0.0);
   // Track tag: 1 = outer, 0 = inner. Single-perimeter paths have no
-  // inner/outer distinction, so they default to "outer" everywhere.
-  zScalarArray trackIdValues(n, 1.0);
+  // inner/outer distinction, so they default to "inner" everywhere.
+  zScalarArray trackIdValues(n, 0.0);
 
   if (!points || n <= 0 || segmentGraphs.empty() || segDistances.empty() ||
       segmentGraphs.size() != segDistances.size()) {
@@ -710,7 +710,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     } else {
       pathValues = outerField;
     }
-    // trackIdValues stays 1.0 everywhere - no inner/outer distinction here.
+    // trackIdValues stays 0.0 everywhere - no inner/outer distinction here.
   }
 
   if (outTrimSlotsGraph && !allSlotGraphs.empty()) {
@@ -728,35 +728,36 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     *outTrackIdField = trackIdValues;
 }
 
-// Extracts the zero-isocontour of pathVals as a graph, interpolating widths
-// and (optionally) the outer/inner track tag onto it.
-void _getPathGraph(zObjMeshScalarField &pathFieldMesh,
-                   const zScalarArray &pathVals, const zScalarArray &widthVals,
-                   zObjGraph &outPathGraph, zFloatArray &outVertexWeights,
-                   const zScalarArray *trackIdVals = nullptr,
-                   zFloatArray *outVertexTrackIds = nullptr) {
+// Extracts the zero-isocontour of pathVals as raw position/edge arrays
+// (marching triangles), interpolating widths and the outer/inner track tag
+// onto each new crossing point. Left unsplit/uncleaned - _extractTrackPaths
+// does the spur-pruning, gap-welding and inner/outer split downstream.
+void _extractRawIsoContour(zObjMeshScalarField &pathFieldMesh,
+                           const zScalarArray &pathVals,
+                           const zScalarArray &widthVals,
+                           const zScalarArray &trackIdVals,
+                           zPointArray &outPositions,
+                           zIntArray &outEdgeConnects,
+                           zFloatArray &outVertexWeights,
+                           zFloatArray &outVertexTrackIds) {
+  outPositions.clear();
+  outEdgeConnects.clear();
+  outVertexWeights.clear();
+  outVertexTrackIds.clear();
+
   zFnMesh fnMesh(pathFieldMesh);
   const zPoint *rawPositions = fnMesh.getRawVertexPositions();
   const int numVerts = fnMesh.numVertices();
   const int numFaces = fnMesh.numPolygons();
-  const bool hasTrackIds =
-      trackIdVals && outVertexTrackIds &&
-      trackIdVals->size() == static_cast<size_t>(numVerts);
+  const bool hasTrackIds = trackIdVals.size() == static_cast<size_t>(numVerts);
   if (!rawPositions || numVerts == 0 || numFaces == 0 ||
       pathVals.size() != static_cast<size_t>(numVerts) ||
       widthVals.size() != static_cast<size_t>(numVerts)) {
-    outVertexWeights.clear();
-    if (outVertexTrackIds)
-      outVertexTrackIds->clear();
-    zFnGraph(outPathGraph).clear();
     return;
   }
-  if (outVertexTrackIds)
-    outVertexTrackIds->clear();
 
-  zPointArray isoPositions;
-  zIntArray isoEdgeConnects;
-  outVertexWeights.clear();
+  zPointArray &isoPositions = outPositions;
+  zIntArray &isoEdgeConnects = outEdgeConnects;
 
   std::unordered_map<unsigned long long, int> edgeCrossMap;
   edgeCrossMap.reserve(numFaces / 4);
@@ -783,10 +784,12 @@ void _getPathGraph(zObjMeshScalarField &pathFieldMesh,
         widthVals[v0] + t * (widthVals[v1] - widthVals[v0])));
 
     if (hasTrackIds) {
-      const double id0 = (*trackIdVals)[v0];
-      const double id1 = (*trackIdVals)[v1];
+      const double id0 = trackIdVals[v0];
+      const double id1 = trackIdVals[v1];
       const double idInterp = id0 + t * (id1 - id0);
-      outVertexTrackIds->push_back(idInterp >= 0.5 ? 1.0f : 0.0f);
+      outVertexTrackIds.push_back(idInterp >= 0.5 ? 1.0f : 0.0f);
+    } else {
+      outVertexTrackIds.push_back(0.0f);
     }
 
     const int newIdx = static_cast<int>(isoPositions.size()) - 1;
@@ -835,12 +838,325 @@ void _getPathGraph(zObjMeshScalarField &pathFieldMesh,
     }
     cOffset += count;
   }
+}
 
-  zFnGraph fnContour(outPathGraph);
-  fnContour.clear();
-  if (!isoPositions.empty() && isoEdgeConnects.size() >= 2) {
-    fnContour.create(isoPositions, isoEdgeConnects);
+// Ports the spur-pruning + gap-welding + chain/loop extraction that used to
+// live in zPrintSyn::buildSequencePrintPath. Splits the raw iso-contour
+// first - edges whose endpoints disagree on trackId (inner vs outer) are
+// dropped before cleanup, so each side is cleaned independently - then runs
+// the same cleanup on each side and merges every surviving loop/chain on
+// that side into one PrintPath. Callers with no track-id distinction (empty
+// rawTrackIds, or an all-inner field) get a single "inner" PrintPath back.
+void _extractTrackPaths(const zPointArray &rawPositions,
+                        const zIntArray &rawEdges, const zFloatArray &rawWidths,
+                        const zFloatArray &rawTrackIds, double weldTolerance,
+                        double spurLengthThreshold,
+                        std::vector<PrintPath> &outPaths) {
+  outPaths.clear();
+  const int numV = static_cast<int>(rawPositions.size());
+  if (numV < 3 || rawEdges.size() < 6)
+    return;
+
+  const bool hasTrackIds = rawTrackIds.size() == static_cast<size_t>(numV);
+  auto isOuterVertex = [&](int id) -> bool {
+    return hasTrackIds && id < int(rawTrackIds.size()) && rawTrackIds[id] >= 0.5f;
+  };
+
+  bool hasAnyOuter = false;
+  if (hasTrackIds) {
+    for (float v : rawTrackIds) {
+      if (v >= 0.5f) {
+        hasAnyOuter = true;
+        break;
+      }
+    }
   }
+
+  // Cleans+extracts every loop/chain whose edges match wantOuter, merging
+  // all survivors into a single PrintPath (skipped if none survive).
+  auto processSide = [&](bool wantOuter) {
+    std::vector<std::vector<int>> adj(numV);
+    std::unordered_set<unsigned long long> edgeSet;
+    for (size_t e = 0; e + 1 < rawEdges.size(); e += 2) {
+      int a = rawEdges[e], b = rawEdges[e + 1];
+      if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
+        continue;
+      if (isOuterVertex(a) != wantOuter || isOuterVertex(b) != wantOuter)
+        continue; // edge straddles the inner/outer boundary - drop it
+      if (vecDistSq(rawPositions[b], rawPositions[a]) < 1e-12)
+        continue;
+      const unsigned long long key = makeEdgeKey(a, b);
+      if (!edgeSet.insert(key).second)
+        continue;
+      adj[a].push_back(b);
+      adj[b].push_back(a);
+    }
+
+    std::vector<std::unordered_set<int>> activeAdj(numV);
+    for (int i = 0; i < numV; i++)
+      for (int nb : adj[i])
+        activeAdj[i].insert(nb);
+
+    bool prunedAny = true;
+    while (prunedAny) {
+      prunedAny = false;
+      for (int i = 0; i < numV; i++) {
+        if (activeAdj[i].size() >= 3) {
+          std::vector<int> neighbors(activeAdj[i].begin(), activeAdj[i].end());
+          for (int startNb : neighbors) {
+            std::vector<int> branchPath = {i, startNb};
+            int prev = i;
+            int curr = startNb;
+            bool isDeadEnd = false;
+            double branchLen =
+                vecSub(rawPositions[curr], rawPositions[prev]).length();
+
+            while (true) {
+              if (activeAdj[curr].size() == 1) {
+                isDeadEnd = true;
+                break;
+              }
+              if (activeAdj[curr].size() != 2)
+                break;
+              int next = -1;
+              for (int nb : activeAdj[curr]) {
+                if (nb != prev) {
+                  next = nb;
+                  break;
+                }
+              }
+              if (next < 0 || next == i)
+                break;
+              branchLen += vecSub(rawPositions[next], rawPositions[curr]).length();
+              prev = curr;
+              curr = next;
+              branchPath.push_back(curr);
+            }
+
+            if (isDeadEnd && branchLen < spurLengthThreshold) {
+              for (size_t k = 0; k + 1 < branchPath.size(); k++) {
+                int u = branchPath[k];
+                int v = branchPath[k + 1];
+                activeAdj[u].erase(v);
+                activeAdj[v].erase(u);
+              }
+              prunedAny = true;
+            }
+          }
+        }
+      }
+    }
+
+    std::vector<std::vector<int>> openChains;
+    std::vector<std::vector<int>> closedLoops;
+    std::unordered_set<unsigned long long> visitedEdges;
+
+    for (int i = 0; i < numV; i++) {
+      if (activeAdj[i].size() == 1) {
+        int next = *activeAdj[i].begin();
+        if (visitedEdges.count(makeEdgeKey(i, next)))
+          continue;
+
+        std::vector<int> chain = {i};
+        int prev = i;
+        int curr = next;
+        visitedEdges.insert(makeEdgeKey(prev, curr));
+
+        while (true) {
+          chain.push_back(curr);
+          if (activeAdj[curr].size() != 2)
+            break;
+
+          int nxt = -1;
+          for (int nb : activeAdj[curr]) {
+            if (nb != prev) {
+              nxt = nb;
+              break;
+            }
+          }
+          if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
+            break;
+          visitedEdges.insert(makeEdgeKey(curr, nxt));
+          prev = curr;
+          curr = nxt;
+        }
+        openChains.push_back(chain);
+      }
+    }
+
+    for (int i = 0; i < numV; i++) {
+      if (activeAdj[i].size() == 2) {
+        for (int nb : activeAdj[i]) {
+          if (visitedEdges.count(makeEdgeKey(i, nb)))
+            continue;
+
+          std::vector<int> loop = {i};
+          int prev = i;
+          int curr = nb;
+          visitedEdges.insert(makeEdgeKey(prev, curr));
+          bool loopClosed = false;
+
+          while (true) {
+            if (curr == i) {
+              loopClosed = true;
+              break;
+            }
+            loop.push_back(curr);
+            if (activeAdj[curr].size() != 2)
+              break;
+
+            int nxt = -1;
+            for (int n : activeAdj[curr]) {
+              if (n != prev) {
+                nxt = n;
+                break;
+              }
+            }
+            if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
+              break;
+            visitedEdges.insert(makeEdgeKey(curr, nxt));
+            prev = curr;
+            curr = nxt;
+          }
+
+          if (loopClosed && loop.size() >= 3) {
+            closedLoops.push_back(loop);
+          } else if (!loop.empty()) {
+            openChains.push_back(loop);
+          }
+        }
+      }
+    }
+
+    const double weldTolSq = weldTolerance * weldTolerance;
+    for (auto it = openChains.begin(); it != openChains.end();) {
+      if (it->size() >= 3 &&
+          vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
+              weldTolSq) {
+        closedLoops.push_back(*it);
+        it = openChains.erase(it);
+        continue;
+      }
+      ++it;
+    }
+
+    bool mergedAny = true;
+    while (mergedAny && openChains.size() > 1) {
+      mergedAny = false;
+      size_t bestI = 0, bestJ = 0;
+      int bestMode = -1;
+      double bestDistSq = weldTolSq;
+
+      for (size_t i = 0; i < openChains.size(); i++) {
+        for (size_t j = i + 1; j < openChains.size(); j++) {
+          const auto &c1 = openChains[i];
+          const auto &c2 = openChains[j];
+
+          double d0 = vecDistSq(rawPositions[c1.back()], rawPositions[c2.front()]);
+          if (d0 < bestDistSq) {
+            bestDistSq = d0;
+            bestI = i;
+            bestJ = j;
+            bestMode = 0;
+          }
+          double d1 = vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
+          if (d1 < bestDistSq) {
+            bestDistSq = d1;
+            bestI = i;
+            bestJ = j;
+            bestMode = 1;
+          }
+          double d2 = vecDistSq(rawPositions[c1.front()], rawPositions[c2.back()]);
+          if (d2 < bestDistSq) {
+            bestDistSq = d2;
+            bestI = i;
+            bestJ = j;
+            bestMode = 2;
+          }
+          double d3 =
+              vecDistSq(rawPositions[c1.front()], rawPositions[c2.front()]);
+          if (d3 < bestDistSq) {
+            bestDistSq = d3;
+            bestI = i;
+            bestJ = j;
+            bestMode = 3;
+          }
+        }
+      }
+
+      if (bestMode >= 0) {
+        std::vector<int> &c1 = openChains[bestI];
+        std::vector<int> c2 = openChains[bestJ];
+
+        if (bestMode == 0) {
+          c1.insert(c1.end(), c2.begin(), c2.end());
+        } else if (bestMode == 1) {
+          std::reverse(c2.begin(), c2.end());
+          c1.insert(c1.end(), c2.begin(), c2.end());
+        } else if (bestMode == 2) {
+          c2.insert(c2.end(), c1.begin(), c1.end());
+          c1 = c2;
+        } else if (bestMode == 3) {
+          std::reverse(c2.begin(), c2.end());
+          c2.insert(c2.end(), c1.begin(), c1.end());
+          c1 = c2;
+        }
+
+        openChains.erase(openChains.begin() + bestJ);
+        mergedAny = true;
+
+        if (c1.size() >= 3 &&
+            vecDistSq(rawPositions[c1.front()], rawPositions[c1.back()]) <=
+                weldTolSq) {
+          closedLoops.push_back(c1);
+          openChains.erase(openChains.begin() + bestI);
+        }
+      }
+    }
+
+    if (closedLoops.empty() && openChains.empty())
+      return;
+
+    zPointArray mergedPositions;
+    zIntArray mergedEdges;
+    zFloatArray mergedWidths;
+
+    auto appendSeq = [&](const std::vector<int> &seq, bool isLoop) {
+      const int base = static_cast<int>(mergedPositions.size());
+      for (int id : seq) {
+        mergedPositions.push_back(rawPositions[id]);
+        mergedWidths.push_back(id < int(rawWidths.size()) ? rawWidths[id]
+                                                           : 0.04f);
+      }
+      for (size_t i = 0; i + 1 < seq.size(); i++) {
+        mergedEdges.push_back(base + int(i));
+        mergedEdges.push_back(base + int(i) + 1);
+      }
+      if (isLoop && seq.size() >= 3) {
+        mergedEdges.push_back(base + int(seq.size()) - 1);
+        mergedEdges.push_back(base);
+      }
+    };
+
+    for (auto &loop : closedLoops)
+      appendSeq(loop, true);
+    for (auto &chain : openChains)
+      appendSeq(chain, false);
+
+    if (mergedPositions.size() < 3 || mergedEdges.size() < 4)
+      return;
+
+    PrintPath p;
+    p.isOuterTrack = wantOuter;
+    zFnGraph fnP(p.graph);
+    fnP.create(mergedPositions, mergedEdges);
+    p.widths = mergedWidths;
+    outPaths.push_back(p);
+  };
+
+  processSide(false); // inner (or the whole path, if untracked)
+  if (hasAnyOuter)
+    processSide(true); // outer
 }
 
 // Computes a cell-aligned bounding rectangle and resolution for the flat
@@ -904,9 +1220,11 @@ bool _getboundingrect(const zObjMeshArray &flatMeshes,
 //---- PUBLIC METHODS: STEP 3 (2D SDF SCALAR FIELD)
 //--------------------------
 
-// Builds the SDF path/width fields per layer and extracts flat 2D print paths.
+// Builds the SDF path/width fields per layer and extracts flat 2D print
+// paths, split per layer into (up to) an inner-track and an outer-track
+// PrintPath.
 ZSPACE_INLINE bool
-zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
+zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
   pathFields.clear();
   widthFields.clear();
   trimSlotGraphs.clear();
@@ -923,7 +1241,7 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
   pathFields.assign(totalLayers, zScalarArray());
   widthFields.assign(totalLayers, zScalarArray());
   trimSlotGraphs.assign(totalLayers, zObjGraph());
-  outPrintPaths2D.assign(totalLayers, PrintPath());
+  outPrintPaths2D.assign(totalLayers, std::vector<PrintPath>());
 
   const float printBracingWidth = i_Settings.BracingWidth;
   const float printOverlapWidth = i_Settings.OverlapWidth;
@@ -1021,9 +1339,14 @@ zSlicer::computeField(std::vector<PrintPath> &outPrintPaths2D) {
       widthFields[l] = widthValues;
       trimSlotGraphs[l] = bracingSlotsGraph;
 
-      _getPathGraph(localField, pathValues, widthValues,
-                    outPrintPaths2D[l].graph, outPrintPaths2D[l].widths,
-                    &trackIdField, &outPrintPaths2D[l].trackIds);
+      zPointArray rawPositions;
+      zIntArray rawEdges;
+      zFloatArray rawWidths;
+      zFloatArray rawTrackIds;
+      _extractRawIsoContour(localField, pathValues, widthValues, trackIdField,
+                            rawPositions, rawEdges, rawWidths, rawTrackIds);
+      _extractTrackPaths(rawPositions, rawEdges, rawWidths, rawTrackIds, 0.08,
+                        1.0, outPrintPaths2D[l]);
     }
   }
 
