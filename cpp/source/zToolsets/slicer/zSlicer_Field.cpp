@@ -1029,15 +1029,23 @@ void _extractTrackPaths(const zPointArray &rawPositions,
     }
 
     const double weldTolSq = weldTolerance * weldTolerance;
-    for (auto it = openChains.begin(); it != openChains.end();) {
-      if (it->size() >= 3 &&
-          vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
-              weldTolSq) {
-        closedLoops.push_back(*it);
-        it = openChains.erase(it);
-        continue;
+    // Only self-close chains when there's no inner/outer split going on: a
+    // track-split chain's two endpoints sit right where it was severed from
+    // the OTHER track at the boundary trim slot, so their being close
+    // together is a sign they connect to that other chain, not to each
+    // other - closing them into their own loop here would just re-hide the
+    // exact cut the split is supposed to expose.
+    if (!hasTrackIds) {
+      for (auto it = openChains.begin(); it != openChains.end();) {
+        if (it->size() >= 3 &&
+            vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
+                weldTolSq) {
+          closedLoops.push_back(*it);
+          it = openChains.erase(it);
+          continue;
+        }
+        ++it;
       }
-      ++it;
     }
 
     bool mergedAny = true;
@@ -1105,7 +1113,7 @@ void _extractTrackPaths(const zPointArray &rawPositions,
         openChains.erase(openChains.begin() + bestJ);
         mergedAny = true;
 
-        if (c1.size() >= 3 &&
+        if (!hasTrackIds && c1.size() >= 3 &&
             vecDistSq(rawPositions[c1.front()], rawPositions[c1.back()]) <=
                 weldTolSq) {
           closedLoops.push_back(c1);
