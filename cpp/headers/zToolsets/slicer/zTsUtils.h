@@ -81,6 +81,10 @@ struct PrintPath {
   zFloatArray widths;
   zFloatArray heights;
   zVectorArray normals;
+  // Per-vertex double-layer boundary track tag: 1 = outer track, 0 = inner
+  // track. Empty when not applicable (single-perimeter boundary, or paths
+  // with no double-layer distinction).
+  zFloatArray trackIds;
 };
 
 //--------------------------
