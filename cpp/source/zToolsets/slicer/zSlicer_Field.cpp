@@ -881,8 +881,20 @@ void _extractTrackPaths(const zPointArray &rawPositions,
       int a = rawEdges[e], b = rawEdges[e + 1];
       if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
         continue;
-      if (isOuterVertex(a) != wantOuter || isOuterVertex(b) != wantOuter)
-        continue; // edge straddles the inner/outer boundary - drop it
+      const bool aOuter = isOuterVertex(a);
+      const bool bOuter = isOuterVertex(b);
+      if (wantOuter) {
+        // Outer side stays strict: both endpoints must be outer.
+        if (!aOuter || !bOuter)
+          continue;
+      } else {
+        // Inner side absorbs edges straddling the inner/outer boundary
+        // (only both-outer edges are excluded) instead of dropping them,
+        // so the inner chain reaches across and touches the outer chain
+        // at the boundary vertex rather than leaving a gap.
+        if (aOuter && bOuter)
+          continue;
+      }
       if (vecDistSq(rawPositions[b], rawPositions[a]) < 1e-12)
         continue;
       const unsigned long long key = makeEdgeKey(a, b);
