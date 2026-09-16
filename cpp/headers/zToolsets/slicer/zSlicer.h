@@ -220,14 +220,8 @@ public:
   }
 
   /*! \brief Projects 2D PrintPaths back to 3D section meshes. */
-  bool projectPathsTo3D(const std::vector<std::vector<PrintPath>> &in2DPaths,
-                        std::vector<std::vector<PrintPath>> &out3DPaths);
-
-  /*! \brief Convenience orchestrator for projectPathsTo3D. */
   bool computeProjection(const std::vector<std::vector<PrintPath>> &in2DPaths,
-                         std::vector<std::vector<PrintPath>> &out3DPaths) {
-    return projectPathsTo3D(in2DPaths, out3DPaths);
-  }
+                         std::vector<std::vector<PrintPath>> &out3DPaths);
 
   // Color/palette/pipe-mesh helpers and translateMesh/translateGraph/
   // segmentGraph live in zTsUtils, not here. exportToOBJ lives on zTs3DP.

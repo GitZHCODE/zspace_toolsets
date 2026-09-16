@@ -270,14 +270,14 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
 
 // Inverse of computeUnroll: maps (possibly post-processed) 2D paths back to
 // 3D. Each layer's inner/outer track PrintPaths are projected independently.
-ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
+ZSPACE_INLINE bool zSlicer::computeProjection(
     const std::vector<std::vector<PrintPath>> &in2DPaths,
     std::vector<std::vector<PrintPath>> &out3DPaths) {
   const int totalLayers = int(in2DPaths.size());
   if (totalLayers == 0 || sectionMeshes2D.empty() || sectionMeshes.empty()) {
     m_Status = "failed: No 2D print paths or section meshes available for "
                "projection.";
-    printError("[projectPathsTo3D] " + m_Status);
+    printError("[computeProjection] " + m_Status);
     return false;
   }
 
@@ -327,7 +327,7 @@ ZSPACE_INLINE bool zSlicer::projectPathsTo3D(
   out << "Projected " << totalPaths << " 3D PrintPaths in " << std::fixed
       << std::setprecision(2) << wallTotalMs << " ms";
   m_Status = out.str();
-  printSuccess("[projectPathsTo3D] " + m_Status);
+  printSuccess("[computeProjection] " + m_Status);
   return true;
 }
 
