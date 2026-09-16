@@ -1,15 +1,3 @@
-// This file is part of zspace, a simple C++ collection of geometry
-// data-structures & algorithms, data analysis & visualization framework.
-//
-// Copyright (C) 2019 ZSPACE
-//
-// This Source Code Form is subject to the terms of the MIT License
-// If a copy of the MIT License was not distributed with this file, You can
-// obtain one at https://opensource.org/licenses/MIT.
-//
-// Author : Vishu Bhooshan <vishu.bhooshan@zaha-hadid.com>
-//
-
 #ifndef EIGEN_DONT_PARALLELIZE
 #define EIGEN_DONT_PARALLELIZE
 #endif
@@ -84,29 +72,26 @@ bool _createPerpendicularSlot(const zObjGraph &sourceGraph, zObjGraph &outGraph,
     if (visitedVert[seed] || adj[seed].empty())
       continue;
 
-    // Collect connected component vertices
-    std::vector<int> comp, q = {int(seed)};
+    // Collect connected component, remembering the first degree-1 vertex
+    // seen as the walk's start (open-chain endpoint); if none is found the
+    // component is a closed loop, so fall back to the seed itself.
+    int start = (adj[seed].size() == 1) ? int(seed) : -1;
+    std::vector<int> q = {int(seed)};
     visitedVert[seed] = true;
     while (!q.empty()) {
       int curr = q.back();
       q.pop_back();
-      comp.push_back(curr);
       for (const auto &nb : adj[curr]) {
         if (!visitedVert[nb.first]) {
           visitedVert[nb.first] = true;
+          if (start < 0 && adj[nb.first].size() == 1)
+            start = nb.first;
           q.push_back(nb.first);
         }
       }
     }
-
-    // Find endpoint (vertex of degree 1; if closed loop, start at first vertex)
-    int start = comp[0];
-    for (int v : comp) {
-      if (adj[v].size() == 1) {
-        start = v;
-        break;
-      }
-    }
+    if (start < 0)
+      start = int(seed);
 
     // Walk polyline chain and build ordered positions and cumulative arc
     // lengths
@@ -568,8 +553,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     zScalarArray ringBand;
     fnField.boolean_subtract(outerRingField, bracedInnerRing, ringBand, false);
     for (int i = 0; i < n; i++) {
-      trackIdValues[i] =
-          (outerRingField[i] >= -bracedInnerRing[i]) ? 1.0 : 0.0;
+      trackIdValues[i] = (outerRingField[i] >= -bracedInnerRing[i]) ? 1.0 : 0.0;
     }
 
     // 5. Cut the boundary trim slot through the combined band, fusing the
@@ -732,14 +716,11 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
 // (marching triangles), interpolating widths and the outer/inner track tag
 // onto each new crossing point. Left unsplit/uncleaned - _extractTrackPaths
 // does the spur-pruning, gap-welding and inner/outer split downstream.
-void _extractRawIsoContour(zObjMeshScalarField &pathFieldMesh,
-                           const zScalarArray &pathVals,
-                           const zScalarArray &widthVals,
-                           const zScalarArray &trackIdVals,
-                           zPointArray &outPositions,
-                           zIntArray &outEdgeConnects,
-                           zFloatArray &outVertexWeights,
-                           zFloatArray &outVertexTrackIds) {
+void _extractRawIsoContour(
+    zObjMeshScalarField &pathFieldMesh, const zScalarArray &pathVals,
+    const zScalarArray &widthVals, const zScalarArray &trackIdVals,
+    zPointArray &outPositions, zIntArray &outEdgeConnects,
+    zFloatArray &outVertexWeights, zFloatArray &outVertexTrackIds) {
   outPositions.clear();
   outEdgeConnects.clear();
   outVertexWeights.clear();
@@ -859,7 +840,8 @@ void _extractTrackPaths(const zPointArray &rawPositions,
 
   const bool hasTrackIds = rawTrackIds.size() == static_cast<size_t>(numV);
   auto isOuterVertex = [&](int id) -> bool {
-    return hasTrackIds && id < int(rawTrackIds.size()) && rawTrackIds[id] >= 0.5f;
+    return hasTrackIds && id < int(rawTrackIds.size()) &&
+           rawTrackIds[id] >= 0.5f;
   };
 
   bool hasAnyOuter = false;
@@ -939,7 +921,8 @@ void _extractTrackPaths(const zPointArray &rawPositions,
               }
               if (next < 0 || next == i)
                 break;
-              branchLen += vecSub(rawPositions[next], rawPositions[curr]).length();
+              branchLen +=
+                  vecSub(rawPositions[next], rawPositions[curr]).length();
               prev = curr;
               curr = next;
               branchPath.push_back(curr);
@@ -1072,21 +1055,24 @@ void _extractTrackPaths(const zPointArray &rawPositions,
           const auto &c1 = openChains[i];
           const auto &c2 = openChains[j];
 
-          double d0 = vecDistSq(rawPositions[c1.back()], rawPositions[c2.front()]);
+          double d0 =
+              vecDistSq(rawPositions[c1.back()], rawPositions[c2.front()]);
           if (d0 < bestDistSq) {
             bestDistSq = d0;
             bestI = i;
             bestJ = j;
             bestMode = 0;
           }
-          double d1 = vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
+          double d1 =
+              vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
           if (d1 < bestDistSq) {
             bestDistSq = d1;
             bestI = i;
             bestJ = j;
             bestMode = 1;
           }
-          double d2 = vecDistSq(rawPositions[c1.front()], rawPositions[c2.back()]);
+          double d2 =
+              vecDistSq(rawPositions[c1.front()], rawPositions[c2.back()]);
           if (d2 < bestDistSq) {
             bestDistSq = d2;
             bestI = i;
@@ -1146,7 +1132,7 @@ void _extractTrackPaths(const zPointArray &rawPositions,
       for (int id : seq) {
         mergedPositions.push_back(rawPositions[id]);
         mergedWidths.push_back(id < int(rawWidths.size()) ? rawWidths[id]
-                                                           : 0.04f);
+                                                          : 0.04f);
       }
       for (size_t i = 0; i + 1 < seq.size(); i++) {
         mergedEdges.push_back(base + int(i));
@@ -1369,7 +1355,7 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
       _extractRawIsoContour(localField, pathValues, widthValues, trackIdField,
                             rawPositions, rawEdges, rawWidths, rawTrackIds);
       _extractTrackPaths(rawPositions, rawEdges, rawWidths, rawTrackIds, 0.08,
-                        1.0, outPrintPaths2D[l]);
+                         1.0, outPrintPaths2D[l]);
     }
   }
 
