@@ -438,8 +438,6 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
   const zPoint *points = fnMesh.getRawVertexPositions();
   const int n = fnField.numFieldValues();
   zScalarArray pathValues(n, 0.0);
-  // Track tag: 1 = outer, 0 = inner. Single-perimeter paths have no
-  // inner/outer distinction, so they default to "inner" everywhere.
   zScalarArray trackIdValues(n, 0.0);
 
   if (!points || n <= 0 || segmentGraphs.empty() || segDistances.empty() ||
@@ -451,32 +449,76 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
   zScalarArray polyField;
   computeFastPolygon(points, n, flatGraph, polyField);
 
-  std::vector<int> outerIndices;
-  std::vector<int> ribIndices;
+  std::vector<int> boundaryIndices;
+  std::vector<int> bracingIndices;
   std::vector<zObjGraph> allSlotGraphs;
 
   for (int k = 0; k < nS; k++) {
     if (segmentGraphs[k].type == 0)
-      outerIndices.push_back(k);
+      boundaryIndices.push_back(k);
     else
-      ribIndices.push_back(k);
+      bracingIndices.push_back(k);
   }
 
   std::vector<FastSegment> fastSlotEdges;
 
+  // Carve each bracing rib's trim slot and combine into one field via
+  // running minimum. This is identical between the double-layer and
+  // single-perimeter cases - the double-layer overlap-compensated formula
+  // collapses exactly to the single-perimeter one when overlapWidth is 0 -
+  // so it's computed once up front and reused by whichever branch below
+  // actually runs.
+  const zScalar bracingOverlap =
+      doublelayerboundary ? overlapWidth : zScalar(0.0);
+  zScalarArray bracingField(n, (std::numeric_limits<zScalar>::max)());
+  bool hasBracing = false;
+
+  for (int k : bracingIndices) {
+    const zScalar w = segmentGraphs[k].width;
+    const zScalar ribBeadW =
+        (std::max)(zScalar(1e-4), zScalar(0.5 * w + 0.5 * bracingOverlap));
+    const zScalar ribOffset = 0.5 * w - 0.5 * ribBeadW;
+    zScalarArray singleRibField(n, 0.0);
+    for (int i = 0; i < n; i++) {
+      singleRibField[i] = segDistances[k][i] - ribOffset;
+    }
+
+    const zScalar trimRatio = segmentGraphs[k].trim;
+    zScalarArray singleRibTrimmed = singleRibField;
+    if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
+      zObjGraph slotGraph;
+      if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph,
+                                   trimRatio, w * 1.5)) {
+        allSlotGraphs.push_back(slotGraph);
+        zScalarArray tempSlotDist;
+        const float slotHalfWidth = static_cast<float>(0.5 * ribBeadW);
+        _evaluateGraphDistance(points, n, slotGraph, slotHalfWidth,
+                               fastSlotEdges, tempSlotDist);
+        fnField.boolean_subtract(singleRibField, tempSlotDist,
+                                 singleRibTrimmed, false);
+      }
+    }
+
+    if (!hasBracing) {
+      bracingField = singleRibTrimmed;
+      hasBracing = true;
+    } else {
+      for (int i = 0; i < n; i++) {
+        if (singleRibTrimmed[i] < bracingField[i]) {
+          bracingField[i] = singleRibTrimmed[i];
+        }
+      }
+    }
+  }
+
   if (doublelayerboundary) {
-    // 1-2. Outer ring field and inner ring field: the same signed
-    // polygon-distance quantity per outer segment, offset by that
-    // segment's own overlap-adjusted track width, so track 1 (outer)
-    // always starts at offset 0 and track 2 (inner)'s far edge always
-    // lands at offset w.
     zScalarArray outerRingField(n, 0.0);
     zScalarArray innerRingField(n, 0.0);
     for (int i = 0; i < n; i++) {
       const bool isInside = (polyField[i] <= 0.0);
       double maxOuter = -(std::numeric_limits<double>::max)();
       double maxInner = -(std::numeric_limits<double>::max)();
-      for (int k : outerIndices) {
+      for (int k : boundaryIndices) {
         const zScalar w = segmentGraphs[k].width;
         const zScalar beadW =
             (std::max)(zScalar(1e-4), zScalar(0.5 * w + 0.5 * overlapWidth));
@@ -492,54 +534,11 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
       innerRingField[i] = maxInner;
     }
 
-    // 3. Carve internal bracing out of the inner ring, using the exact
-    // same combination method the single-perimeter path below uses to
-    // combine ribs with a solid field (the inner ring is itself a solid
-    // region, same as the single-perimeter outer wall field).
-    zScalarArray innerRibsField(n, (std::numeric_limits<zScalar>::max)());
-    bool hasValidRibs = false;
-
-    for (int k : ribIndices) {
-      const zScalar w = segmentGraphs[k].width;
-      const zScalar ribBeadW =
-          (std::max)(zScalar(1e-4), zScalar(0.5 * w + 0.5 * overlapWidth));
-      const zScalar ribOffset = 0.5 * w - 0.5 * ribBeadW;
-      zScalarArray singleRibField(n, 0.0);
-      for (int i = 0; i < n; i++) {
-        singleRibField[i] = segDistances[k][i] - ribOffset;
-      }
-
-      const zScalar trimRatio = segmentGraphs[k].trim;
-      zScalarArray singleRibTrimmed = singleRibField;
-      if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
-        zObjGraph slotGraph;
-        if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph,
-                                     trimRatio, w * 1.5)) {
-          allSlotGraphs.push_back(slotGraph);
-          zScalarArray tempSlotDist;
-          const float slotHalfWidth = static_cast<float>(0.5 * ribBeadW);
-          _evaluateGraphDistance(points, n, slotGraph, slotHalfWidth,
-                                 fastSlotEdges, tempSlotDist);
-          fnField.boolean_subtract(singleRibField, tempSlotDist,
-                                   singleRibTrimmed, false);
-        }
-      }
-
-      if (!hasValidRibs) {
-        innerRibsField = singleRibTrimmed;
-        hasValidRibs = true;
-      } else {
-        for (int i = 0; i < n; i++) {
-          if (singleRibTrimmed[i] < innerRibsField[i]) {
-            innerRibsField[i] = singleRibTrimmed[i];
-          }
-        }
-      }
-    }
-
+    // 3. Carve internal bracing out of the inner ring (bracingField was
+    // computed once above, shared with the single-perimeter branch).
     zScalarArray bracedInnerRing = innerRingField;
-    if (hasValidRibs) {
-      fnField.boolean_subtract(innerRingField, innerRibsField, bracedInnerRing,
+    if (hasBracing) {
+      fnField.boolean_subtract(innerRingField, bracingField, bracedInnerRing,
                                false);
     }
 
@@ -559,7 +558,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     zScalarArray outerSlotDist(n, (std::numeric_limits<zScalar>::max)());
     bool hasOuterSlot = false;
 
-    for (int k : outerIndices) {
+    for (int k : boundaryIndices) {
       const zScalar trimRatio = segmentGraphs[k].trim;
       if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
         zObjGraph slotGraph;
@@ -597,12 +596,12 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
       pathValues = ringBand;
     }
   } else {
-    // ---- Single-perimeter path (unchanged) ----
+    // ---- Single-perimeter path ----
     zScalarArray outerWallField(n, 0.0);
     for (int i = 0; i < n; i++) {
       const bool isInside = (polyField[i] <= 0.0);
       double maxOuter = -(std::numeric_limits<double>::max)();
-      for (int k : outerIndices) {
+      for (int k : boundaryIndices) {
         const zScalar w = segmentGraphs[k].width;
         const zScalar d = segDistances[k][i];
         const zScalar phi1 = (isInside ? -d : d) + 0.5 * w;
@@ -615,7 +614,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     zScalarArray outerSlotDist(n, (std::numeric_limits<zScalar>::max)());
     bool hasOuterSlot = false;
 
-    for (int k : outerIndices) {
+    for (int k : boundaryIndices) {
       const zScalar trimRatio = segmentGraphs[k].trim;
       if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
         zObjGraph slotGraph;
@@ -647,47 +646,10 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
                                false);
     }
 
-    zScalarArray innerRibsField(n, (std::numeric_limits<zScalar>::max)());
-    bool hasValidRibs = false;
-
-    for (int k : ribIndices) {
-      const zScalar w = segmentGraphs[k].width;
-      const zScalar ribBeadW = 0.5 * w;
-      zScalarArray singleRibField(n, 0.0);
-      for (int i = 0; i < n; i++) {
-        singleRibField[i] = segDistances[k][i] - 0.5 * ribBeadW;
-      }
-
-      const zScalar trimRatio = segmentGraphs[k].trim;
-      zScalarArray singleRibTrimmed = singleRibField;
-      if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
-        zObjGraph slotGraph;
-        if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph,
-                                     trimRatio, w * 1.5)) {
-          allSlotGraphs.push_back(slotGraph);
-          zScalarArray tempSlotDist;
-          const float slotHalfWidth = static_cast<float>(0.5 * ribBeadW);
-          _evaluateGraphDistance(points, n, slotGraph, slotHalfWidth,
-                                 fastSlotEdges, tempSlotDist);
-          fnField.boolean_subtract(singleRibField, tempSlotDist,
-                                   singleRibTrimmed, false);
-        }
-      }
-
-      if (!hasValidRibs) {
-        innerRibsField = singleRibTrimmed;
-        hasValidRibs = true;
-      } else {
-        for (int i = 0; i < n; i++) {
-          if (singleRibTrimmed[i] < innerRibsField[i]) {
-            innerRibsField[i] = singleRibTrimmed[i];
-          }
-        }
-      }
-    }
-
-    if (hasValidRibs) {
-      fnField.boolean_subtract(outerField, innerRibsField, pathValues, false);
+    // Bracing (bracingField) was computed once above, shared with the
+    // double-layer branch.
+    if (hasBracing) {
+      fnField.boolean_subtract(outerField, bracingField, pathValues, false);
     } else {
       pathValues = outerField;
     }
@@ -949,8 +911,8 @@ void _extractTrackPaths(const zPointArray &rawPositions,
     // already consumed getting away from it), so the closing check is a
     // harmless no-op for open-chain walks and only actually fires for the
     // closed-loop walks below.
-    auto walkChain =
-        [&](int start, int next) -> std::pair<std::vector<int>, bool> {
+    auto walkChain = [&](int start,
+                         int next) -> std::pair<std::vector<int>, bool> {
       std::vector<int> seq = {start};
       int prev = start, curr = next;
       visitedEdges.insert(makeEdgeKey(prev, curr));
