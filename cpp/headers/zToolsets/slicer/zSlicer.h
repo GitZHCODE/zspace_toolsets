@@ -103,7 +103,7 @@ protected:
   std::vector<zScalarArray> pathFields;
   std::vector<zScalarArray> widthFields;
   std::vector<zScalarArray> trackFields; // per-vertex inner(0)/outer(1) mask, parallel to pathFields
-  zObjGraphArray trimSlotGraphs;
+  zObjGraphArray trimSlotGraphs2D;
 
 public:
   //--------------------------
@@ -187,8 +187,10 @@ public:
   zObjMeshScalarField &getScalarField() { return m_ScalarField; }
   const zObjMeshScalarField &getScalarField() const { return m_ScalarField; }
 
-  zObjGraphArray &getTrimSlotGraphs() { return trimSlotGraphs; }
-  const zObjGraphArray &getTrimSlotGraphs() const { return trimSlotGraphs; }
+  zObjGraphArray &getTrimSlotGraphs2D() { return trimSlotGraphs2D; }
+  const zObjGraphArray &getTrimSlotGraphs2D() const {
+    return trimSlotGraphs2D;
+  }
 
   const std::vector<int> &getBoundarySplitIndices() const {
     return m_BoundarySplitIndices;

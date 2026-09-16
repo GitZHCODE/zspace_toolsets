@@ -344,7 +344,7 @@ ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
   bracingGraphs2D.clear();
   pathFields.clear();
   widthFields.clear();
-  trimSlotGraphs.clear();
+  trimSlotGraphs2D.clear();
   m_BracingParams.clear();
   zFnMesh(m_UMesh).clear();
   zFnGraph(m_ULoop).clear();

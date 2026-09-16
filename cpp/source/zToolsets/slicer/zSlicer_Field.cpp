@@ -1248,7 +1248,7 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
   pathFields.clear();
   widthFields.clear();
   trackFields.clear();
-  trimSlotGraphs.clear();
+  trimSlotGraphs2D.clear();
   outPrintPaths2D.clear();
 
   const int totalLayers = int(sectionMeshes2D.size());
@@ -1262,7 +1262,7 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
   pathFields.assign(totalLayers, zScalarArray());
   widthFields.assign(totalLayers, zScalarArray());
   trackFields.assign(totalLayers, zScalarArray());
-  trimSlotGraphs.assign(totalLayers, zObjGraph());
+  trimSlotGraphs2D.assign(totalLayers, zObjGraph());
   outPrintPaths2D.assign(totalLayers, std::vector<PrintPath>());
 
   const float printBracingWidth = i_Settings.BracingWidth;
@@ -1360,7 +1360,7 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
       pathFields[l] = pathValues;
       widthFields[l] = widthValues;
       trackFields[l] = trackIdField;
-      trimSlotGraphs[l] = bracingSlotsGraph;
+      trimSlotGraphs2D[l] = bracingSlotsGraph;
 
       zPointArray rawPositions;
       zIntArray rawEdges;
