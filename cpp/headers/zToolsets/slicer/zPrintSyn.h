@@ -124,17 +124,8 @@ public:
   /*! \brief Step 3: filters localized width glitches in ioPath.widths. */
   static void filterGlitches(PrintPath &ioPath);
 
-  /*! \brief Step 4: orients one layer's 1-2 ring paths into a single closed loop - a lone path is forced CCW; an inner+outer pair has inner forced CCW and placed first, with outer welded onto its end (starting from inner's end point), closing the loop. Replaces ringPaths with the single merged result. */
+  /*! \brief Step 4: orients one layer's ring path CCW in place (extraction already produces at most one ring per layer, already inner-before-outer ordered). */
   static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
-
-  /*! \brief Cuts a gap of width `width` out of ioPath's closed graph, centered on the point of ioPath nearest to nearPoint. The forward-offset cut point becomes the new start, the backward-offset one the new end. */
-  static bool breakPrintPath(PrintPath &ioPath, const zPoint &nearPoint,
-                             float width);
-
-  /*! \brief Concatenates every layer's single (post-orientAndWeldLayer) PrintPath end-to-start into one continuous bottom-to-top PrintPath. */
-  static bool
-  chainLayersIntoOnePath(const std::vector<std::vector<PrintPath>> &layeredPaths,
-                        PrintPath &outCombined);
 };
 
 /** @}*/

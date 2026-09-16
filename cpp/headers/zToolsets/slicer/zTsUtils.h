@@ -81,10 +81,9 @@ struct PrintPath {
   zFloatArray widths;
   zFloatArray heights;
   zVectorArray normals;
-  bool isOuterTrack = false;
   // Per-vertex inner(0)/outer(1) tag, parallel to widths. Populated by
-  // zSlicer::_extractTrackPaths when a path mixes both tracks (a
-  // double-layer boundary ring welded whole); empty otherwise.
+  // zSlicer::_extractTrackPaths for a double-layer boundary ring; empty
+  // for a single-perimeter path (no inner/outer distinction).
   zFloatArray trackIds;
 };
 
