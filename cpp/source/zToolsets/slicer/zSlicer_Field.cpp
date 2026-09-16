@@ -12,7 +12,6 @@
 #include <chrono>
 #include <cmath>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <sstream>
 #include <unordered_map>
@@ -462,12 +461,6 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
 
   std::vector<FastSegment> fastSlotEdges;
 
-  // Carve each bracing rib's trim slot and combine into one field via
-  // running minimum. This is identical between the double-layer and
-  // single-perimeter cases - the double-layer overlap-compensated formula
-  // collapses exactly to the single-perimeter one when overlapWidth is 0 -
-  // so it's computed once up front and reused by whichever branch below
-  // actually runs.
   const zScalar bracingOverlap =
       doublelayerboundary ? overlapWidth : zScalar(0.0);
   zScalarArray bracingField(n, (std::numeric_limits<zScalar>::max)());
@@ -487,15 +480,15 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
     zScalarArray singleRibTrimmed = singleRibField;
     if (trimRatio > 1e-4 && trimRatio < 1.0 - 1e-4) {
       zObjGraph slotGraph;
-      if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph,
-                                   trimRatio, w * 1.5)) {
+      if (_createPerpendicularSlot(segmentGraphs[k].graph, slotGraph, trimRatio,
+                                   w * 1.5)) {
         allSlotGraphs.push_back(slotGraph);
         zScalarArray tempSlotDist;
         const float slotHalfWidth = static_cast<float>(0.5 * ribBeadW);
         _evaluateGraphDistance(points, n, slotGraph, slotHalfWidth,
                                fastSlotEdges, tempSlotDist);
-        fnField.boolean_subtract(singleRibField, tempSlotDist,
-                                 singleRibTrimmed, false);
+        fnField.boolean_subtract(singleRibField, tempSlotDist, singleRibTrimmed,
+                                 false);
       }
     }
 
@@ -534,7 +527,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
       innerRingField[i] = maxInner;
     }
 
-    // 3. Carve internal bracing out of the inner ring (bracingField was
+    // Carve internal bracing out of the inner ring (bracingField was
     // computed once above, shared with the single-perimeter branch).
     zScalarArray bracedInnerRing = innerRingField;
     if (hasBracing) {
@@ -542,8 +535,8 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
                                false);
     }
 
-    // 4. Outer ring minus (braced) inner ring -> the double-wall band.
-    // Tag each grid point by which ring actually dominates there, so the
+    // Outer ring minus (braced) inner ring -> the double-wall band. Tag
+    // each grid point by which ring actually dominates there, so the
     // outer/inner distinction survives even though both rings now live on
     // the same combined field.
     zScalarArray ringBand;
@@ -552,7 +545,7 @@ void _computePathField(zObjMeshScalarField &field, const zObjGraph &flatGraph,
       trackIdValues[i] = (outerRingField[i] >= -bracedInnerRing[i]) ? 1.0 : 0.0;
     }
 
-    // 5. Cut the boundary trim slot through the combined band, fusing the
+    // Cut the boundary trim slot through the combined band, fusing the
     // outer and inner loops into one connected chain. The tag is kept
     // everywhere else; the newly-cut opening itself reads as outer.
     zScalarArray outerSlotDist(n, (std::numeric_limits<zScalar>::max)());
@@ -1310,7 +1303,6 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
       << std::setprecision(2) << targetCellSize << ", Res: " << resX << "x"
       << resY << ") in " << std::setprecision(2) << wallTotalMs << " ms";
   m_Status = out.str();
-  std::cout << std::endl;
   printSuccess("[computeField] " + m_Status);
   return true;
 }
