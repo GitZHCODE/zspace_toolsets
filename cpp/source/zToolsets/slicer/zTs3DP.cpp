@@ -55,6 +55,21 @@ ZSPACE_INLINE bool zTs3DP::computeProjection() {
   return success;
 }
 
+// Chains every layer's single 3D ring end-to-start into one continuous
+// path.
+ZSPACE_INLINE bool zTs3DP::computeChainedPath() {
+  bool success =
+      m_PrintSyn.chainLayersIntoOnePath(m_3DPrintPaths, m_ResultantPrintPath);
+  if (success) {
+    m_Status = "Chained all layers into one continuous print path.";
+    zTsUtils::printSuccess("[zTs3DP::computeChainedPath] " + m_Status);
+  } else {
+    m_Status = "failed: Could not chain layers into one path.";
+    zTsUtils::printError("[zTs3DP::computeChainedPath] " + m_Status);
+  }
+  return success;
+}
+
 //--------------------------
 //---- EXPORT METHOD
 //--------------------------

@@ -55,6 +55,12 @@ struct PrintSynSetting {
   // Seed layer only: distance to walk from the extracted start along the
   // inner ring before recording it as the mesh-tracked aligned start point.
   float StartWalkDistance = 5.0f;
+  // Additional arc-length shift applied to every layer's aligned start
+  // point (clamped to stay on the inner segment), mm.
+  float SeamOffset = 0.0f;
+  // Arc-length gap left open between the end point and the start point
+  // when each layer's ring is cut open, mm. 0 = just drop the closing edge.
+  float SeamSize = 0.0f;
 };
 
 /*! \class zPrintSyn
@@ -103,7 +109,8 @@ public:
       totalPaths += int(ioPaths[l].size());
     }
 
-    alignLayerStartPoints(ioPaths, sectionMeshes2D, i_Settings.StartWalkDistance);
+    alignLayerStartPoints(ioPaths, sectionMeshes2D, i_Settings.StartWalkDistance,
+                         i_Settings.SeamOffset, i_Settings.SeamSize);
 
     const auto wallEnd = std::chrono::high_resolution_clock::now();
     const double wallTotalMs =
@@ -133,11 +140,12 @@ public:
   /*! \brief Step 4: orients one layer's ring path CCW in place (extraction already produces at most one ring per layer, already inner-before-outer ordered). */
   static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
 
-  /*! \brief Step 5: aligns every layer's ring start point to the same barycentric point on the underlying mesh (tracks the model through taper/twist), constrained to the inner track, then cuts each ring open at its aligned start. Seeds from the first usable layer by walking walkDistance from its extracted start along the inner segment. */
+  /*! \brief Step 5: aligns every layer's ring start point to the same barycentric point on the underlying mesh (tracks the model through taper/twist), constrained to the inner track and nudged by seamOffset, then cuts each ring open - walking backward seamSize from the new start to find the new end point, leaving that gap open between them. Seeds from the first usable layer by walking walkDistance from its extracted start along the inner segment. */
   static bool
   alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
                        const zObjMeshArray &sectionMeshes2D,
-                       double walkDistance);
+                       double walkDistance, double seamOffset,
+                       double seamSize);
 
   /*! \brief Concatenates every layer's single ring PrintPath end-to-start into one continuous bottom-to-top PrintPath, connecting each layer's last point to the next layer's first point. Call after zSlicer::computeProjection (3D paths), once alignLayerStartPoints has opened each layer's ring at its start. */
   static bool

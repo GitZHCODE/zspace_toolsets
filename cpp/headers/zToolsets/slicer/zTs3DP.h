@@ -49,6 +49,7 @@ protected:
 
   std::vector<std::vector<PrintPath>> m_2DPrintPaths;
   std::vector<std::vector<PrintPath>> m_3DPrintPaths;
+  PrintPath m_ResultantPrintPath;
 
   std::string m_Status;
 
@@ -90,13 +91,18 @@ public:
   /*! \brief Projects m_2DPrintPaths back onto the 3D section meshes, producing m_3DPrintPaths. */
   bool computeProjection();
 
-  /*! \brief Runs computeSlicer -> computePrintSyn -> computeProjection. */
+  /*! \brief Chains every layer's single 3D ring end-to-start into one continuous path, producing m_ResultantPrintPath. Call after computeProjection. */
+  bool computeChainedPath();
+
+  /*! \brief Runs computeSlicer -> computePrintSyn -> computeProjection -> computeChainedPath. */
   bool computePipeline() {
     if (!computeSlicer())
       return false;
     if (!computePrintSyn())
       return false;
     if (!computeProjection())
+      return false;
+    if (!computeChainedPath())
       return false;
     return true;
   }
@@ -143,6 +149,10 @@ public:
   }
   inline const std::vector<std::vector<PrintPath>> &get3DPrintPaths() const {
     return m_3DPrintPaths;
+  }
+  inline PrintPath &getResultantPrintPath() { return m_ResultantPrintPath; }
+  inline const PrintPath &getResultantPrintPath() const {
+    return m_ResultantPrintPath;
   }
 
   inline zObjMesh &getInputMesh() { return m_Slicer.getInputMesh(); }
