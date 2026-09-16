@@ -1247,6 +1247,7 @@ ZSPACE_INLINE bool
 zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
   pathFields.clear();
   widthFields.clear();
+  trackFields.clear();
   trimSlotGraphs.clear();
   outPrintPaths2D.clear();
 
@@ -1260,6 +1261,7 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
 
   pathFields.assign(totalLayers, zScalarArray());
   widthFields.assign(totalLayers, zScalarArray());
+  trackFields.assign(totalLayers, zScalarArray());
   trimSlotGraphs.assign(totalLayers, zObjGraph());
   outPrintPaths2D.assign(totalLayers, std::vector<PrintPath>());
 
@@ -1357,6 +1359,7 @@ zSlicer::computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
 
       pathFields[l] = pathValues;
       widthFields[l] = widthValues;
+      trackFields[l] = trackIdField;
       trimSlotGraphs[l] = bracingSlotsGraph;
 
       zPointArray rawPositions;

@@ -102,6 +102,7 @@ protected:
   zObjGraphArray bracingGraphs2D;
   std::vector<zScalarArray> pathFields;
   std::vector<zScalarArray> widthFields;
+  std::vector<zScalarArray> trackFields; // per-vertex inner(0)/outer(1) mask, parallel to pathFields
   zObjGraphArray trimSlotGraphs;
 
 public:
@@ -177,6 +178,10 @@ public:
   std::vector<zScalarArray> &getWidthFields() { return widthFields; }
   const std::vector<zScalarArray> &getWidthFields() const {
     return widthFields;
+  }
+  std::vector<zScalarArray> &getTrackFields() { return trackFields; }
+  const std::vector<zScalarArray> &getTrackFields() const {
+    return trackFields;
   }
 
   zObjMeshScalarField &getScalarField() { return m_ScalarField; }
