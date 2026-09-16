@@ -898,7 +898,10 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
 
   // 3. Cut every layer's ring open right before its (now aligned) start
   // point, leaving a seamSize gap between the new end point and the
-  // start - ready to be chained layer-to-layer.
+  // start - ready to be chained layer-to-layer. Independent per layer
+  // (each only touches its own ioPaths[l][0]), so this runs in parallel
+  // too, same as step 2.
+#pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
     if (ioPaths[l].empty())
       continue;
