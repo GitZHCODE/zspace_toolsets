@@ -81,11 +81,11 @@ struct PrintPath {
   zFloatArray widths;
   zFloatArray heights;
   zVectorArray normals;
-  // Whether this path is the double-layer boundary's outer track. Each
-  // PrintPath is homogeneous (inner/outer are split into separate entries
-  // upstream), so a single flag is enough. Single-perimeter/bracing-only
-  // paths default false (treated as "inner").
   bool isOuterTrack = false;
+  // Per-vertex inner(0)/outer(1) tag, parallel to widths. Populated by
+  // zSlicer::_extractTrackPaths when a path mixes both tracks (a
+  // double-layer boundary ring welded whole); empty otherwise.
+  zFloatArray trackIds;
 };
 
 //--------------------------
@@ -135,23 +135,23 @@ bool samplePolyline(const zObjGraph &polylineGraph, const zScalarArray &scalars,
 //---- Universal Mesh Barycentric Parameterizer (2D flat and 3D space meshes)
 
 bool parameterizeGraph(const zObjGraph &inGraph, zObjMesh &inMesh,
-                             ParameterGraph &outParams);
+                       ParameterGraph &outParams);
 
 //---- Universal Barycentric Mesh Graph Reconstructor
 
-bool realizeParameterGraph(
-    const ParameterGraph &inParams, zObjMesh &targetMesh, zObjGraph &outGraph,
-    zVectorArray *outNormals = nullptr,
-    const zFloatArray *vertexScalars = nullptr,
-    zFloatArray *outHeights = nullptr);
+bool realizeParameterGraph(const ParameterGraph &inParams, zObjMesh &targetMesh,
+                           zObjGraph &outGraph,
+                           zVectorArray *outNormals = nullptr,
+                           const zFloatArray *vertexScalars = nullptr,
+                           zFloatArray *outHeights = nullptr);
 
 //---- Barycentric Mesh-to-Mesh Graph Projection
 
 bool remapGraph(zObjGraph &graph, zObjMesh &inMesh2D,
-                                  zObjMesh &projectionMesh3D,
-                                  zVectorArray *mappedNormals = nullptr,
-                                  const zFloatArray *vertexHeights = nullptr,
-                                  zFloatArray *mappedHeights = nullptr);
+                zObjMesh &projectionMesh3D,
+                zVectorArray *mappedNormals = nullptr,
+                const zFloatArray *vertexHeights = nullptr,
+                zFloatArray *mappedHeights = nullptr);
 
 //---- Toolpath Pipe Mesh Construction
 

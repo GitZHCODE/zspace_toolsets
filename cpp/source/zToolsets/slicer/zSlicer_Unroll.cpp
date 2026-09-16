@@ -305,6 +305,7 @@ ZSPACE_INLINE bool zSlicer::computeProjection(
     for (size_t r = 0; r < in2DPaths[l].size(); r++) {
       out3DPaths[l][r].graph = in2DPaths[l][r].graph;
       out3DPaths[l][r].widths = in2DPaths[l][r].widths;
+      out3DPaths[l][r].trackIds = in2DPaths[l][r].trackIds;
       out3DPaths[l][r].isOuterTrack = in2DPaths[l][r].isOuterTrack;
 
       zFnGraph fnContour(out3DPaths[l][r].graph);

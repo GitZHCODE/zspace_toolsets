@@ -103,6 +103,8 @@ void _reversePrintPath(PrintPath &ioPath) {
     std::reverse(ioPath.heights.begin(), ioPath.heights.end());
   if (!ioPath.normals.empty())
     std::reverse(ioPath.normals.begin(), ioPath.normals.end());
+  if (!ioPath.trackIds.empty())
+    std::reverse(ioPath.trackIds.begin(), ioPath.trackIds.end());
 
   zIntArray newEdges;
   newEdges.reserve(numV * 2);
@@ -193,17 +195,20 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   const zFloatArray &weights = ioPath.widths;
   const zFloatArray &heights = ioPath.heights;
   const zVectorArray &normals = ioPath.normals;
+  const zFloatArray &trackIds = ioPath.trackIds;
   const bool hasHeights = !heights.empty();
   const bool hasNormals = !normals.empty();
+  const bool hasTrackIds = !trackIds.empty();
 
   zPointArray outPoints;
   zFloatArray outWeights;
   zFloatArray outHeights;
   zVectorArray outNormals;
+  zFloatArray outTrackIds;
   zIntArray outEdges;
 
   auto appendPoint = [&](const zPoint &p, float w, float h,
-                         const zVector &nrm) {
+                         const zVector &nrm, float trk) {
     if (!outPoints.empty()) {
       zVector d = vecSub(p, outPoints.back());
       if (d.length() < 1e-5)
@@ -215,6 +220,8 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
       outHeights.push_back(h);
     if (hasNormals)
       outNormals.push_back(nrm);
+    if (hasTrackIds)
+      outTrackIds.push_back(trk);
   };
 
   auto weightAt = [&](int id) {
@@ -230,13 +237,18 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
                ? normals[id]
                : zVector(0, 0, 1);
   };
+  auto trackAt = [&](int id) {
+    return (hasTrackIds && id < static_cast<int>(trackIds.size()))
+               ? trackIds[id]
+               : 0.0f;
+  };
 
   const int numSegments = closed ? N : (N - 1);
 
   // Emit the path's start vertex and reset the sampling phase there.
   const int firstId = sequence[0];
   appendPoint(positions[firstId], weightAt(firstId), heightAt(firstId),
-             normalAt(firstId));
+             normalAt(firstId), trackAt(firstId));
   double distSinceSample = 0.0;
 
   for (int seg = 0; seg < numSegments; seg++) {
@@ -247,6 +259,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     float w0 = weightAt(i0), w1 = weightAt(i1);
     float h0 = heightAt(i0), h1 = heightAt(i1);
     zVector n0 = normalAt(i0), n1 = normalAt(i1);
+    float trk0 = trackAt(i0), trk1 = trackAt(i1);
 
     zVector segVec = vecSub(p1, p0);
     const double segLen = segVec.length();
@@ -268,7 +281,9 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
           interpN.normalize();
         else
           interpN = zVector(0, 0, 1);
-        appendPoint(interpP, interpW, interpH, interpN);
+        const float interpTrk = (trk0 + t * (trk1 - trk0)) >= 0.5f ? 1.0f
+                                                                    : 0.0f;
+        appendPoint(interpP, interpW, interpH, interpN, interpTrk);
         remaining += sampleLength;
       }
       distSinceSample = segLen - (remaining - sampleLength);
@@ -280,7 +295,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     const bool isFeature =
         (i1 < int(featureFlags.size())) && featureFlags[i1] != 0;
     if (isLastOpenVertex || isFeature) {
-      appendPoint(p1, w1, h1, n1);
+      appendPoint(p1, w1, h1, n1, trk1);
       distSinceSample = 0.0;
     }
   }
@@ -300,6 +315,8 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
           outHeights.pop_back();
         if (hasNormals)
           outNormals.pop_back();
+        if (hasTrackIds)
+          outTrackIds.pop_back();
         outEdges.pop_back();
         outEdges.pop_back();
       }
@@ -321,6 +338,8 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     ioPath.heights = outHeights;
   if (hasNormals)
     ioPath.normals = outNormals;
+  if (hasTrackIds)
+    ioPath.trackIds = outTrackIds;
   return true;
 }
 
@@ -420,6 +439,7 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
   zFloatArray combinedWidths;
   zFloatArray combinedHeights;
   zVectorArray combinedNormals;
+  zFloatArray combinedTrackIds;
 
   combinedPositions.insert(combinedPositions.end(), innerPos.begin(),
                            innerPos.end());
@@ -441,6 +461,11 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
     combinedNormals.insert(combinedNormals.end(), outer.normals.begin(),
                            outer.normals.end());
   }
+  // Inner/outer track membership is known unconditionally here (that's the
+  // whole point of this branch), regardless of whether the upstream paths
+  // happened to carry a trackIds array of their own.
+  combinedTrackIds.assign(innerPos.size(), 0.0f);
+  combinedTrackIds.insert(combinedTrackIds.end(), outerPos.size(), 1.0f);
 
   const int total = static_cast<int>(combinedPositions.size());
   if (total < 3)
@@ -463,6 +488,7 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
     merged.heights = combinedHeights;
   if (hasNormals)
     merged.normals = combinedNormals;
+  merged.trackIds = combinedTrackIds;
   merged.isOuterTrack = false; // no longer a single track once merged
 
   ringPaths.clear();

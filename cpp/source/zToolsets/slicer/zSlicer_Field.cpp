@@ -773,13 +773,6 @@ void _extractRawIsoContour(
   }
 }
 
-// Ports the spur-pruning + gap-welding + chain/loop extraction that used to
-// live in zPrintSyn::buildSequencePrintPath. Splits the raw iso-contour
-// first - edges whose endpoints disagree on trackId (inner vs outer) are
-// dropped before cleanup, so each side is cleaned independently - then runs
-// the same cleanup on each side and merges every surviving loop/chain on
-// that side into one PrintPath. Callers with no track-id distinction (empty
-// rawTrackIds, or an all-inner field) get a single "inner" PrintPath back.
 void _extractTrackPaths(const zPointArray &rawPositions,
                         const zIntArray &rawEdges, const zFloatArray &rawWidths,
                         const zFloatArray &rawTrackIds, double weldTolerance,
@@ -796,308 +789,325 @@ void _extractTrackPaths(const zPointArray &rawPositions,
            rawTrackIds[id] >= 0.5f;
   };
 
-  bool hasAnyOuter = false;
-  if (hasTrackIds) {
-    for (float v : rawTrackIds) {
-      if (v >= 0.5f) {
-        hasAnyOuter = true;
-        break;
+  // 1. Build adjacency from every valid, deduplicated edge - no track-based
+  // filtering, so the boundary ring (inner+outer fused by the trim slot)
+  // comes out directly as one naturally closed loop, and bracing ribs come
+  // out as open chains, exactly like the untracked single-perimeter case.
+  std::vector<std::vector<int>> adj(numV);
+  std::unordered_set<unsigned long long> edgeSet;
+  for (size_t e = 0; e + 1 < rawEdges.size(); e += 2) {
+    int a = rawEdges[e], b = rawEdges[e + 1];
+    if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
+      continue;
+    if (vecDistSq(rawPositions[b], rawPositions[a]) < 1e-12)
+      continue;
+    const unsigned long long key = makeEdgeKey(a, b);
+    if (!edgeSet.insert(key).second)
+      continue;
+    adj[a].push_back(b);
+    adj[b].push_back(a);
+  }
+
+  std::vector<std::unordered_set<int>> activeAdj(numV);
+  for (int i = 0; i < numV; i++)
+    for (int nb : adj[i])
+      activeAdj[i].insert(nb);
+
+  // 2. Spur pruning: repeatedly trim dead-end branches shorter than
+  // spurLengthThreshold hanging off any junction (degree >= 3).
+  bool prunedAny = true;
+  while (prunedAny) {
+    prunedAny = false;
+    for (int i = 0; i < numV; i++) {
+      if (activeAdj[i].size() >= 3) {
+        std::vector<int> neighbors(activeAdj[i].begin(), activeAdj[i].end());
+        for (int startNb : neighbors) {
+          std::vector<int> branchPath = {i, startNb};
+          int prev = i;
+          int curr = startNb;
+          bool isDeadEnd = false;
+          double branchLen =
+              vecSub(rawPositions[curr], rawPositions[prev]).length();
+
+          while (true) {
+            if (activeAdj[curr].size() == 1) {
+              isDeadEnd = true;
+              break;
+            }
+            if (activeAdj[curr].size() != 2)
+              break;
+            int next = -1;
+            for (int nb : activeAdj[curr]) {
+              if (nb != prev) {
+                next = nb;
+                break;
+              }
+            }
+            if (next < 0 || next == i)
+              break;
+            branchLen +=
+                vecSub(rawPositions[next], rawPositions[curr]).length();
+            prev = curr;
+            curr = next;
+            branchPath.push_back(curr);
+          }
+
+          if (isDeadEnd && branchLen < spurLengthThreshold) {
+            for (size_t k = 0; k + 1 < branchPath.size(); k++) {
+              int u = branchPath[k];
+              int v = branchPath[k + 1];
+              activeAdj[u].erase(v);
+              activeAdj[v].erase(u);
+            }
+            prunedAny = true;
+          }
+        }
       }
     }
   }
 
-  // Cleans+extracts every loop/chain whose edges match wantOuter, merging
-  // all survivors into a single PrintPath (skipped if none survive).
-  auto processSide = [&](bool wantOuter) {
-    std::vector<std::vector<int>> adj(numV);
-    std::unordered_set<unsigned long long> edgeSet;
-    for (size_t e = 0; e + 1 < rawEdges.size(); e += 2) {
-      int a = rawEdges[e], b = rawEdges[e + 1];
-      if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
-        continue;
-      const bool aOuter = isOuterVertex(a);
-      const bool bOuter = isOuterVertex(b);
-      if (wantOuter) {
-        // Outer side stays strict: both endpoints must be outer.
-        if (!aOuter || !bOuter)
-          continue;
-      } else {
-        // Inner side absorbs edges straddling the inner/outer boundary
-        // (only both-outer edges are excluded) instead of dropping them,
-        // so the inner chain reaches across and touches the outer chain
-        // at the boundary vertex rather than leaving a gap.
-        if (aOuter && bOuter)
-          continue;
+  // 3. Walk every degree-1 start into an open chain, then every remaining
+  // degree-2 start into a closed loop (falling back to an open chain if it
+  // doesn't actually close).
+  std::vector<std::vector<int>> openChains;
+  std::vector<std::vector<int>> closedLoops;
+  std::unordered_set<unsigned long long> visitedEdges;
+
+  auto walkChain = [&](int start,
+                       int next) -> std::pair<std::vector<int>, bool> {
+    std::vector<int> seq = {start};
+    int prev = start, curr = next;
+    visitedEdges.insert(makeEdgeKey(prev, curr));
+
+    while (true) {
+      if (curr == start)
+        return {seq, true};
+      seq.push_back(curr);
+      if (activeAdj[curr].size() != 2)
+        break;
+
+      int nxt = -1;
+      for (int nb : activeAdj[curr]) {
+        if (nb != prev) {
+          nxt = nb;
+          break;
+        }
       }
-      if (vecDistSq(rawPositions[b], rawPositions[a]) < 1e-12)
-        continue;
-      const unsigned long long key = makeEdgeKey(a, b);
-      if (!edgeSet.insert(key).second)
-        continue;
-      adj[a].push_back(b);
-      adj[b].push_back(a);
+      if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
+        break;
+      visitedEdges.insert(makeEdgeKey(curr, nxt));
+      prev = curr;
+      curr = nxt;
     }
+    return {seq, false};
+  };
 
-    std::vector<std::unordered_set<int>> activeAdj(numV);
-    for (int i = 0; i < numV; i++)
-      for (int nb : adj[i])
-        activeAdj[i].insert(nb);
+  for (int i = 0; i < numV; i++) {
+    if (activeAdj[i].size() == 1) {
+      int next = *activeAdj[i].begin();
+      if (visitedEdges.count(makeEdgeKey(i, next)))
+        continue;
+      openChains.push_back(walkChain(i, next).first);
+    }
+  }
 
-    bool prunedAny = true;
-    while (prunedAny) {
-      prunedAny = false;
-      for (int i = 0; i < numV; i++) {
-        if (activeAdj[i].size() >= 3) {
-          std::vector<int> neighbors(activeAdj[i].begin(), activeAdj[i].end());
-          for (int startNb : neighbors) {
-            std::vector<int> branchPath = {i, startNb};
-            int prev = i;
-            int curr = startNb;
-            bool isDeadEnd = false;
-            double branchLen =
-                vecSub(rawPositions[curr], rawPositions[prev]).length();
+  for (int i = 0; i < numV; i++) {
+    if (activeAdj[i].size() == 2) {
+      for (int nb : activeAdj[i]) {
+        if (visitedEdges.count(makeEdgeKey(i, nb)))
+          continue;
 
-            while (true) {
-              if (activeAdj[curr].size() == 1) {
-                isDeadEnd = true;
-                break;
-              }
-              if (activeAdj[curr].size() != 2)
-                break;
-              int next = -1;
-              for (int nb : activeAdj[curr]) {
-                if (nb != prev) {
-                  next = nb;
-                  break;
-                }
-              }
-              if (next < 0 || next == i)
-                break;
-              branchLen +=
-                  vecSub(rawPositions[next], rawPositions[curr]).length();
-              prev = curr;
-              curr = next;
-              branchPath.push_back(curr);
-            }
+        auto [loop, closed] = walkChain(i, nb);
+        if (closed && loop.size() >= 3) {
+          closedLoops.push_back(std::move(loop));
+        } else if (!loop.empty()) {
+          openChains.push_back(std::move(loop));
+        }
+      }
+    }
+  }
 
-            if (isDeadEnd && branchLen < spurLengthThreshold) {
-              for (size_t k = 0; k + 1 < branchPath.size(); k++) {
-                int u = branchPath[k];
-                int v = branchPath[k + 1];
-                activeAdj[u].erase(v);
-                activeAdj[v].erase(u);
-              }
-              prunedAny = true;
-            }
-          }
+  // 4. Self-close any open chain whose two ends are within weldTolerance -
+  // safe unconditionally now that nothing is track-filtered, so the
+  // boundary ring can never be mistakenly split by a filtering artifact
+  // that this step would then need to leave alone.
+  const double weldTolSq = weldTolerance * weldTolerance;
+  for (auto it = openChains.begin(); it != openChains.end();) {
+    if (it->size() >= 3 &&
+        vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
+            weldTolSq) {
+      closedLoops.push_back(*it);
+      it = openChains.erase(it);
+      continue;
+    }
+    ++it;
+  }
+
+  // 5. Weld remaining open-chain fragments (e.g. bracing ribs split at
+  // triangle boundaries) end-to-end by nearest-endpoint matching.
+  bool mergedAny = true;
+  while (mergedAny && openChains.size() > 1) {
+    mergedAny = false;
+    size_t bestI = 0, bestJ = 0;
+    int bestMode = -1;
+    double bestDistSq = weldTolSq;
+
+    for (size_t i = 0; i < openChains.size(); i++) {
+      for (size_t j = i + 1; j < openChains.size(); j++) {
+        const auto &c1 = openChains[i];
+        const auto &c2 = openChains[j];
+
+        double d0 =
+            vecDistSq(rawPositions[c1.back()], rawPositions[c2.front()]);
+        if (d0 < bestDistSq) {
+          bestDistSq = d0;
+          bestI = i;
+          bestJ = j;
+          bestMode = 0;
+        }
+        double d1 =
+            vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
+        if (d1 < bestDistSq) {
+          bestDistSq = d1;
+          bestI = i;
+          bestJ = j;
+          bestMode = 1;
+        }
+        double d2 =
+            vecDistSq(rawPositions[c1.front()], rawPositions[c2.back()]);
+        if (d2 < bestDistSq) {
+          bestDistSq = d2;
+          bestI = i;
+          bestJ = j;
+          bestMode = 2;
+        }
+        double d3 =
+            vecDistSq(rawPositions[c1.front()], rawPositions[c2.front()]);
+        if (d3 < bestDistSq) {
+          bestDistSq = d3;
+          bestI = i;
+          bestJ = j;
+          bestMode = 3;
         }
       }
     }
 
-    std::vector<std::vector<int>> openChains;
-    std::vector<std::vector<int>> closedLoops;
-    std::unordered_set<unsigned long long> visitedEdges;
+    if (bestMode >= 0) {
+      std::vector<int> &c1 = openChains[bestI];
+      std::vector<int> c2 = openChains[bestJ];
 
-    // Walks from `start` via its edge to `next`, following degree-2 vertices
-    // until stuck (open end) or back at `start` (closed loop). A degree-1
-    // start can never legitimately be revisited mid-walk (its only edge is
-    // already consumed getting away from it), so the closing check is a
-    // harmless no-op for open-chain walks and only actually fires for the
-    // closed-loop walks below.
-    auto walkChain = [&](int start,
-                         int next) -> std::pair<std::vector<int>, bool> {
-      std::vector<int> seq = {start};
-      int prev = start, curr = next;
-      visitedEdges.insert(makeEdgeKey(prev, curr));
+      if (bestMode == 0) {
+        c1.insert(c1.end(), c2.begin(), c2.end());
+      } else if (bestMode == 1) {
+        std::reverse(c2.begin(), c2.end());
+        c1.insert(c1.end(), c2.begin(), c2.end());
+      } else if (bestMode == 2) {
+        c2.insert(c2.end(), c1.begin(), c1.end());
+        c1 = c2;
+      } else if (bestMode == 3) {
+        std::reverse(c2.begin(), c2.end());
+        c2.insert(c2.end(), c1.begin(), c1.end());
+        c1 = c2;
+      }
 
-      while (true) {
-        if (curr == start)
-          return {seq, true};
-        seq.push_back(curr);
-        if (activeAdj[curr].size() != 2)
-          break;
+      openChains.erase(openChains.begin() + bestJ);
+      mergedAny = true;
 
-        int nxt = -1;
-        for (int nb : activeAdj[curr]) {
-          if (nb != prev) {
-            nxt = nb;
+      if (c1.size() >= 3 &&
+          vecDistSq(rawPositions[c1.front()], rawPositions[c1.back()]) <=
+              weldTolSq) {
+        closedLoops.push_back(c1);
+        openChains.erase(openChains.begin() + bestI);
+      }
+    }
+  }
+
+  if (closedLoops.empty() && openChains.empty())
+    return;
+
+  // 6. Orient the longest closed loop (the boundary ring) CCW, and - if it
+  // mixes inner/outer vertices - rotate it (it's already one continuous
+  // loop, so no cutting/rewelding needed) so the walk starts at the
+  // outer-to-inner transition and visits every inner vertex before any
+  // outer one.
+  if (!closedLoops.empty()) {
+    size_t mainIdx = 0;
+    for (size_t i = 1; i < closedLoops.size(); i++) {
+      if (closedLoops[i].size() > closedLoops[mainIdx].size())
+        mainIdx = i;
+    }
+    std::vector<int> &mainRing = closedLoops[mainIdx];
+    const int m = static_cast<int>(mainRing.size());
+
+    double area = 0.0;
+    for (int i = 0; i < m; i++) {
+      const zPoint &p0 = rawPositions[mainRing[i]];
+      const zPoint &p1 = rawPositions[mainRing[(i + 1) % m]];
+      area += (p0.x * p1.y - p1.x * p0.y);
+    }
+    if (area < 0.0)
+      std::reverse(mainRing.begin(), mainRing.end());
+
+    if (hasTrackIds) {
+      bool hasInner = false, hasOuter = false;
+      for (int id : mainRing) {
+        if (isOuterVertex(id))
+          hasOuter = true;
+        else
+          hasInner = true;
+      }
+      if (hasInner && hasOuter) {
+        for (int i = 0; i < m; i++) {
+          const int prev = (i - 1 + m) % m;
+          if (!isOuterVertex(mainRing[i]) && isOuterVertex(mainRing[prev])) {
+            std::rotate(mainRing.begin(), mainRing.begin() + i,
+                       mainRing.end());
             break;
           }
         }
-        if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
-          break;
-        visitedEdges.insert(makeEdgeKey(curr, nxt));
-        prev = curr;
-        curr = nxt;
-      }
-      return {seq, false};
-    };
-
-    for (int i = 0; i < numV; i++) {
-      if (activeAdj[i].size() == 1) {
-        int next = *activeAdj[i].begin();
-        if (visitedEdges.count(makeEdgeKey(i, next)))
-          continue;
-        openChains.push_back(walkChain(i, next).first);
       }
     }
+  }
 
-    for (int i = 0; i < numV; i++) {
-      if (activeAdj[i].size() == 2) {
-        for (int nb : activeAdj[i]) {
-          if (visitedEdges.count(makeEdgeKey(i, nb)))
-            continue;
+  // 7. Concatenate every closed loop then every open chain into one merged
+  // graph, tagging each point's width and inner(0)/outer(1) track.
+  zPointArray mergedPositions;
+  zIntArray mergedEdges;
+  zFloatArray mergedWidths;
+  zFloatArray mergedTrackIds;
 
-          auto [loop, closed] = walkChain(i, nb);
-          if (closed && loop.size() >= 3) {
-            closedLoops.push_back(std::move(loop));
-          } else if (!loop.empty()) {
-            openChains.push_back(std::move(loop));
-          }
-        }
-      }
+  auto appendSeq = [&](const std::vector<int> &seq, bool isLoop) {
+    const int base = static_cast<int>(mergedPositions.size());
+    for (int id : seq) {
+      mergedPositions.push_back(rawPositions[id]);
+      mergedWidths.push_back(id < int(rawWidths.size()) ? rawWidths[id]
+                                                        : 0.04f);
+      mergedTrackIds.push_back(isOuterVertex(id) ? 1.0f : 0.0f);
     }
-
-    const double weldTolSq = weldTolerance * weldTolerance;
-    // Only self-close chains when there's no inner/outer split going on: a
-    // track-split chain's two endpoints sit right where it was severed from
-    // the OTHER track at the boundary trim slot, so their being close
-    // together is a sign they connect to that other chain, not to each
-    // other - closing them into their own loop here would just re-hide the
-    // exact cut the split is supposed to expose.
-    if (!hasTrackIds) {
-      for (auto it = openChains.begin(); it != openChains.end();) {
-        if (it->size() >= 3 &&
-            vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
-                weldTolSq) {
-          closedLoops.push_back(*it);
-          it = openChains.erase(it);
-          continue;
-        }
-        ++it;
-      }
+    for (size_t i = 0; i + 1 < seq.size(); i++) {
+      mergedEdges.push_back(base + int(i));
+      mergedEdges.push_back(base + int(i) + 1);
     }
-
-    bool mergedAny = true;
-    while (mergedAny && openChains.size() > 1) {
-      mergedAny = false;
-      size_t bestI = 0, bestJ = 0;
-      int bestMode = -1;
-      double bestDistSq = weldTolSq;
-
-      for (size_t i = 0; i < openChains.size(); i++) {
-        for (size_t j = i + 1; j < openChains.size(); j++) {
-          const auto &c1 = openChains[i];
-          const auto &c2 = openChains[j];
-
-          double d0 =
-              vecDistSq(rawPositions[c1.back()], rawPositions[c2.front()]);
-          if (d0 < bestDistSq) {
-            bestDistSq = d0;
-            bestI = i;
-            bestJ = j;
-            bestMode = 0;
-          }
-          double d1 =
-              vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
-          if (d1 < bestDistSq) {
-            bestDistSq = d1;
-            bestI = i;
-            bestJ = j;
-            bestMode = 1;
-          }
-          double d2 =
-              vecDistSq(rawPositions[c1.front()], rawPositions[c2.back()]);
-          if (d2 < bestDistSq) {
-            bestDistSq = d2;
-            bestI = i;
-            bestJ = j;
-            bestMode = 2;
-          }
-          double d3 =
-              vecDistSq(rawPositions[c1.front()], rawPositions[c2.front()]);
-          if (d3 < bestDistSq) {
-            bestDistSq = d3;
-            bestI = i;
-            bestJ = j;
-            bestMode = 3;
-          }
-        }
-      }
-
-      if (bestMode >= 0) {
-        std::vector<int> &c1 = openChains[bestI];
-        std::vector<int> c2 = openChains[bestJ];
-
-        if (bestMode == 0) {
-          c1.insert(c1.end(), c2.begin(), c2.end());
-        } else if (bestMode == 1) {
-          std::reverse(c2.begin(), c2.end());
-          c1.insert(c1.end(), c2.begin(), c2.end());
-        } else if (bestMode == 2) {
-          c2.insert(c2.end(), c1.begin(), c1.end());
-          c1 = c2;
-        } else if (bestMode == 3) {
-          std::reverse(c2.begin(), c2.end());
-          c2.insert(c2.end(), c1.begin(), c1.end());
-          c1 = c2;
-        }
-
-        openChains.erase(openChains.begin() + bestJ);
-        mergedAny = true;
-
-        if (!hasTrackIds && c1.size() >= 3 &&
-            vecDistSq(rawPositions[c1.front()], rawPositions[c1.back()]) <=
-                weldTolSq) {
-          closedLoops.push_back(c1);
-          openChains.erase(openChains.begin() + bestI);
-        }
-      }
+    if (isLoop && seq.size() >= 3) {
+      mergedEdges.push_back(base + int(seq.size()) - 1);
+      mergedEdges.push_back(base);
     }
-
-    if (closedLoops.empty() && openChains.empty())
-      return;
-
-    zPointArray mergedPositions;
-    zIntArray mergedEdges;
-    zFloatArray mergedWidths;
-
-    auto appendSeq = [&](const std::vector<int> &seq, bool isLoop) {
-      const int base = static_cast<int>(mergedPositions.size());
-      for (int id : seq) {
-        mergedPositions.push_back(rawPositions[id]);
-        mergedWidths.push_back(id < int(rawWidths.size()) ? rawWidths[id]
-                                                          : 0.04f);
-      }
-      for (size_t i = 0; i + 1 < seq.size(); i++) {
-        mergedEdges.push_back(base + int(i));
-        mergedEdges.push_back(base + int(i) + 1);
-      }
-      if (isLoop && seq.size() >= 3) {
-        mergedEdges.push_back(base + int(seq.size()) - 1);
-        mergedEdges.push_back(base);
-      }
-    };
-
-    for (auto &loop : closedLoops)
-      appendSeq(loop, true);
-    for (auto &chain : openChains)
-      appendSeq(chain, false);
-
-    if (mergedPositions.size() < 3 || mergedEdges.size() < 4)
-      return;
-
-    PrintPath p;
-    p.isOuterTrack = wantOuter;
-    zFnGraph fnP(p.graph);
-    fnP.create(mergedPositions, mergedEdges);
-    p.widths = mergedWidths;
-    outPaths.push_back(p);
   };
 
-  processSide(false); // inner (or the whole path, if untracked)
-  if (hasAnyOuter)
-    processSide(true); // outer
+  for (auto &loop : closedLoops)
+    appendSeq(loop, true);
+  for (auto &chain : openChains)
+    appendSeq(chain, false);
+
+  if (mergedPositions.size() < 3 || mergedEdges.size() < 4)
+    return;
+
+  PrintPath p;
+  zFnGraph fnP(p.graph);
+  fnP.create(mergedPositions, mergedEdges);
+  p.widths = mergedWidths;
+  p.trackIds = mergedTrackIds;
+  outPaths.push_back(p);
 }
 
 // Computes a cell-aligned bounding rectangle and resolution for the flat
