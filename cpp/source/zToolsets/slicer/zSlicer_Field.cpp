@@ -72,9 +72,6 @@ bool _createPerpendicularSlot(const zObjGraph &sourceGraph, zObjGraph &outGraph,
     if (visitedVert[seed] || adj[seed].empty())
       continue;
 
-    // Collect connected component, remembering the first degree-1 vertex
-    // seen as the walk's start (open-chain endpoint); if none is found the
-    // component is a closed loop, so fall back to the seed itself.
     int start = (adj[seed].size() == 1) ? int(seed) : -1;
     std::vector<int> q = {int(seed)};
     visitedVert[seed] = true;
@@ -946,36 +943,47 @@ void _extractTrackPaths(const zPointArray &rawPositions,
     std::vector<std::vector<int>> closedLoops;
     std::unordered_set<unsigned long long> visitedEdges;
 
+    // Walks from `start` via its edge to `next`, following degree-2 vertices
+    // until stuck (open end) or back at `start` (closed loop). A degree-1
+    // start can never legitimately be revisited mid-walk (its only edge is
+    // already consumed getting away from it), so the closing check is a
+    // harmless no-op for open-chain walks and only actually fires for the
+    // closed-loop walks below.
+    auto walkChain =
+        [&](int start, int next) -> std::pair<std::vector<int>, bool> {
+      std::vector<int> seq = {start};
+      int prev = start, curr = next;
+      visitedEdges.insert(makeEdgeKey(prev, curr));
+
+      while (true) {
+        if (curr == start)
+          return {seq, true};
+        seq.push_back(curr);
+        if (activeAdj[curr].size() != 2)
+          break;
+
+        int nxt = -1;
+        for (int nb : activeAdj[curr]) {
+          if (nb != prev) {
+            nxt = nb;
+            break;
+          }
+        }
+        if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
+          break;
+        visitedEdges.insert(makeEdgeKey(curr, nxt));
+        prev = curr;
+        curr = nxt;
+      }
+      return {seq, false};
+    };
+
     for (int i = 0; i < numV; i++) {
       if (activeAdj[i].size() == 1) {
         int next = *activeAdj[i].begin();
         if (visitedEdges.count(makeEdgeKey(i, next)))
           continue;
-
-        std::vector<int> chain = {i};
-        int prev = i;
-        int curr = next;
-        visitedEdges.insert(makeEdgeKey(prev, curr));
-
-        while (true) {
-          chain.push_back(curr);
-          if (activeAdj[curr].size() != 2)
-            break;
-
-          int nxt = -1;
-          for (int nb : activeAdj[curr]) {
-            if (nb != prev) {
-              nxt = nb;
-              break;
-            }
-          }
-          if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
-            break;
-          visitedEdges.insert(makeEdgeKey(curr, nxt));
-          prev = curr;
-          curr = nxt;
-        }
-        openChains.push_back(chain);
+        openChains.push_back(walkChain(i, next).first);
       }
     }
 
@@ -985,39 +993,11 @@ void _extractTrackPaths(const zPointArray &rawPositions,
           if (visitedEdges.count(makeEdgeKey(i, nb)))
             continue;
 
-          std::vector<int> loop = {i};
-          int prev = i;
-          int curr = nb;
-          visitedEdges.insert(makeEdgeKey(prev, curr));
-          bool loopClosed = false;
-
-          while (true) {
-            if (curr == i) {
-              loopClosed = true;
-              break;
-            }
-            loop.push_back(curr);
-            if (activeAdj[curr].size() != 2)
-              break;
-
-            int nxt = -1;
-            for (int n : activeAdj[curr]) {
-              if (n != prev) {
-                nxt = n;
-                break;
-              }
-            }
-            if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
-              break;
-            visitedEdges.insert(makeEdgeKey(curr, nxt));
-            prev = curr;
-            curr = nxt;
-          }
-
-          if (loopClosed && loop.size() >= 3) {
-            closedLoops.push_back(loop);
+          auto [loop, closed] = walkChain(i, nb);
+          if (closed && loop.size() >= 3) {
+            closedLoops.push_back(std::move(loop));
           } else if (!loop.empty()) {
-            openChains.push_back(loop);
+            openChains.push_back(std::move(loop));
           }
         }
       }
