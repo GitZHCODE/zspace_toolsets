@@ -330,6 +330,31 @@ bool _nearestInnerArcPos(const PrintPath &path, const zPoint &target,
   return found;
 }
 
+// Drops a closed loop's wraparound edge (last vertex -> first vertex), so
+// the seam sits exactly at the loop's current start/end instead of being
+// welded shut. Point order and count are unchanged - only the closing
+// edge goes away. No-op if the path isn't closed.
+void _openLoopAtStart(PrintPath &ioPath) {
+  if (!isClosedGraph(ioPath.graph))
+    return;
+  zFnGraph fnGraph(ioPath.graph);
+  zPointArray positions;
+  fnGraph.getVertexPositions(positions);
+  const int n = static_cast<int>(positions.size());
+  if (n < 2)
+    return;
+
+  zIntArray newEdges;
+  newEdges.reserve((n - 1) * 2);
+  for (int i = 0; i + 1 < n; i++) {
+    newEdges.push_back(i);
+    newEdges.push_back(i + 1);
+  }
+
+  fnGraph.clear();
+  fnGraph.create(positions, newEdges);
+}
+
 } // anonymous namespace
 
 //--------------------------
@@ -605,6 +630,8 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
 // rotates that layer's ring to start at its nearest inner-segment point -
 // tracking the same physical spot on the model rather than a fixed 2D
 // region, so it stays close layer-to-layer even through taper/twist.
+// Finally cuts every ring open at its (now aligned) start, so each layer
+// ends as an open chain ready for chainLayersIntoOnePath.
 ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     std::vector<std::vector<PrintPath>> &ioPaths,
     const zObjMeshArray &sectionMeshes2D, double walkDistance) {
@@ -707,7 +734,110 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     }
   }
 
+  // 3. Cut every layer's ring open at its (now aligned) start point, so
+  // each one ends as an open chain from its start back around to the
+  // point right before it - ready to be chained layer-to-layer.
+  for (int l = 0; l < totalLayers; l++) {
+    if (ioPaths[l].empty())
+      continue;
+    _openLoopAtStart(ioPaths[l][0]);
+  }
+
   return alignedCount > 0;
+}
+
+// Concatenates every layer's single (post-alignLayerStartPoints, open)
+// PrintPath end-to-start into one continuous bottom-to-top PrintPath.
+// Simple sequential concatenation already connects each layer's last
+// point to the next layer's first point via the edge between them.
+ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
+    const std::vector<std::vector<PrintPath>> &layeredPaths,
+    PrintPath &outCombined) {
+  outCombined = PrintPath();
+
+  bool hasHeights = false, hasNormals = false, hasTrackIds = false;
+  for (const auto &ringPaths : layeredPaths) {
+    if (!ringPaths.empty()) {
+      if (!ringPaths[0].heights.empty())
+        hasHeights = true;
+      if (!ringPaths[0].normals.empty())
+        hasNormals = true;
+      if (!ringPaths[0].trackIds.empty())
+        hasTrackIds = true;
+    }
+  }
+
+  zPointArray combinedPositions;
+  zFloatArray combinedWidths;
+  zFloatArray combinedHeights;
+  zVectorArray combinedNormals;
+  zFloatArray combinedTrackIds;
+
+  for (const auto &ringPaths : layeredPaths) {
+    if (ringPaths.empty())
+      continue;
+    const PrintPath &layerPath = ringPaths[0]; // one path per layer, post
+                                               // alignLayerStartPoints
+
+    zFnGraph fnGraph(const_cast<zObjGraph &>(layerPath.graph));
+    zPointArray positions;
+    fnGraph.getVertexPositions(positions);
+    if (positions.empty())
+      continue;
+
+    combinedPositions.insert(combinedPositions.end(), positions.begin(),
+                             positions.end());
+    combinedWidths.insert(combinedWidths.end(), layerPath.widths.begin(),
+                          layerPath.widths.end());
+    if (hasHeights) {
+      if (!layerPath.heights.empty())
+        combinedHeights.insert(combinedHeights.end(),
+                               layerPath.heights.begin(),
+                               layerPath.heights.end());
+      else
+        combinedHeights.insert(combinedHeights.end(), positions.size(), 0.0f);
+    }
+    if (hasNormals) {
+      if (!layerPath.normals.empty())
+        combinedNormals.insert(combinedNormals.end(),
+                               layerPath.normals.begin(),
+                               layerPath.normals.end());
+      else
+        combinedNormals.insert(combinedNormals.end(), positions.size(),
+                               zVector(0, 0, 1));
+    }
+    if (hasTrackIds) {
+      if (!layerPath.trackIds.empty())
+        combinedTrackIds.insert(combinedTrackIds.end(),
+                                layerPath.trackIds.begin(),
+                                layerPath.trackIds.end());
+      else
+        combinedTrackIds.insert(combinedTrackIds.end(), positions.size(),
+                                0.0f);
+    }
+  }
+
+  const int total = static_cast<int>(combinedPositions.size());
+  if (total < 2)
+    return false;
+
+  zIntArray combinedEdges;
+  combinedEdges.reserve((total - 1) * 2);
+  for (int i = 0; i + 1 < total; i++) {
+    combinedEdges.push_back(i);
+    combinedEdges.push_back(i + 1);
+  }
+
+  zFnGraph fnOut(outCombined.graph);
+  fnOut.create(combinedPositions, combinedEdges);
+  outCombined.widths = combinedWidths;
+  if (hasHeights)
+    outCombined.heights = combinedHeights;
+  if (hasNormals)
+    outCombined.normals = combinedNormals;
+  if (hasTrackIds)
+    outCombined.trackIds = combinedTrackIds;
+  return true;
 }
 
 } // namespace zSpace

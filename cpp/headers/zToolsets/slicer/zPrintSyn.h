@@ -133,11 +133,16 @@ public:
   /*! \brief Step 4: orients one layer's ring path CCW in place (extraction already produces at most one ring per layer, already inner-before-outer ordered). */
   static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
 
-  /*! \brief Step 5: aligns every layer's ring start point to the same barycentric point on the underlying mesh (tracks the model through taper/twist), constrained to the inner track. Seeds from the first usable layer by walking walkDistance from its extracted start along the inner segment. */
+  /*! \brief Step 5: aligns every layer's ring start point to the same barycentric point on the underlying mesh (tracks the model through taper/twist), constrained to the inner track, then cuts each ring open at its aligned start. Seeds from the first usable layer by walking walkDistance from its extracted start along the inner segment. */
   static bool
   alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
                        const zObjMeshArray &sectionMeshes2D,
                        double walkDistance);
+
+  /*! \brief Concatenates every layer's single ring PrintPath end-to-start into one continuous bottom-to-top PrintPath, connecting each layer's last point to the next layer's first point. Call after zSlicer::computeProjection (3D paths), once alignLayerStartPoints has opened each layer's ring at its start. */
+  static bool
+  chainLayersIntoOnePath(const std::vector<std::vector<PrintPath>> &layeredPaths,
+                        PrintPath &outCombined);
 };
 
 /** @}*/
