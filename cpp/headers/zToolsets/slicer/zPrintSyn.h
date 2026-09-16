@@ -52,6 +52,9 @@ struct PrintSynSetting {
   float ResampleLength = 0.15f; // arc-length resampling step (mm)
   float FeatureAngleTol =
       90.0f; // geometric feature corner angle threshold (deg)
+  // Seed layer only: distance to walk from the extracted start along the
+  // inner ring before recording it as the mesh-tracked aligned start point.
+  float StartWalkDistance = 5.0f;
 };
 
 /*! \class zPrintSyn
@@ -75,8 +78,9 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches -> orientAndWeldLayer on every layer's inner/outer track paths, in parallel per layer. */
-  bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths) {
+  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches -> orientAndWeldLayer on every layer's inner/outer track paths (in parallel per layer), then alignLayerStartPoints across all layers using sectionMeshes2D. */
+  bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
+                       const zObjMeshArray &sectionMeshes2D) {
     const int totalLayers = int(ioPaths.size());
     if (totalLayers == 0) {
       m_Status = "failed: No print paths available.";
@@ -98,6 +102,8 @@ public:
 #pragma omp atomic
       totalPaths += int(ioPaths[l].size());
     }
+
+    alignLayerStartPoints(ioPaths, sectionMeshes2D, i_Settings.StartWalkDistance);
 
     const auto wallEnd = std::chrono::high_resolution_clock::now();
     const double wallTotalMs =
@@ -126,6 +132,12 @@ public:
 
   /*! \brief Step 4: orients one layer's ring path CCW in place (extraction already produces at most one ring per layer, already inner-before-outer ordered). */
   static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
+
+  /*! \brief Step 5: aligns every layer's ring start point to the same barycentric point on the underlying mesh (tracks the model through taper/twist), constrained to the inner track. Seeds from the first usable layer by walking walkDistance from its extracted start along the inner segment. */
+  static bool
+  alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
+                       const zObjMeshArray &sectionMeshes2D,
+                       double walkDistance);
 };
 
 /** @}*/

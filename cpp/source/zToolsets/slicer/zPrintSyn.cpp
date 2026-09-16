@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -118,6 +119,215 @@ void _reversePrintPath(PrintPath &ioPath) {
 
   fnGraph.clear();
   fnGraph.create(positions, newEdges);
+}
+
+// Cumulative arc length walking a closed loop's positions (size N+1,
+// including the wraparound segment back to index 0).
+std::vector<double> _cumulativeArcLength(const zPointArray &positions) {
+  const int n = static_cast<int>(positions.size());
+  std::vector<double> cumLen(n + 1, 0.0);
+  for (int i = 0; i < n; i++) {
+    cumLen[i + 1] =
+        cumLen[i] + vecSub(positions[(i + 1) % n], positions[i]).length();
+  }
+  return cumLen;
+}
+
+// Inserts an interpolated vertex at arc-length position s into ioPath's
+// closed loop (splitting whichever segment contains s, snapping to an
+// existing vertex instead if s lands within weldEps of one), then rotates
+// the loop so that vertex becomes index 0. widths/heights/normals/
+// trackIds are interpolated/rotated alongside (trackIds thresholded to
+// 0/1, same convention as extraction).
+bool _insertAndRotateToStart(PrintPath &ioPath, double s,
+                             double weldEps = 1e-6) {
+  zFnGraph fnGraph(ioPath.graph);
+  zPointArray positions;
+  fnGraph.getVertexPositions(positions);
+  const int n = static_cast<int>(positions.size());
+  if (n < 3 || !isClosedGraph(ioPath.graph))
+    return false;
+
+  const std::vector<double> cumLen = _cumulativeArcLength(positions);
+  const double L = cumLen[n];
+  if (L <= 1e-9)
+    return false;
+  s = std::fmod(s, L);
+  if (s < 0.0)
+    s += L;
+
+  int seg = 0;
+  for (; seg < n; seg++) {
+    if (s <= cumLen[seg + 1] || seg == n - 1)
+      break;
+  }
+  const int i0 = seg, i1 = (seg + 1) % n;
+  const double segStart = cumLen[seg], segLen = cumLen[seg + 1] - segStart;
+  const double t = (segLen > 1e-9)
+                       ? (std::max)(0.0, (std::min)(1.0,
+                                                    (s - segStart) / segLen))
+                       : 0.0;
+
+  const bool hasHeights = !ioPath.heights.empty();
+  const bool hasNormals = !ioPath.normals.empty();
+  const bool hasTrackIds = !ioPath.trackIds.empty();
+
+  zPointArray newPositions = positions;
+  zFloatArray newWidths = ioPath.widths;
+  zFloatArray newHeights = ioPath.heights;
+  zVectorArray newNormals = ioPath.normals;
+  zFloatArray newTrackIds = ioPath.trackIds;
+  int startIdx;
+
+  const double tEps = weldEps / (std::max)(segLen, 1e-9);
+  if (t <= tEps) {
+    startIdx = i0;
+  } else if (t >= 1.0 - tEps) {
+    startIdx = i1;
+  } else {
+    const zPoint &p0 = positions[i0];
+    const zPoint &p1 = positions[i1];
+    zPoint newP(p0.x + t * (p1.x - p0.x), p0.y + t * (p1.y - p0.y),
+               p0.z + t * (p1.z - p0.z));
+
+    const float w0 =
+        (i0 < int(ioPath.widths.size())) ? ioPath.widths[i0] : 0.04f;
+    const float w1 =
+        (i1 < int(ioPath.widths.size())) ? ioPath.widths[i1] : 0.04f;
+    const float newW = static_cast<float>(w0 + t * (w1 - w0));
+
+    float newH = 0.0f;
+    if (hasHeights) {
+      const float h0 =
+          (i0 < int(ioPath.heights.size())) ? ioPath.heights[i0] : 0.0f;
+      const float h1 =
+          (i1 < int(ioPath.heights.size())) ? ioPath.heights[i1] : 0.0f;
+      newH = static_cast<float>(h0 + t * (h1 - h0));
+    }
+    zVector newN(0, 0, 1);
+    if (hasNormals) {
+      const zVector n0 = (i0 < int(ioPath.normals.size()))
+                             ? ioPath.normals[i0]
+                             : zVector(0, 0, 1);
+      const zVector n1 = (i1 < int(ioPath.normals.size()))
+                             ? ioPath.normals[i1]
+                             : zVector(0, 0, 1);
+      zVector n(n0.x + t * (n1.x - n0.x), n0.y + t * (n1.y - n0.y),
+               n0.z + t * (n1.z - n0.z));
+      if (n.length() > 1e-6)
+        n.normalize();
+      else
+        n = zVector(0, 0, 1);
+      newN = n;
+    }
+    float newTrk = 0.0f;
+    if (hasTrackIds) {
+      const float trk0 =
+          (i0 < int(ioPath.trackIds.size())) ? ioPath.trackIds[i0] : 0.0f;
+      const float trk1 =
+          (i1 < int(ioPath.trackIds.size())) ? ioPath.trackIds[i1] : 0.0f;
+      newTrk = (trk0 + t * (trk1 - trk0)) >= 0.5f ? 1.0f : 0.0f;
+    }
+
+    newPositions.insert(newPositions.begin() + i1, newP);
+    newWidths.insert(newWidths.begin() + i1, newW);
+    if (hasHeights)
+      newHeights.insert(newHeights.begin() + i1, newH);
+    if (hasNormals)
+      newNormals.insert(newNormals.begin() + i1, newN);
+    if (hasTrackIds)
+      newTrackIds.insert(newTrackIds.begin() + i1, newTrk);
+    startIdx = i1;
+  }
+
+  std::rotate(newPositions.begin(), newPositions.begin() + startIdx,
+             newPositions.end());
+  std::rotate(newWidths.begin(), newWidths.begin() + startIdx,
+             newWidths.end());
+  if (hasHeights)
+    std::rotate(newHeights.begin(), newHeights.begin() + startIdx,
+               newHeights.end());
+  if (hasNormals)
+    std::rotate(newNormals.begin(), newNormals.begin() + startIdx,
+               newNormals.end());
+  if (hasTrackIds)
+    std::rotate(newTrackIds.begin(), newTrackIds.begin() + startIdx,
+               newTrackIds.end());
+
+  const int newN = static_cast<int>(newPositions.size());
+  zIntArray newEdges;
+  newEdges.reserve(newN * 2);
+  for (int i = 0; i + 1 < newN; i++) {
+    newEdges.push_back(i);
+    newEdges.push_back(i + 1);
+  }
+  newEdges.push_back(newN - 1);
+  newEdges.push_back(0);
+
+  fnGraph.clear();
+  fnGraph.create(newPositions, newEdges);
+  ioPath.widths = newWidths;
+  if (hasHeights)
+    ioPath.heights = newHeights;
+  if (hasNormals)
+    ioPath.normals = newNormals;
+  if (hasTrackIds)
+    ioPath.trackIds = newTrackIds;
+  return true;
+}
+
+// Finds the arc-length position of the point on path's closed loop nearest
+// to target, searching only segments whose both endpoints are inner-tagged
+// (or every segment, if the path carries no track distinction at all) -
+// the hard "stays on the inner ring" constraint. Returns false if no
+// eligible segment exists.
+bool _nearestInnerArcPos(const PrintPath &path, const zPoint &target,
+                         double &outArcPos) {
+  zFnGraph fnGraph(const_cast<zObjGraph &>(path.graph));
+  zPointArray positions;
+  fnGraph.getVertexPositions(positions);
+  const int n = static_cast<int>(positions.size());
+  if (n < 3 || !isClosedGraph(path.graph))
+    return false;
+
+  const bool hasTrackIds = !path.trackIds.empty();
+  auto isOuter = [&](int id) {
+    return hasTrackIds && id < int(path.trackIds.size()) &&
+           path.trackIds[id] >= 0.5f;
+  };
+
+  const std::vector<double> cumLen = _cumulativeArcLength(positions);
+
+  double bestDistSq = (std::numeric_limits<double>::max)();
+  double bestArcPos = 0.0;
+  bool found = false;
+
+  for (int i = 0; i < n; i++) {
+    const int i0 = i, i1 = (i + 1) % n;
+    if (isOuter(i0) || isOuter(i1))
+      continue; // keep the search strictly inside the inner segment
+
+    const zPoint &p0 = positions[i0];
+    const zPoint &p1 = positions[i1];
+    zVector seg = vecSub(p1, p0);
+    const double segLenSq = vecDot(seg, seg);
+    double t = 0.0;
+    if (segLenSq > 1e-12) {
+      t = vecDot(vecSub(target, p0), seg) / segLenSq;
+      t = (std::max)(0.0, (std::min)(1.0, t));
+    }
+    zPoint proj(p0.x + t * seg.x, p0.y + t * seg.y, p0.z + t * seg.z);
+    const double distSq = vecDistSq(target, proj);
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestArcPos = cumLen[i] + t * (cumLen[i + 1] - cumLen[i]);
+      found = true;
+    }
+  }
+
+  if (found)
+    outArcPos = bestArcPos;
+  return found;
 }
 
 } // anonymous namespace
@@ -384,6 +594,120 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
     _reversePrintPath(path);
   }
   return true;
+}
+
+// Aligns every layer's ring start point to the same barycentric point on
+// the underlying mesh, constrained to the inner track. Seeds from the
+// first usable layer by walking walkDistance from its extracted start
+// along the inner segment (clamped so it can't cross into outer),
+// parameterizes that point against the seed layer's 2D section mesh, then
+// realizes the same parametric point on every other layer's mesh and
+// rotates that layer's ring to start at its nearest inner-segment point -
+// tracking the same physical spot on the model rather than a fixed 2D
+// region, so it stays close layer-to-layer even through taper/twist.
+ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
+    std::vector<std::vector<PrintPath>> &ioPaths,
+    const zObjMeshArray &sectionMeshes2D, double walkDistance) {
+  const int totalLayers = int(ioPaths.size());
+  if (totalLayers == 0 || int(sectionMeshes2D.size()) < totalLayers)
+    return false;
+
+  int seedLayer = -1;
+  for (int l = 0; l < totalLayers; l++) {
+    if (!ioPaths[l].empty()) {
+      zFnGraph fnGraph(ioPaths[l][0].graph);
+      if (fnGraph.numVertices() >= 3) {
+        seedLayer = l;
+        break;
+      }
+    }
+  }
+  if (seedLayer < 0)
+    return false;
+
+  // 1. Seed: walk walkDistance from the current start along the inner
+  // segment (index 0 is always inner, as a contiguous prefix, per
+  // _extractTrackPaths), clamped so it can't cross into outer.
+  PrintPath &seedPath = ioPaths[seedLayer][0];
+  {
+    zFnGraph fnGraph(seedPath.graph);
+    zPointArray positions;
+    fnGraph.getVertexPositions(positions);
+    const int n = static_cast<int>(positions.size());
+    const std::vector<double> cumLen = _cumulativeArcLength(positions);
+
+    int innerEnd = n;
+    if (!seedPath.trackIds.empty()) {
+      innerEnd = 0;
+      while (innerEnd < n && innerEnd < int(seedPath.trackIds.size()) &&
+             seedPath.trackIds[innerEnd] < 0.5f)
+        innerEnd++;
+    }
+    const double innerLen = cumLen[innerEnd];
+    const double clampedWalk =
+        (std::min)(walkDistance, (std::max)(0.0, innerLen - 1e-4));
+    if (!_insertAndRotateToStart(seedPath, clampedWalk))
+      return false;
+  }
+
+  zPointArray seedPts;
+  {
+    zFnGraph fnGraph(seedPath.graph);
+    zPointArray positions;
+    fnGraph.getVertexPositions(positions);
+    if (positions.empty())
+      return false;
+    seedPts.push_back(positions[0]);
+    seedPts.push_back(positions[0]); // duplicate: parameterizeGraph needs an edge
+  }
+
+  zObjGraph seedGraph;
+  zIntArray seedEdges = {0, 1};
+  zFnGraph(seedGraph).create(seedPts, seedEdges);
+
+  ParameterGraph seedParams;
+  if (!parameterizeGraph(seedGraph,
+                         const_cast<zObjMesh &>(sectionMeshes2D[seedLayer]),
+                         seedParams))
+    return false;
+
+  // 2. Every layer: realize the same mesh-parametric point on its own 2D
+  // section mesh, then rotate its ring to start at the nearest inner-
+  // segment point to it. No sequential dependency between layers (the
+  // target is the fixed seedParams, not the previous layer's result), so
+  // this is safe to run in parallel.
+  int alignedCount = 0;
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    if (ioPaths[l].empty())
+      continue;
+    PrintPath &path = ioPaths[l][0];
+    zFnGraph fnGraph(path.graph);
+    if (fnGraph.numVertices() < 3)
+      continue;
+
+    zObjGraph realized;
+    if (!realizeParameterGraph(seedParams,
+                               const_cast<zObjMesh &>(sectionMeshes2D[l]),
+                               realized))
+      continue;
+    zFnGraph fnRealized(realized);
+    zPointArray realizedPts;
+    fnRealized.getVertexPositions(realizedPts);
+    if (realizedPts.empty())
+      continue;
+
+    double arcPos = 0.0;
+    if (!_nearestInnerArcPos(path, realizedPts[0], arcPos))
+      continue;
+
+    if (_insertAndRotateToStart(path, arcPos)) {
+#pragma omp atomic
+      alignedCount++;
+    }
+  }
+
+  return alignedCount > 0;
 }
 
 } // namespace zSpace

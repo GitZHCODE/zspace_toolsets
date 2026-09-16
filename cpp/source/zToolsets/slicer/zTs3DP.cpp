@@ -42,7 +42,8 @@ ZSPACE_INLINE bool zTs3DP::computeSlicer() {
 
 // Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn.
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
-  bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths);
+  bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths,
+                                            m_Slicer.get2DSectionMeshes());
   m_Status = m_PrintSyn.getStatus();
   return success;
 }
