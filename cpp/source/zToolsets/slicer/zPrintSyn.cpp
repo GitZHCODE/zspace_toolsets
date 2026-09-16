@@ -790,21 +790,21 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
 }
 
 // Aligns every layer's ring start point to the same barycentric point on
-// the underlying mesh, constrained to the inner track and nudged by
-// seamOffset. Seeds from the first usable layer by walking walkDistance
-// from its extracted start along the inner segment (clamped so it can't
-// cross into outer), parameterizes that point against the seed layer's 2D
-// section mesh, then realizes the same parametric point on every other
-// layer's mesh and rotates that layer's ring to start at its nearest
-// inner-segment point - tracking the same physical spot on the model
-// rather than a fixed 2D region, so it stays close layer-to-layer even
-// through taper/twist. Finally cuts every ring open at its (now aligned)
-// start via _cutGapBeforeStart(seamSize), so each layer ends as an open
-// chain ready for chainLayersIntoOnePath.
+// the underlying mesh, constrained to the inner track. Seeds from the
+// first usable layer by walking seamOffset from its extracted start along
+// the inner segment (clamped so it can't cross into outer), parameterizes
+// that point against the seed layer's 2D section mesh, then realizes the
+// same parametric point on every other layer's mesh and rotates that
+// layer's ring to start at its nearest inner-segment point - no further
+// offset there, just the nearest match - tracking the same physical spot
+// on the model rather than a fixed 2D region, so it stays close
+// layer-to-layer even through taper/twist. Finally cuts every ring open
+// at its (now aligned) start via _cutGapBeforeStart(seamSize), so each
+// layer ends as an open chain ready for chainLayersIntoOnePath.
 ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     std::vector<std::vector<PrintPath>> &ioPaths,
-    const zObjMeshArray &sectionMeshes2D, double walkDistance,
-    double seamOffset, double seamSize) {
+    const zObjMeshArray &sectionMeshes2D, double seamOffset,
+    double seamSize) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0 || int(sectionMeshes2D.size()) < totalLayers)
     return false;
@@ -822,9 +822,9 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
   if (seedLayer < 0)
     return false;
 
-  // 1. Seed: walk walkDistance + seamOffset from the current start along
-  // the inner segment (index 0 is always inner, as a contiguous prefix,
-  // per _extractTrackPaths), clamped so it can't cross into outer.
+  // 1. Seed: walk seamOffset from the current start along the inner
+  // segment (index 0 is always inner, as a contiguous prefix, per
+  // _extractTrackPaths), clamped so it can't cross into outer.
   PrintPath &seedPath = ioPaths[seedLayer][0];
   {
     zFnGraph fnGraph(seedPath.graph);
@@ -834,8 +834,7 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     const double innerLen =
         _innerSegmentLength(positions, seedPath.trackIds, cumLen);
     const double clampedWalk = (std::max)(
-        0.0,
-        (std::min)(walkDistance + seamOffset, (std::max)(0.0, innerLen - 1e-4)));
+        0.0, (std::min)(seamOffset, (std::max)(0.0, innerLen - 1e-4)));
     if (!_insertAndRotateToStart(seedPath, clampedWalk))
       return false;
   }
@@ -890,14 +889,6 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     double arcPos = 0.0;
     if (!_nearestInnerArcPos(path, realizedPts[0], arcPos))
       continue;
-
-    zPointArray positionsL;
-    fnGraph.getVertexPositions(positionsL);
-    const std::vector<double> cumLenL = _cumulativeArcLength(positionsL);
-    const double innerLenL =
-        _innerSegmentLength(positionsL, path.trackIds, cumLenL);
-    arcPos = (std::max)(
-        0.0, (std::min)(arcPos + seamOffset, (std::max)(0.0, innerLenL - 1e-4)));
 
     if (_insertAndRotateToStart(path, arcPos)) {
 #pragma omp atomic
