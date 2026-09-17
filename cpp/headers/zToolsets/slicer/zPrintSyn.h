@@ -56,8 +56,8 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Runs resamplePrintPath -> filterGlitches -> orientAndWeldLayer on
-   * every layer's inner/outer track paths (in parallel per layer), then
+  /*! \brief Runs resamplePrintPath -> filterGlitches -> orientLayer on every
+   * layer's inner/outer track paths (in parallel per layer), then
    * alignLayerStartPoints across all layers using sectionMeshes2D. */
   bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
                        const zObjMeshArray &sectionMeshes2D);
@@ -69,10 +69,11 @@ public:
   /*! \brief Step 2: filters localized width glitches in ioPath.widths. */
   static void filterGlitches(PrintPath &ioPath);
 
-  /*! \brief Step 3: orients one layer's ring path CCW in place (extraction
-   * already produces at most one ring per layer, already inner-before-outer
+  /*! \brief Step 3: orients one layer's ring path in place - counter-
+   * clockwise if ccw is true, clockwise if false (extraction already
+   * produces at most one ring per layer, already inner-before-outer
    * ordered). */
-  static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
+  static bool orientLayer(std::vector<PrintPath> &ringPaths, bool ccw);
 
   /*! \brief Step 4: aligns every layer's ring start point to the same
    * barycentric point on the underlying mesh (tracks the model through

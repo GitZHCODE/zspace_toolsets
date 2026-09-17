@@ -622,10 +622,6 @@ void _extractTrackPaths(const zPointArray &rawPositions,
            rawTrackIds[id] >= 0.5f;
   };
 
-  // 1. Build adjacency from every valid, deduplicated edge - no track-based
-  // filtering, so the boundary ring (inner+outer fused by the trim slot)
-  // comes out directly as one naturally closed loop, and bracing ribs come
-  // out as open chains, exactly like the untracked single-perimeter case.
   std::vector<std::vector<int>> adj(numV);
   std::unordered_set<unsigned long long> edgeSet;
   for (size_t e = 0; e + 1 < rawEdges.size(); e += 2) {
@@ -646,8 +642,6 @@ void _extractTrackPaths(const zPointArray &rawPositions,
     for (int nb : adj[i])
       activeAdj[i].insert(nb);
 
-  // 2. Spur pruning: repeatedly trim dead-end branches shorter than
-  // spurLengthThreshold hanging off any junction (degree >= 3).
   bool prunedAny = true;
   while (prunedAny) {
     prunedAny = false;
@@ -699,9 +693,6 @@ void _extractTrackPaths(const zPointArray &rawPositions,
     }
   }
 
-  // 3. Walk every degree-1 start into an open chain, then every remaining
-  // degree-2 start into a closed loop (falling back to an open chain if it
-  // doesn't actually close).
   std::vector<std::vector<int>> openChains;
   std::vector<std::vector<int>> closedLoops;
   std::unordered_set<unsigned long long> visitedEdges;
@@ -942,8 +933,8 @@ void _extractTrackPaths(const zPointArray &rawPositions,
 //---- PUBLIC METHODS
 //--------------------------
 
-// Runs resamplePrintPath -> filterGlitches -> orientAndWeldLayer on every
-// layer's inner/outer track paths (in parallel per layer), then
+// Runs resamplePrintPath -> filterGlitches -> orientLayer on every layer's
+// inner/outer track paths (in parallel per layer), then
 // alignLayerStartPoints across all layers using sectionMeshes2D.
 ZSPACE_INLINE bool
 zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
@@ -965,7 +956,7 @@ zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
         filterGlitches(path);
       }
     }
-    orientAndWeldLayer(ioPaths[l]);
+    orientLayer(ioPaths[l], true);
 #pragma omp atomic
     totalPaths += int(ioPaths[l].size());
   }
@@ -1190,10 +1181,11 @@ ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
   }
 }
 
-// Orients one layer's ring path CCW in place (extraction already produces
-// at most one ring per layer, already inner-before-outer ordered).
-ZSPACE_INLINE bool
-zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
+// Orients one layer's ring path in place - CCW if ccw is true, CW if false
+// (extraction already produces at most one ring per layer, already
+// inner-before-outer ordered).
+ZSPACE_INLINE bool zPrintSyn::orientLayer(std::vector<PrintPath> &ringPaths,
+                                          bool ccw) {
   if (ringPaths.empty())
     return false;
 
@@ -1203,7 +1195,8 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
   fnGraph.getVertexPositions(positions);
   if (positions.size() < 3)
     return false;
-  if (signedArea2D(positions) < 0.0) {
+  const bool isCCW = signedArea2D(positions) >= 0.0;
+  if (isCCW != ccw) {
     _reversePrintPath(path);
   }
   return true;
@@ -1423,11 +1416,6 @@ ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
   return true;
 }
 
-// Extracts each layer's isocontour into a single oriented, inner-before-
-// outer, CCW closed-loop PrintPath - moved here from zSlicer::computeField
-// (see _extractRawIsoContour/_extractTrackPaths above) so zSlicer stops at
-// field computation and every downstream toolpath-synthesis step lives on
-// zPrintSyn.
 ZSPACE_INLINE bool zPrintSyn::extractTrackPaths(
     zObjMeshScalarField &scalarField,
     const std::vector<zScalarArray> &pathFields,
@@ -1475,10 +1463,6 @@ ZSPACE_INLINE bool zPrintSyn::extractTrackPaths(
   return true;
 }
 
-// Projects 2D PrintPaths back onto the 3D section meshes - moved here from
-// zSlicer::computeProjection so all post-field-computation steps live on
-// zPrintSyn. vScalar/layerSpacing are the only zSlicer-owned inputs this
-// still needs (from getVScalar()/getSettings().LayerSpacing).
 ZSPACE_INLINE bool zPrintSyn::computeProjection(
     const std::vector<std::vector<PrintPath>> &in2DPaths,
     const zObjMeshArray &sectionMeshes2D, const zObjMeshArray &sectionMeshes,
