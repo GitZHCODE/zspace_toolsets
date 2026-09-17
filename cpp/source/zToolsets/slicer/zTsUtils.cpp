@@ -99,6 +99,17 @@ ZSPACE_INLINE bool turnAngleAt(const zPoint &prev, const zPoint &cur,
   return true;
 }
 
+ZSPACE_INLINE double signedArea2D(const zPointArray &positions) {
+  double area = 0.0;
+  const int n = static_cast<int>(positions.size());
+  for (int i = 0; i < n; i++) {
+    const zPoint &p0 = positions[i];
+    const zPoint &p1 = positions[(i + 1) % n];
+    area += (p0.x * p1.y - p1.x * p0.y);
+  }
+  return 0.5 * area;
+}
+
 //---- HalfEdge Mesh Topology Walk Utilities
 
 ZSPACE_INLINE zItMeshHalfEdge nextEdgeRing(zItMeshHalfEdge he) {

@@ -71,19 +71,6 @@ void _detectFeatureAngles(const zPointArray &positions,
   }
 }
 
-// Signed area (shoelace formula) of a closed 2D polyline in the XY plane;
-// positive = counter-clockwise, negative = clockwise.
-double _signedArea2D(const zPointArray &positions) {
-  double area = 0.0;
-  const int n = static_cast<int>(positions.size());
-  for (int i = 0; i < n; i++) {
-    const zPoint &p0 = positions[i];
-    const zPoint &p1 = positions[(i + 1) % n];
-    area += (p0.x * p1.y - p1.x * p0.y);
-  }
-  return 0.5 * area;
-}
-
 // Reverses ioPath's point order in place (graph + widths/heights/normals),
 // rebuilding the graph with the same open/closed edge structure it had.
 void _reversePrintPath(PrintPath &ioPath) {
@@ -1236,7 +1223,7 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
   fnGraph.getVertexPositions(positions);
   if (positions.size() < 3)
     return false;
-  if (_signedArea2D(positions) < 0.0) {
+  if (signedArea2D(positions) < 0.0) {
     _reversePrintPath(path);
   }
   return true;

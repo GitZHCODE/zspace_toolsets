@@ -111,6 +111,10 @@ unsigned long long makeEdgeKey(int u, int v);
 bool turnAngleAt(const zPoint &prev, const zPoint &cur, const zPoint &next,
                  double &outAngleRad);
 
+// Signed area (shoelace formula) of a closed 2D polyline in the XY plane;
+// positive = counter-clockwise, negative = clockwise.
+double signedArea2D(const zPointArray &positions);
+
 //---- HalfEdge Mesh Topology Walk Utilities
 
 zItMeshHalfEdge nextEdgeRing(zItMeshHalfEdge he);
