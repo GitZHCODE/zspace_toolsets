@@ -71,8 +71,6 @@ void _detectFeatureAngles(const zPointArray &positions,
   }
 }
 
-// Reverses ioPath's point order in place (graph + widths/heights/normals),
-// rebuilding the graph with the same open/closed edge structure it had.
 void _reversePrintPath(PrintPath &ioPath) {
   zFnGraph fnGraph(ioPath.graph);
   zPointArray positions;
@@ -108,8 +106,6 @@ void _reversePrintPath(PrintPath &ioPath) {
   fnGraph.create(positions, newEdges);
 }
 
-// Cumulative arc length walking a closed loop's positions (size N+1,
-// including the wraparound segment back to index 0).
 std::vector<double> _cumulativeArcLength(const zPointArray &positions) {
   const int n = static_cast<int>(positions.size());
   std::vector<double> cumLen(n + 1, 0.0);
@@ -120,12 +116,6 @@ std::vector<double> _cumulativeArcLength(const zPointArray &positions) {
   return cumLen;
 }
 
-// Inserts an interpolated vertex at arc-length position s into ioPath's
-// closed loop (splitting whichever segment contains s, snapping to an
-// existing vertex instead if s lands within weldEps of one), then rotates
-// the loop so that vertex becomes index 0. widths/heights/normals/
-// trackIds are interpolated/rotated alongside (trackIds thresholded to
-// 0/1, same convention as extraction).
 bool _insertAndRotateToStart(PrintPath &ioPath, double s,
                              double weldEps = 1e-6) {
   zFnGraph fnGraph(ioPath.graph);
@@ -150,10 +140,10 @@ bool _insertAndRotateToStart(PrintPath &ioPath, double s,
   }
   const int i0 = seg, i1 = (seg + 1) % n;
   const double segStart = cumLen[seg], segLen = cumLen[seg + 1] - segStart;
-  const double t = (segLen > 1e-9)
-                       ? (std::max)(0.0, (std::min)(1.0,
-                                                    (s - segStart) / segLen))
-                       : 0.0;
+  const double t =
+      (segLen > 1e-9)
+          ? (std::max)(0.0, (std::min)(1.0, (s - segStart) / segLen))
+          : 0.0;
 
   const bool hasHeights = !ioPath.heights.empty();
   const bool hasNormals = !ioPath.normals.empty();
@@ -175,7 +165,7 @@ bool _insertAndRotateToStart(PrintPath &ioPath, double s,
     const zPoint &p0 = positions[i0];
     const zPoint &p1 = positions[i1];
     zPoint newP(p0.x + t * (p1.x - p0.x), p0.y + t * (p1.y - p0.y),
-               p0.z + t * (p1.z - p0.z));
+                p0.z + t * (p1.z - p0.z));
 
     const float w0 =
         (i0 < int(ioPath.widths.size())) ? ioPath.widths[i0] : 0.04f;
@@ -193,14 +183,12 @@ bool _insertAndRotateToStart(PrintPath &ioPath, double s,
     }
     zVector newN(0, 0, 1);
     if (hasNormals) {
-      const zVector n0 = (i0 < int(ioPath.normals.size()))
-                             ? ioPath.normals[i0]
-                             : zVector(0, 0, 1);
-      const zVector n1 = (i1 < int(ioPath.normals.size()))
-                             ? ioPath.normals[i1]
-                             : zVector(0, 0, 1);
+      const zVector n0 = (i0 < int(ioPath.normals.size())) ? ioPath.normals[i0]
+                                                           : zVector(0, 0, 1);
+      const zVector n1 = (i1 < int(ioPath.normals.size())) ? ioPath.normals[i1]
+                                                           : zVector(0, 0, 1);
       zVector n(n0.x + t * (n1.x - n0.x), n0.y + t * (n1.y - n0.y),
-               n0.z + t * (n1.z - n0.z));
+                n0.z + t * (n1.z - n0.z));
       if (n.length() > 1e-6)
         n.normalize();
       else
@@ -228,18 +216,17 @@ bool _insertAndRotateToStart(PrintPath &ioPath, double s,
   }
 
   std::rotate(newPositions.begin(), newPositions.begin() + startIdx,
-             newPositions.end());
-  std::rotate(newWidths.begin(), newWidths.begin() + startIdx,
-             newWidths.end());
+              newPositions.end());
+  std::rotate(newWidths.begin(), newWidths.begin() + startIdx, newWidths.end());
   if (hasHeights)
     std::rotate(newHeights.begin(), newHeights.begin() + startIdx,
-               newHeights.end());
+                newHeights.end());
   if (hasNormals)
     std::rotate(newNormals.begin(), newNormals.begin() + startIdx,
-               newNormals.end());
+                newNormals.end());
   if (hasTrackIds)
     std::rotate(newTrackIds.begin(), newTrackIds.begin() + startIdx,
-               newTrackIds.end());
+                newTrackIds.end());
 
   const int newN = static_cast<int>(newPositions.size());
   zIntArray newEdges;
@@ -386,7 +373,8 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
   if (L <= 1e-9)
     return;
 
-  const double gap = (std::min)(seamSize, L * 0.5); // never eat more than half the loop
+  const double gap =
+      (std::min)(seamSize, L * 0.5); // never eat more than half the loop
   const double targetArcPos = std::fmod(L - gap, L);
 
   int seg = n - 1;
@@ -398,11 +386,10 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
   }
   const int i0 = seg, i1 = (seg + 1) % n;
   const double segStart = cumLen[seg], segLen = cumLen[seg + 1] - segStart;
-  const double t = (segLen > 1e-9)
-                       ? (std::max)(0.0, (std::min)(1.0,
-                                                    (targetArcPos - segStart) /
-                                                        segLen))
-                       : 0.0;
+  const double t =
+      (segLen > 1e-9)
+          ? (std::max)(0.0, (std::min)(1.0, (targetArcPos - segStart) / segLen))
+          : 0.0;
 
   const bool hasHeights = !ioPath.heights.empty();
   const bool hasNormals = !ioPath.normals.empty();
@@ -419,17 +406,14 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
     keptWidths.push_back(id < int(ioPath.widths.size()) ? ioPath.widths[id]
                                                         : 0.04f);
     if (hasHeights)
-      keptHeights.push_back(id < int(ioPath.heights.size())
-                                ? ioPath.heights[id]
-                                : 0.0f);
+      keptHeights.push_back(id < int(ioPath.heights.size()) ? ioPath.heights[id]
+                                                            : 0.0f);
     if (hasNormals)
-      keptNormals.push_back(id < int(ioPath.normals.size())
-                                ? ioPath.normals[id]
-                                : zVector(0, 0, 1));
+      keptNormals.push_back(id < int(ioPath.normals.size()) ? ioPath.normals[id]
+                                                            : zVector(0, 0, 1));
     if (hasTrackIds)
-      keptTrackIds.push_back(id < int(ioPath.trackIds.size())
-                                 ? ioPath.trackIds[id]
-                                 : 0.0f);
+      keptTrackIds.push_back(
+          id < int(ioPath.trackIds.size()) ? ioPath.trackIds[id] : 0.0f);
   };
 
   // Keep the surviving arc from the start (index 0) through i0, then
@@ -447,7 +431,7 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
     const zPoint &p0 = positions[i0];
     const zPoint &p1 = positions[i1];
     zPoint newP(p0.x + t * (p1.x - p0.x), p0.y + t * (p1.y - p0.y),
-               p0.z + t * (p1.z - p0.z));
+                p0.z + t * (p1.z - p0.z));
     const float w0 =
         (i0 < int(ioPath.widths.size())) ? ioPath.widths[i0] : 0.04f;
     const float w1 =
@@ -462,14 +446,12 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
       keptHeights.push_back(static_cast<float>(h0 + t * (h1 - h0)));
     }
     if (hasNormals) {
-      const zVector n0 = (i0 < int(ioPath.normals.size()))
-                             ? ioPath.normals[i0]
-                             : zVector(0, 0, 1);
-      const zVector n1 = (i1 < int(ioPath.normals.size()))
-                             ? ioPath.normals[i1]
-                             : zVector(0, 0, 1);
+      const zVector n0 = (i0 < int(ioPath.normals.size())) ? ioPath.normals[i0]
+                                                           : zVector(0, 0, 1);
+      const zVector n1 = (i1 < int(ioPath.normals.size())) ? ioPath.normals[i1]
+                                                           : zVector(0, 0, 1);
       zVector nrm(n0.x + t * (n1.x - n0.x), n0.y + t * (n1.y - n0.y),
-                 n0.z + t * (n1.z - n0.z));
+                  n0.z + t * (n1.z - n0.z));
       if (nrm.length() > 1e-6)
         nrm.normalize();
       else
@@ -481,8 +463,7 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
           (i0 < int(ioPath.trackIds.size())) ? ioPath.trackIds[i0] : 0.0f;
       const float trk1 =
           (i1 < int(ioPath.trackIds.size())) ? ioPath.trackIds[i1] : 0.0f;
-      keptTrackIds.push_back((trk0 + t * (trk1 - trk0)) >= 0.5f ? 1.0f
-                                                                 : 0.0f);
+      keptTrackIds.push_back((trk0 + t * (trk1 - trk0)) >= 0.5f ? 1.0f : 0.0f);
     }
   }
   // t <= tEps: targetArcPos already snapped onto i0, which is already the
@@ -621,11 +602,10 @@ void _extractRawIsoContour(
   }
 }
 
-// Ports the spur-pruning + gap-welding + chain/loop extraction that used to
-// live in zPrintSyn::buildSequencePrintPath. Splits the raw iso-contour
-// first, walks it into a single oriented, inner-before-outer closed ring
-// (plus bracing open chains), and merges every surviving loop/chain into
-// one PrintPath.
+// Spur-pruning + gap-welding + chain/loop extraction: splits the raw
+// iso-contour, walks it into a single oriented, inner-before-outer closed
+// ring (plus bracing open chains), and merges every surviving loop/chain
+// into one PrintPath.
 void _extractTrackPaths(const zPointArray &rawPositions,
                         const zIntArray &rawEdges, const zFloatArray &rawWidths,
                         const zFloatArray &rawTrackIds, double weldTolerance,
@@ -786,9 +766,8 @@ void _extractTrackPaths(const zPointArray &rawPositions,
   // that this step would then need to leave alone.
   const double weldTolSq = weldTolerance * weldTolerance;
   for (auto it = openChains.begin(); it != openChains.end();) {
-    if (it->size() >= 3 &&
-        vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
-            weldTolSq) {
+    if (it->size() >= 3 && vecDistSq(rawPositions[it->front()],
+                                     rawPositions[it->back()]) <= weldTolSq) {
       closedLoops.push_back(*it);
       it = openChains.erase(it);
       continue;
@@ -818,8 +797,7 @@ void _extractTrackPaths(const zPointArray &rawPositions,
           bestJ = j;
           bestMode = 0;
         }
-        double d1 =
-            vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
+        double d1 = vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
         if (d1 < bestDistSq) {
           bestDistSq = d1;
           bestI = i;
@@ -866,9 +844,8 @@ void _extractTrackPaths(const zPointArray &rawPositions,
       openChains.erase(openChains.begin() + bestJ);
       mergedAny = true;
 
-      if (c1.size() >= 3 &&
-          vecDistSq(rawPositions[c1.front()], rawPositions[c1.back()]) <=
-              weldTolSq) {
+      if (c1.size() >= 3 && vecDistSq(rawPositions[c1.front()],
+                                      rawPositions[c1.back()]) <= weldTolSq) {
         closedLoops.push_back(c1);
         openChains.erase(openChains.begin() + bestI);
       }
@@ -910,8 +887,7 @@ void _extractTrackPaths(const zPointArray &rawPositions,
         for (int i = 0; i < m; i++) {
           const int prev = (i - 1 + m) % m;
           if (!isOuterVertex(mainRing[i]) && isOuterVertex(mainRing[prev])) {
-            std::rotate(mainRing.begin(), mainRing.begin() + i,
-                       mainRing.end());
+            std::rotate(mainRing.begin(), mainRing.begin() + i, mainRing.end());
             break;
           }
         }
@@ -966,10 +942,9 @@ void _extractTrackPaths(const zPointArray &rawPositions,
 //---- PUBLIC METHODS
 //--------------------------
 
-// Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches ->
-// orientAndWeldLayer on every layer's inner/outer track paths (in parallel
-// per layer), then alignLayerStartPoints across all layers using
-// sectionMeshes2D.
+// Runs resamplePrintPath -> filterGlitches -> orientAndWeldLayer on every
+// layer's inner/outer track paths (in parallel per layer), then
+// alignLayerStartPoints across all layers using sectionMeshes2D.
 ZSPACE_INLINE bool
 zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
                            const zObjMeshArray &sectionMeshes2D) {
@@ -986,7 +961,7 @@ zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
     for (auto &path : ioPaths[l]) {
-      if (buildSequencePrintPath(path) && resamplePrintPath(path)) {
+      if (resamplePrintPath(path)) {
         filterGlitches(path);
       }
     }
@@ -1008,42 +983,6 @@ zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
       << " ms (sampleLen=" << i_Settings.ResampleLength << "mm)";
   m_Status = out.str();
   printSuccess("[zPrintSyn] " + m_Status);
-  return true;
-}
-
-// Directly rebuilds ioPath.graph from its existing vertex order. The
-// spur-pruning/gap-welding/chain-selection this used to do now happens once
-// upstream, during extraction (zSlicer::_extractTrackPaths), which also
-// already splits inner/outer tracks into separate PrintPaths - so by the
-// time a path gets here it is already a single clean, ordered chain/loop;
-// this step just validates it and rebuilds the graph object from scratch.
-ZSPACE_INLINE bool zPrintSyn::buildSequencePrintPath(PrintPath &ioPath,
-                                                     double weldTolerance,
-                                                     double spurLengthThreshold,
-                                                     std::string *outReason) {
-  (void)weldTolerance;
-  (void)spurLengthThreshold;
-
-  zFnGraph fnGraph(ioPath.graph);
-  zPointArray positions;
-  zIntArray edgeConnects;
-  fnGraph.getVertexPositions(positions);
-  fnGraph.getEdgeData(edgeConnects);
-
-  const int numV = static_cast<int>(positions.size());
-  const int numE = static_cast<int>(edgeConnects.size() / 2);
-  if (numV < 3 || numE < 1) {
-    if (outReason) {
-      std::ostringstream oss;
-      oss << "Insufficient elements (vertices=" << numV << ", edges=" << numE
-          << ")";
-      *outReason = oss.str();
-    }
-    return false;
-  }
-
-  fnGraph.clear();
-  fnGraph.create(positions, edgeConnects);
   return true;
 }
 
@@ -1074,7 +1013,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
 
   std::vector<int> featureFlags;
   _detectFeatureAngles(positions, sequence, i_Settings.FeatureAngleTol,
-                      featureFlags);
+                       featureFlags);
 
   const zFloatArray &weights = ioPath.widths;
   const zFloatArray &heights = ioPath.heights;
@@ -1091,8 +1030,8 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   zFloatArray outTrackIds;
   zIntArray outEdges;
 
-  auto appendPoint = [&](const zPoint &p, float w, float h,
-                         const zVector &nrm, float trk) {
+  auto appendPoint = [&](const zPoint &p, float w, float h, const zVector &nrm,
+                         float trk) {
     if (!outPoints.empty()) {
       zVector d = vecSub(p, outPoints.back());
       if (d.length() < 1e-5)
@@ -1112,9 +1051,8 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     return (id < static_cast<int>(weights.size())) ? weights[id] : 0.04f;
   };
   auto heightAt = [&](int id) {
-    return (hasHeights && id < static_cast<int>(heights.size()))
-               ? heights[id]
-               : 0.0f;
+    return (hasHeights && id < static_cast<int>(heights.size())) ? heights[id]
+                                                                 : 0.0f;
   };
   auto normalAt = [&](int id) {
     return (hasNormals && id < static_cast<int>(normals.size()))
@@ -1132,7 +1070,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
   // Emit the path's start vertex and reset the sampling phase there.
   const int firstId = sequence[0];
   appendPoint(positions[firstId], weightAt(firstId), heightAt(firstId),
-             normalAt(firstId), trackAt(firstId));
+              normalAt(firstId), trackAt(firstId));
   double distSinceSample = 0.0;
 
   for (int seg = 0; seg < numSegments; seg++) {
@@ -1165,8 +1103,8 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
           interpN.normalize();
         else
           interpN = zVector(0, 0, 1);
-        const float interpTrk = (trk0 + t * (trk1 - trk0)) >= 0.5f ? 1.0f
-                                                                    : 0.0f;
+        const float interpTrk =
+            (trk0 + t * (trk1 - trk0)) >= 0.5f ? 1.0f : 0.0f;
         appendPoint(interpP, interpW, interpH, interpN, interpTrk);
         remaining += sampleLength;
       }
@@ -1283,10 +1221,10 @@ zPrintSyn::orientAndWeldLayer(std::vector<PrintPath> &ringPaths) {
 // layer-to-layer even through taper/twist. Finally cuts every ring open
 // at its (now aligned) start via _cutGapBeforeStart(seamSize), so each
 // layer ends as an open chain ready for chainLayersIntoOnePath.
-ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
-    std::vector<std::vector<PrintPath>> &ioPaths,
-    const zObjMeshArray &sectionMeshes2D, double seamOffset,
-    double seamSize) {
+ZSPACE_INLINE bool
+zPrintSyn::alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
+                                 const zObjMeshArray &sectionMeshes2D,
+                                 double seamOffset, double seamSize) {
   const int totalLayers = int(ioPaths.size());
   if (totalLayers == 0 || int(sectionMeshes2D.size()) < totalLayers)
     return false;
@@ -1315,8 +1253,9 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     const std::vector<double> cumLen = _cumulativeArcLength(positions);
     const double innerLen =
         _innerSegmentLength(positions, seedPath.trackIds, cumLen);
-    const double clampedWalk = (std::max)(
-        0.0, (std::min)(seamOffset, (std::max)(0.0, innerLen - 1e-4)));
+    const double clampedWalk =
+        (std::max)(0.0,
+                   (std::min)(seamOffset, (std::max)(0.0, innerLen - 1e-4)));
     if (!_insertAndRotateToStart(seedPath, clampedWalk))
       return false;
   }
@@ -1329,7 +1268,8 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
     if (positions.empty())
       return false;
     seedPts.push_back(positions[0]);
-    seedPts.push_back(positions[0]); // duplicate: parameterizeGraph needs an edge
+    seedPts.push_back(
+        positions[0]); // duplicate: parameterizeGraph needs an edge
   }
 
   zObjGraph seedGraph;
@@ -1358,9 +1298,8 @@ ZSPACE_INLINE bool zPrintSyn::alignLayerStartPoints(
       continue;
 
     zObjGraph realized;
-    if (!realizeParameterGraph(seedParams,
-                               const_cast<zObjMesh &>(sectionMeshes2D[l]),
-                               realized))
+    if (!realizeParameterGraph(
+            seedParams, const_cast<zObjMesh &>(sectionMeshes2D[l]), realized))
       continue;
     zFnGraph fnRealized(realized);
     zPointArray realizedPts;
@@ -1438,16 +1377,14 @@ ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
                           layerPath.widths.end());
     if (hasHeights) {
       if (!layerPath.heights.empty())
-        combinedHeights.insert(combinedHeights.end(),
-                               layerPath.heights.begin(),
+        combinedHeights.insert(combinedHeights.end(), layerPath.heights.begin(),
                                layerPath.heights.end());
       else
         combinedHeights.insert(combinedHeights.end(), positions.size(), 0.0f);
     }
     if (hasNormals) {
       if (!layerPath.normals.empty())
-        combinedNormals.insert(combinedNormals.end(),
-                               layerPath.normals.begin(),
+        combinedNormals.insert(combinedNormals.end(), layerPath.normals.begin(),
                                layerPath.normals.end());
       else
         combinedNormals.insert(combinedNormals.end(), positions.size(),
@@ -1459,8 +1396,7 @@ ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
                                 layerPath.trackIds.begin(),
                                 layerPath.trackIds.end());
       else
-        combinedTrackIds.insert(combinedTrackIds.end(), positions.size(),
-                                0.0f);
+        combinedTrackIds.insert(combinedTrackIds.end(), positions.size(), 0.0f);
     }
   }
 
@@ -1584,11 +1520,10 @@ ZSPACE_INLINE bool zPrintSyn::computeProjection(
       zFnGraph fnContour(out3DPaths[l][r].graph);
       if (fnContour.numVertices() > 0 && l < int(sectionMeshes2D.size()) &&
           l < int(sectionMeshes.size())) {
-        remapGraph(out3DPaths[l][r].graph,
-                  const_cast<zObjMesh &>(sectionMeshes2D[l]),
-                  const_cast<zObjMesh &>(sectionMeshes[l]),
-                  &out3DPaths[l][r].normals, &meshVertexHeights,
-                  &out3DPaths[l][r].heights);
+        remapGraph(
+            out3DPaths[l][r].graph, const_cast<zObjMesh &>(sectionMeshes2D[l]),
+            const_cast<zObjMesh &>(sectionMeshes[l]), &out3DPaths[l][r].normals,
+            &meshVertexHeights, &out3DPaths[l][r].heights);
       }
     }
 #pragma omp atomic

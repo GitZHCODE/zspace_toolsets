@@ -56,33 +56,25 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches
-   * -> orientAndWeldLayer on every layer's inner/outer track paths (in parallel
-   * per layer), then alignLayerStartPoints across all layers using
-   * sectionMeshes2D. */
+  /*! \brief Runs resamplePrintPath -> filterGlitches -> orientAndWeldLayer on
+   * every layer's inner/outer track paths (in parallel per layer), then
+   * alignLayerStartPoints across all layers using sectionMeshes2D. */
   bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
                        const zObjMeshArray &sectionMeshes2D);
 
-  /*! \brief Step 1: directly rebuilds ioPath.graph from its existing vertex
-   * order (already cleaned/split/ordered upstream during extraction). */
-  static bool buildSequencePrintPath(PrintPath &ioPath,
-                                     double weldTolerance = 0.08,
-                                     double spurLengthThreshold = 1.0,
-                                     std::string *outReason = nullptr);
-
-  /*! \brief Step 2: arc-length resamples ioPath.graph, carrying
+  /*! \brief Step 1: arc-length resamples ioPath.graph, carrying
    * widths/heights/normals along. */
   bool resamplePrintPath(PrintPath &ioPath);
 
-  /*! \brief Step 3: filters localized width glitches in ioPath.widths. */
+  /*! \brief Step 2: filters localized width glitches in ioPath.widths. */
   static void filterGlitches(PrintPath &ioPath);
 
-  /*! \brief Step 4: orients one layer's ring path CCW in place (extraction
+  /*! \brief Step 3: orients one layer's ring path CCW in place (extraction
    * already produces at most one ring per layer, already inner-before-outer
    * ordered). */
   static bool orientAndWeldLayer(std::vector<PrintPath> &ringPaths);
 
-  /*! \brief Step 5: aligns every layer's ring start point to the same
+  /*! \brief Step 4: aligns every layer's ring start point to the same
    * barycentric point on the underlying mesh (tracks the model through
    * taper/twist), constrained to the inner track, then cuts each ring open -
    * walking backward seamSize from the new start to find the new end point,
