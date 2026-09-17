@@ -106,6 +106,11 @@ double vecDot(const zVector &a, const zVector &b);
 zVector vecCross(const zVector &a, const zVector &b);
 unsigned long long makeEdgeKey(int u, int v);
 
+// Angle (radians) at cur between the edges to prev and next. Returns false
+// (outAngleRad untouched) if either edge is degenerate (< 1e-6 long).
+bool turnAngleAt(const zPoint &prev, const zPoint &cur, const zPoint &next,
+                 double &outAngleRad);
+
 //---- HalfEdge Mesh Topology Walk Utilities
 
 zItMeshHalfEdge nextEdgeRing(zItMeshHalfEdge he);

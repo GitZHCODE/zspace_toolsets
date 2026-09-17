@@ -178,15 +178,11 @@ void _createBoundaryEdgeGraph(zObjMesh &mesh, zObjGraph &outGraph,
       if (topoSplit && isCorner[i])
         splitSet.insert(i);
       if (angleSplit) {
-        zVector v1 = vecSub(positions[(i - 1 + N) % N], positions[i]);
-        zVector v2 = vecSub(positions[(i + 1) % N], positions[i]);
-        if (v1.length() > 1e-6 && v2.length() > 1e-6) {
-          v1.normalize();
-          v2.normalize();
-          double dot = (std::max)(-1.0, (std::min)(1.0, vecDot(v1, v2)));
-          if (std::acos(dot) < angleRadThresh)
-            splitSet.insert(i);
-        }
+        double angleRad;
+        if (turnAngleAt(positions[(i - 1 + N) % N], positions[i],
+                        positions[(i + 1) % N], angleRad) &&
+            angleRad < angleRadThresh)
+          splitSet.insert(i);
       }
     }
     outSplitIndices->assign(splitSet.begin(), splitSet.end());

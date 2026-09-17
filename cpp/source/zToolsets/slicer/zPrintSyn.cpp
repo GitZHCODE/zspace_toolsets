@@ -62,18 +62,10 @@ void _detectFeatureAngles(const zPointArray &positions,
     int curId = sequence[i];
     int nextId = sequence[(i + 1) % N];
 
-    zVector v0 = vecSub(positions[prevId], positions[curId]);
-    zVector v1 = vecSub(positions[nextId], positions[curId]);
-    const double len0 = v0.length();
-    const double len1 = v1.length();
-    if (len0 < 1e-6 || len1 < 1e-6)
-      continue;
-
-    double cosTheta = vecDot(v0, v1) / (len0 * len1);
-    cosTheta = (std::max)(-1.0, (std::min)(1.0, cosTheta));
-    const double angleRad = std::acos(cosTheta);
-
-    if (angleRad < thresholdRad) {
+    double angleRad;
+    if (turnAngleAt(positions[prevId], positions[curId], positions[nextId],
+                    angleRad) &&
+        angleRad < thresholdRad) {
       outFeatureFlags[i] = 1;
     }
   }

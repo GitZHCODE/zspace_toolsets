@@ -84,6 +84,21 @@ ZSPACE_INLINE unsigned long long makeEdgeKey(int u, int v) {
          static_cast<unsigned int>(hi);
 }
 
+ZSPACE_INLINE bool turnAngleAt(const zPoint &prev, const zPoint &cur,
+                               const zPoint &next, double &outAngleRad) {
+  const zVector v0 = vecSub(prev, cur);
+  const zVector v1 = vecSub(next, cur);
+  const double len0 = v0.length();
+  const double len1 = v1.length();
+  if (len0 < 1e-6 || len1 < 1e-6)
+    return false;
+
+  double cosTheta = vecDot(v0, v1) / (len0 * len1);
+  cosTheta = (std::max)(-1.0, (std::min)(1.0, cosTheta));
+  outAngleRad = std::acos(cosTheta);
+  return true;
+}
+
 //---- HalfEdge Mesh Topology Walk Utilities
 
 ZSPACE_INLINE zItMeshHalfEdge nextEdgeRing(zItMeshHalfEdge he) {
