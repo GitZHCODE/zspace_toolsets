@@ -16,9 +16,9 @@
 #pragma once
 
 #include <headers/base/zSpace_Toolsets.h>
-#include <headers/zToolsets/slicer/zTsUtils.h>
-#include <headers/zToolsets/slicer/zSlicer.h>
 #include <headers/zToolsets/slicer/zPrintSyn.h>
+#include <headers/zToolsets/slicer/zSlicer.h>
+#include <headers/zToolsets/slicer/zTsUtils.h>
 
 #include <string>
 #include <vector>
@@ -36,20 +36,29 @@ namespace zSpace {
  */
 
 /*! \class zTs3DP
- *	\brief Facade wiring zSlicer (SDF slicing) and zPrintSyn (toolpath cleanup) into one pipeline.
+ *	\brief Facade wiring zSlicer (SDF slicing) and zPrintSyn (toolpath
+ * cleanup) into one pipeline.
  *	\since 1.0.0
  */
 class ZSPACE_TOOLSETS zTs3DP {
 protected:
   zObjMesh m_InputMesh;
   zObjGraph m_BracingGraph;
-
   zSlicer m_Slicer;
   zPrintSyn m_PrintSyn;
-
   std::vector<std::vector<PrintPath>> m_2DPrintPaths;
   std::vector<std::vector<PrintPath>> m_3DPrintPaths;
   PrintPath m_ResultantPrintPath;
+
+  // Data shared between m_Slicer's field computation and m_PrintSyn's
+  // extraction/projection steps - owned here instead of by zSlicer, so the
+  // two classes' steps don't need to reach into each other.
+  zObjMeshArray m_SectionMeshes;
+  zObjMeshArray m_SectionMeshes2D;
+  zObjMeshScalarField m_ScalarField;
+  std::vector<zScalarArray> m_PathFields;
+  std::vector<zScalarArray> m_WidthFields;
+  std::vector<zScalarArray> m_TrackFields;
 
   std::string m_Status;
 
@@ -82,21 +91,35 @@ public:
   // Pipeline Execution Methods
   //----------------------------------------------------------------------
 
-  /*! \brief Runs m_Slicer's geometry pipeline, extracting 2D print paths into m_2DPrintPaths. */
+  /*! \brief Runs m_Slicer's geometry pipeline (basic structure -> slice ->
+   * unroll -> field), producing m_SectionMeshes/m_SectionMeshes2D/
+   * m_ScalarField/m_PathFields/m_WidthFields/m_TrackFields. Stops at field
+   * computation - no isocontour extraction (see computeExtraction). */
   bool computeSlicer();
+
+  /*! \brief Extracts m_PathFields/m_WidthFields/m_TrackFields into
+   * m_2DPrintPaths via m_PrintSyn::extractTrackPaths. Call after
+   * computeSlicer. */
+  bool computeExtraction();
 
   /*! \brief Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn. */
   bool computePrintSyn();
 
-  /*! \brief Projects m_2DPrintPaths back onto the 3D section meshes, producing m_3DPrintPaths. */
+  /*! \brief Projects m_2DPrintPaths back onto the 3D section meshes, producing
+   * m_3DPrintPaths. */
   bool computeProjection();
 
-  /*! \brief Chains every layer's single 3D ring end-to-start into one continuous path, producing m_ResultantPrintPath. Call after computeProjection. */
+  /*! \brief Chains every layer's single 3D ring end-to-start into one
+   * continuous path, producing m_ResultantPrintPath. Call after
+   * computeProjection. */
   bool computeChainedPath();
 
-  /*! \brief Runs computeSlicer -> computePrintSyn -> computeProjection -> computeChainedPath. */
+  /*! \brief Runs computeSlicer -> computeExtraction -> computePrintSyn ->
+   * computeProjection -> computeChainedPath. */
   bool computePipeline() {
     if (!computeSlicer())
+      return false;
+    if (!computeExtraction())
       return false;
     if (!computePrintSyn())
       return false;
@@ -111,7 +134,8 @@ public:
   // Exporters
   //----------------------------------------------------------------------
 
-  /*! \brief Exports each layer's section mesh and 3D toolpath graph to directory in OBJ format. */
+  /*! \brief Exports each layer's section mesh and 3D toolpath graph to
+   * directory in OBJ format. */
   bool exportToOBJ(const std::string &directoryPath = "");
 
   //----------------------------------------------------------------------
@@ -153,6 +177,31 @@ public:
   inline PrintPath &getResultantPrintPath() { return m_ResultantPrintPath; }
   inline const PrintPath &getResultantPrintPath() const {
     return m_ResultantPrintPath;
+  }
+
+  inline zObjMeshArray &getSectionMeshes() { return m_SectionMeshes; }
+  inline const zObjMeshArray &getSectionMeshes() const {
+    return m_SectionMeshes;
+  }
+  inline zObjMeshArray &getSectionMeshes2D() { return m_SectionMeshes2D; }
+  inline const zObjMeshArray &getSectionMeshes2D() const {
+    return m_SectionMeshes2D;
+  }
+  inline zObjMeshScalarField &getScalarField() { return m_ScalarField; }
+  inline const zObjMeshScalarField &getScalarField() const {
+    return m_ScalarField;
+  }
+  inline std::vector<zScalarArray> &getPathFields() { return m_PathFields; }
+  inline const std::vector<zScalarArray> &getPathFields() const {
+    return m_PathFields;
+  }
+  inline std::vector<zScalarArray> &getWidthFields() { return m_WidthFields; }
+  inline const std::vector<zScalarArray> &getWidthFields() const {
+    return m_WidthFields;
+  }
+  inline std::vector<zScalarArray> &getTrackFields() { return m_TrackFields; }
+  inline const std::vector<zScalarArray> &getTrackFields() const {
+    return m_TrackFields;
   }
 
   inline zObjMesh &getInputMesh() { return m_Slicer.getInputMesh(); }

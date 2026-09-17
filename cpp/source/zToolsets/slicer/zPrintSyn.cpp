@@ -21,10 +21,18 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <iomanip>
 #include <limits>
 #include <sstream>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
 namespace zSpace {
 
@@ -523,6 +531,459 @@ void _cutGapBeforeStart(PrintPath &ioPath, double seamSize) {
     ioPath.trackIds = keptTrackIds;
 }
 
+// Extracts the zero-isocontour of pathVals as raw position/edge arrays
+// (marching triangles), interpolating widths and the outer/inner track tag
+// onto each new crossing point. Left unsplit/uncleaned - _extractTrackPaths
+// does the spur-pruning, gap-welding and inner/outer split downstream.
+// Moved here from zSlicer_Field.cpp - isocontour extraction is a printsyn
+// (toolpath synthesis) responsibility, not a field-computation one.
+void _extractRawIsoContour(
+    zObjMeshScalarField &pathFieldMesh, const zScalarArray &pathVals,
+    const zScalarArray &widthVals, const zScalarArray &trackIdVals,
+    zPointArray &outPositions, zIntArray &outEdgeConnects,
+    zFloatArray &outVertexWeights, zFloatArray &outVertexTrackIds) {
+  outPositions.clear();
+  outEdgeConnects.clear();
+  outVertexWeights.clear();
+  outVertexTrackIds.clear();
+
+  zFnMesh fnMesh(pathFieldMesh);
+  const zPoint *rawPositions = fnMesh.getRawVertexPositions();
+  const int numVerts = fnMesh.numVertices();
+  const int numFaces = fnMesh.numPolygons();
+  const bool hasTrackIds = trackIdVals.size() == static_cast<size_t>(numVerts);
+  if (!rawPositions || numVerts == 0 || numFaces == 0 ||
+      pathVals.size() != static_cast<size_t>(numVerts) ||
+      widthVals.size() != static_cast<size_t>(numVerts)) {
+    return;
+  }
+
+  zPointArray &isoPositions = outPositions;
+  zIntArray &isoEdgeConnects = outEdgeConnects;
+
+  std::unordered_map<unsigned long long, int> edgeCrossMap;
+  edgeCrossMap.reserve(numFaces / 4);
+
+  auto getEdgeIntersection = [&](int v0, int v1) -> int {
+    const unsigned long long edgeKey = makeEdgeKey(v0, v1);
+
+    auto it = edgeCrossMap.find(edgeKey);
+    if (it != edgeCrossMap.end())
+      return it->second;
+
+    const double s0 = pathVals[v0];
+    const double s1 = pathVals[v1];
+    const double denom = s1 - s0;
+    const double t = (std::abs(denom) > 1e-12)
+                         ? (std::max)(0.0, (std::min)(1.0, -s0 / denom))
+                         : 0.5;
+
+    const zPoint &p0 = rawPositions[v0], &p1 = rawPositions[v1];
+    isoPositions.push_back(zPoint(p0.x + t * (p1.x - p0.x),
+                                  p0.y + t * (p1.y - p0.y),
+                                  p0.z + t * (p1.z - p0.z)));
+    outVertexWeights.push_back(static_cast<float>(
+        widthVals[v0] + t * (widthVals[v1] - widthVals[v0])));
+
+    if (hasTrackIds) {
+      const double id0 = trackIdVals[v0];
+      const double id1 = trackIdVals[v1];
+      const double idInterp = id0 + t * (id1 - id0);
+      outVertexTrackIds.push_back(idInterp >= 0.5 ? 1.0f : 0.0f);
+    } else {
+      outVertexTrackIds.push_back(0.0f);
+    }
+
+    const int newIdx = static_cast<int>(isoPositions.size()) - 1;
+    edgeCrossMap[edgeKey] = newIdx;
+    return newIdx;
+  };
+
+  zIntArray polyConnects, polyCounts;
+  fnMesh.getPolygonData(polyConnects, polyCounts);
+
+  size_t cOffset = 0;
+  for (int count : polyCounts) {
+    for (int tri = 1; tri + 1 < count; tri++) {
+      const int v0 = polyConnects[cOffset];
+      const int v1 = polyConnects[cOffset + tri];
+      const int v2 = polyConnects[cOffset + tri + 1];
+
+      const double s0 = pathVals[v0], s1 = pathVals[v1], s2 = pathVals[v2];
+      const int mask = (s0 > 0.0) | ((s1 > 0.0) << 1) | ((s2 > 0.0) << 2);
+      if (mask == 0 || mask == 7)
+        continue;
+
+      int p0 = -1, p1 = -1;
+      switch (mask) {
+      case 1:
+      case 6:
+        p0 = getEdgeIntersection(v0, v1);
+        p1 = getEdgeIntersection(v2, v0);
+        break;
+      case 2:
+      case 5:
+        p0 = getEdgeIntersection(v0, v1);
+        p1 = getEdgeIntersection(v1, v2);
+        break;
+      case 3:
+      case 4:
+        p0 = getEdgeIntersection(v1, v2);
+        p1 = getEdgeIntersection(v2, v0);
+        break;
+      }
+
+      if (p0 != p1 && p0 >= 0 && p1 >= 0) {
+        isoEdgeConnects.push_back(p0);
+        isoEdgeConnects.push_back(p1);
+      }
+    }
+    cOffset += count;
+  }
+}
+
+// Ports the spur-pruning + gap-welding + chain/loop extraction that used to
+// live in zPrintSyn::buildSequencePrintPath. Splits the raw iso-contour
+// first, walks it into a single oriented, inner-before-outer closed ring
+// (plus bracing open chains), and merges every surviving loop/chain into
+// one PrintPath.
+void _extractTrackPaths(const zPointArray &rawPositions,
+                        const zIntArray &rawEdges, const zFloatArray &rawWidths,
+                        const zFloatArray &rawTrackIds, double weldTolerance,
+                        double spurLengthThreshold,
+                        std::vector<PrintPath> &outPaths) {
+  outPaths.clear();
+  const int numV = static_cast<int>(rawPositions.size());
+  if (numV < 3 || rawEdges.size() < 6)
+    return;
+
+  const bool hasTrackIds = rawTrackIds.size() == static_cast<size_t>(numV);
+  auto isOuterVertex = [&](int id) -> bool {
+    return hasTrackIds && id < int(rawTrackIds.size()) &&
+           rawTrackIds[id] >= 0.5f;
+  };
+
+  // 1. Build adjacency from every valid, deduplicated edge - no track-based
+  // filtering, so the boundary ring (inner+outer fused by the trim slot)
+  // comes out directly as one naturally closed loop, and bracing ribs come
+  // out as open chains, exactly like the untracked single-perimeter case.
+  std::vector<std::vector<int>> adj(numV);
+  std::unordered_set<unsigned long long> edgeSet;
+  for (size_t e = 0; e + 1 < rawEdges.size(); e += 2) {
+    int a = rawEdges[e], b = rawEdges[e + 1];
+    if (a < 0 || b < 0 || a >= numV || b >= numV || a == b)
+      continue;
+    if (vecDistSq(rawPositions[b], rawPositions[a]) < 1e-12)
+      continue;
+    const unsigned long long key = makeEdgeKey(a, b);
+    if (!edgeSet.insert(key).second)
+      continue;
+    adj[a].push_back(b);
+    adj[b].push_back(a);
+  }
+
+  std::vector<std::unordered_set<int>> activeAdj(numV);
+  for (int i = 0; i < numV; i++)
+    for (int nb : adj[i])
+      activeAdj[i].insert(nb);
+
+  // 2. Spur pruning: repeatedly trim dead-end branches shorter than
+  // spurLengthThreshold hanging off any junction (degree >= 3).
+  bool prunedAny = true;
+  while (prunedAny) {
+    prunedAny = false;
+    for (int i = 0; i < numV; i++) {
+      if (activeAdj[i].size() >= 3) {
+        std::vector<int> neighbors(activeAdj[i].begin(), activeAdj[i].end());
+        for (int startNb : neighbors) {
+          std::vector<int> branchPath = {i, startNb};
+          int prev = i;
+          int curr = startNb;
+          bool isDeadEnd = false;
+          double branchLen =
+              vecSub(rawPositions[curr], rawPositions[prev]).length();
+
+          while (true) {
+            if (activeAdj[curr].size() == 1) {
+              isDeadEnd = true;
+              break;
+            }
+            if (activeAdj[curr].size() != 2)
+              break;
+            int next = -1;
+            for (int nb : activeAdj[curr]) {
+              if (nb != prev) {
+                next = nb;
+                break;
+              }
+            }
+            if (next < 0 || next == i)
+              break;
+            branchLen +=
+                vecSub(rawPositions[next], rawPositions[curr]).length();
+            prev = curr;
+            curr = next;
+            branchPath.push_back(curr);
+          }
+
+          if (isDeadEnd && branchLen < spurLengthThreshold) {
+            for (size_t k = 0; k + 1 < branchPath.size(); k++) {
+              int u = branchPath[k];
+              int v = branchPath[k + 1];
+              activeAdj[u].erase(v);
+              activeAdj[v].erase(u);
+            }
+            prunedAny = true;
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Walk every degree-1 start into an open chain, then every remaining
+  // degree-2 start into a closed loop (falling back to an open chain if it
+  // doesn't actually close).
+  std::vector<std::vector<int>> openChains;
+  std::vector<std::vector<int>> closedLoops;
+  std::unordered_set<unsigned long long> visitedEdges;
+
+  auto walkChain = [&](int start,
+                       int next) -> std::pair<std::vector<int>, bool> {
+    std::vector<int> seq = {start};
+    int prev = start, curr = next;
+    visitedEdges.insert(makeEdgeKey(prev, curr));
+
+    while (true) {
+      if (curr == start)
+        return {seq, true};
+      seq.push_back(curr);
+      if (activeAdj[curr].size() != 2)
+        break;
+
+      int nxt = -1;
+      for (int nb : activeAdj[curr]) {
+        if (nb != prev) {
+          nxt = nb;
+          break;
+        }
+      }
+      if (nxt < 0 || visitedEdges.count(makeEdgeKey(curr, nxt)))
+        break;
+      visitedEdges.insert(makeEdgeKey(curr, nxt));
+      prev = curr;
+      curr = nxt;
+    }
+    return {seq, false};
+  };
+
+  for (int i = 0; i < numV; i++) {
+    if (activeAdj[i].size() == 1) {
+      int next = *activeAdj[i].begin();
+      if (visitedEdges.count(makeEdgeKey(i, next)))
+        continue;
+      openChains.push_back(walkChain(i, next).first);
+    }
+  }
+
+  for (int i = 0; i < numV; i++) {
+    if (activeAdj[i].size() == 2) {
+      for (int nb : activeAdj[i]) {
+        if (visitedEdges.count(makeEdgeKey(i, nb)))
+          continue;
+
+        auto [loop, closed] = walkChain(i, nb);
+        if (closed && loop.size() >= 3) {
+          closedLoops.push_back(std::move(loop));
+        } else if (!loop.empty()) {
+          openChains.push_back(std::move(loop));
+        }
+      }
+    }
+  }
+
+  // 4. Self-close any open chain whose two ends are within weldTolerance -
+  // safe unconditionally now that nothing is track-filtered, so the
+  // boundary ring can never be mistakenly split by a filtering artifact
+  // that this step would then need to leave alone.
+  const double weldTolSq = weldTolerance * weldTolerance;
+  for (auto it = openChains.begin(); it != openChains.end();) {
+    if (it->size() >= 3 &&
+        vecDistSq(rawPositions[it->front()], rawPositions[it->back()]) <=
+            weldTolSq) {
+      closedLoops.push_back(*it);
+      it = openChains.erase(it);
+      continue;
+    }
+    ++it;
+  }
+
+  // 5. Weld remaining open-chain fragments (e.g. bracing ribs split at
+  // triangle boundaries) end-to-end by nearest-endpoint matching.
+  bool mergedAny = true;
+  while (mergedAny && openChains.size() > 1) {
+    mergedAny = false;
+    size_t bestI = 0, bestJ = 0;
+    int bestMode = -1;
+    double bestDistSq = weldTolSq;
+
+    for (size_t i = 0; i < openChains.size(); i++) {
+      for (size_t j = i + 1; j < openChains.size(); j++) {
+        const auto &c1 = openChains[i];
+        const auto &c2 = openChains[j];
+
+        double d0 =
+            vecDistSq(rawPositions[c1.back()], rawPositions[c2.front()]);
+        if (d0 < bestDistSq) {
+          bestDistSq = d0;
+          bestI = i;
+          bestJ = j;
+          bestMode = 0;
+        }
+        double d1 =
+            vecDistSq(rawPositions[c1.back()], rawPositions[c2.back()]);
+        if (d1 < bestDistSq) {
+          bestDistSq = d1;
+          bestI = i;
+          bestJ = j;
+          bestMode = 1;
+        }
+        double d2 =
+            vecDistSq(rawPositions[c1.front()], rawPositions[c2.back()]);
+        if (d2 < bestDistSq) {
+          bestDistSq = d2;
+          bestI = i;
+          bestJ = j;
+          bestMode = 2;
+        }
+        double d3 =
+            vecDistSq(rawPositions[c1.front()], rawPositions[c2.front()]);
+        if (d3 < bestDistSq) {
+          bestDistSq = d3;
+          bestI = i;
+          bestJ = j;
+          bestMode = 3;
+        }
+      }
+    }
+
+    if (bestMode >= 0) {
+      std::vector<int> &c1 = openChains[bestI];
+      std::vector<int> c2 = openChains[bestJ];
+
+      if (bestMode == 0) {
+        c1.insert(c1.end(), c2.begin(), c2.end());
+      } else if (bestMode == 1) {
+        std::reverse(c2.begin(), c2.end());
+        c1.insert(c1.end(), c2.begin(), c2.end());
+      } else if (bestMode == 2) {
+        c2.insert(c2.end(), c1.begin(), c1.end());
+        c1 = c2;
+      } else if (bestMode == 3) {
+        std::reverse(c2.begin(), c2.end());
+        c2.insert(c2.end(), c1.begin(), c1.end());
+        c1 = c2;
+      }
+
+      openChains.erase(openChains.begin() + bestJ);
+      mergedAny = true;
+
+      if (c1.size() >= 3 &&
+          vecDistSq(rawPositions[c1.front()], rawPositions[c1.back()]) <=
+              weldTolSq) {
+        closedLoops.push_back(c1);
+        openChains.erase(openChains.begin() + bestI);
+      }
+    }
+  }
+
+  if (closedLoops.empty() && openChains.empty())
+    return;
+
+  // 6. Orient the longest closed loop (the boundary ring) CCW, and - if it
+  // mixes inner/outer vertices - rotate it (it's already one continuous
+  // loop, so no cutting/rewelding needed) so the walk starts at the
+  // outer-to-inner transition and visits every inner vertex before any
+  // outer one.
+  if (!closedLoops.empty()) {
+    size_t mainIdx = 0;
+    for (size_t i = 1; i < closedLoops.size(); i++) {
+      if (closedLoops[i].size() > closedLoops[mainIdx].size())
+        mainIdx = i;
+    }
+    std::vector<int> &mainRing = closedLoops[mainIdx];
+    const int m = static_cast<int>(mainRing.size());
+
+    double area = 0.0;
+    for (int i = 0; i < m; i++) {
+      const zPoint &p0 = rawPositions[mainRing[i]];
+      const zPoint &p1 = rawPositions[mainRing[(i + 1) % m]];
+      area += (p0.x * p1.y - p1.x * p0.y);
+    }
+    if (area < 0.0)
+      std::reverse(mainRing.begin(), mainRing.end());
+
+    if (hasTrackIds) {
+      bool hasInner = false, hasOuter = false;
+      for (int id : mainRing) {
+        if (isOuterVertex(id))
+          hasOuter = true;
+        else
+          hasInner = true;
+      }
+      if (hasInner && hasOuter) {
+        for (int i = 0; i < m; i++) {
+          const int prev = (i - 1 + m) % m;
+          if (!isOuterVertex(mainRing[i]) && isOuterVertex(mainRing[prev])) {
+            std::rotate(mainRing.begin(), mainRing.begin() + i,
+                       mainRing.end());
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // 7. Concatenate every closed loop then every open chain into one merged
+  // graph, tagging each point's width and inner(0)/outer(1) track.
+  zPointArray mergedPositions;
+  zIntArray mergedEdges;
+  zFloatArray mergedWidths;
+  zFloatArray mergedTrackIds;
+
+  auto appendSeq = [&](const std::vector<int> &seq, bool isLoop) {
+    const int base = static_cast<int>(mergedPositions.size());
+    for (int id : seq) {
+      mergedPositions.push_back(rawPositions[id]);
+      mergedWidths.push_back(id < int(rawWidths.size()) ? rawWidths[id]
+                                                        : 0.04f);
+      mergedTrackIds.push_back(isOuterVertex(id) ? 1.0f : 0.0f);
+    }
+    for (size_t i = 0; i + 1 < seq.size(); i++) {
+      mergedEdges.push_back(base + int(i));
+      mergedEdges.push_back(base + int(i) + 1);
+    }
+    if (isLoop && seq.size() >= 3) {
+      mergedEdges.push_back(base + int(seq.size()) - 1);
+      mergedEdges.push_back(base);
+    }
+  };
+
+  for (auto &loop : closedLoops)
+    appendSeq(loop, true);
+  for (auto &chain : openChains)
+    appendSeq(chain, false);
+
+  if (mergedPositions.size() < 3 || mergedEdges.size() < 4)
+    return;
+
+  PrintPath p;
+  zFnGraph fnP(p.graph);
+  fnP.create(mergedPositions, mergedEdges);
+  p.widths = mergedWidths;
+  p.trackIds = mergedTrackIds;
+  outPaths.push_back(p);
+}
+
 } // anonymous namespace
 
 //--------------------------
@@ -1002,6 +1463,125 @@ ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
     outCombined.normals = combinedNormals;
   if (hasTrackIds)
     outCombined.trackIds = combinedTrackIds;
+  return true;
+}
+
+// Extracts each layer's isocontour into a single oriented, inner-before-
+// outer, CCW closed-loop PrintPath - moved here from zSlicer::computeField
+// (see _extractRawIsoContour/_extractTrackPaths above) so zSlicer stops at
+// field computation and every downstream toolpath-synthesis step lives on
+// zPrintSyn.
+ZSPACE_INLINE bool zPrintSyn::extractTrackPaths(
+    zObjMeshScalarField &scalarField,
+    const std::vector<zScalarArray> &pathFields,
+    const std::vector<zScalarArray> &widthFields,
+    const std::vector<zScalarArray> &trackFields,
+    std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
+  const int totalLayers = int(pathFields.size());
+  if (totalLayers == 0 || widthFields.size() != size_t(totalLayers) ||
+      trackFields.size() != size_t(totalLayers)) {
+    zTsUtils::printError("[zPrintSyn::extractTrackPaths] failed: mismatched "
+                         "or empty field arrays.");
+    return false;
+  }
+
+  outPrintPaths2D.assign(totalLayers, std::vector<PrintPath>());
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel
+  {
+    zObjMeshScalarField localField = scalarField;
+
+#pragma omp for schedule(dynamic)
+    for (int l = 0; l < totalLayers; l++) {
+      zPointArray rawPositions;
+      zIntArray rawEdges;
+      zFloatArray rawWidths;
+      zFloatArray rawTrackIds;
+      _extractRawIsoContour(localField, pathFields[l], widthFields[l],
+                            trackFields[l], rawPositions, rawEdges, rawWidths,
+                            rawTrackIds);
+      _extractTrackPaths(rawPositions, rawEdges, rawWidths, rawTrackIds, 0.08,
+                         1.0, outPrintPaths2D[l]);
+    }
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Extracted track paths for " << totalLayers << " layers in "
+      << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
+  zTsUtils::printSuccess("[zPrintSyn::extractTrackPaths] " + out.str());
+  return true;
+}
+
+// Projects 2D PrintPaths back onto the 3D section meshes - moved here from
+// zSlicer::computeProjection so all post-field-computation steps live on
+// zPrintSyn. vScalar/layerSpacing are the only zSlicer-owned inputs this
+// still needs (from getVScalar()/getSettings().LayerSpacing).
+ZSPACE_INLINE bool zPrintSyn::computeProjection(
+    const std::vector<std::vector<PrintPath>> &in2DPaths,
+    const zObjMeshArray &sectionMeshes2D, const zObjMeshArray &sectionMeshes,
+    const std::vector<zScalarArray> &vScalar, float layerSpacing,
+    std::vector<std::vector<PrintPath>> &out3DPaths) {
+  const int totalLayers = int(in2DPaths.size());
+  if (totalLayers == 0 || sectionMeshes2D.empty() || sectionMeshes.empty()) {
+    zTsUtils::printError("[zPrintSyn::computeProjection] failed: No 2D print "
+                         "paths or section meshes available for projection.");
+    return false;
+  }
+
+  out3DPaths.assign(totalLayers, std::vector<PrintPath>());
+  for (int l = 0; l < totalLayers; l++) {
+    out3DPaths[l].assign(in2DPaths[l].size(), PrintPath());
+  }
+
+  zFloatArray meshVertexHeights;
+  if (!vScalar.empty() && totalLayers > 1) {
+    meshVertexHeights.resize(vScalar.size());
+    const float denom = float(totalLayers - 1);
+    for (size_t k = 0; k < vScalar.size(); k++) {
+      meshVertexHeights[k] = (!vScalar[k].empty())
+                                 ? float(vScalar[k].back() / denom)
+                                 : layerSpacing;
+    }
+  }
+
+  int totalPaths = 0;
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    for (size_t r = 0; r < in2DPaths[l].size(); r++) {
+      out3DPaths[l][r].graph = in2DPaths[l][r].graph;
+      out3DPaths[l][r].widths = in2DPaths[l][r].widths;
+      out3DPaths[l][r].trackIds = in2DPaths[l][r].trackIds;
+
+      zFnGraph fnContour(out3DPaths[l][r].graph);
+      if (fnContour.numVertices() > 0 && l < int(sectionMeshes2D.size()) &&
+          l < int(sectionMeshes.size())) {
+        remapGraph(out3DPaths[l][r].graph,
+                  const_cast<zObjMesh &>(sectionMeshes2D[l]),
+                  const_cast<zObjMesh &>(sectionMeshes[l]),
+                  &out3DPaths[l][r].normals, &meshVertexHeights,
+                  &out3DPaths[l][r].heights);
+      }
+    }
+#pragma omp atomic
+    totalPaths += int(in2DPaths[l].size());
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Projected " << totalPaths << " 3D PrintPaths in " << std::fixed
+      << std::setprecision(2) << wallTotalMs << " ms";
+  zTsUtils::printSuccess("[zPrintSyn::computeProjection] " + out.str());
   return true;
 }
 

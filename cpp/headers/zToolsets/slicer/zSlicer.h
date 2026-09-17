@@ -88,21 +88,20 @@ protected:
   zObjGraph m_ULoop;
   zObjGraphArray m_VLoops;
   std::vector<zScalarArray> m_VScalar;
-  zObjMeshScalarField m_ScalarField;
   std::vector<int> m_BoundarySplitIndices;
   ParameterGraph m_BracingParams;
   std::string m_Status;
 
   //---- OUTPUTS
-  zObjMeshArray sectionMeshes;
+  // sectionMeshes/sectionMeshes2D/pathFields/widthFields/trackFields/the
+  // scalar field topology are owned by zTs3DP instead (passed in/out of
+  // computeSlice/computeUnroll/computeField as parameters) - they're the
+  // data shared with zPrintSyn's extraction/projection steps, so the
+  // orchestrator holds them rather than zSlicer.
   zObjGraphArray sectionGraphs;
   zObjGraphArray bracingGraphs;
-  zObjMeshArray sectionMeshes2D;
   zObjGraphArray sectionGraphs2D;
   zObjGraphArray bracingGraphs2D;
-  std::vector<zScalarArray> pathFields;
-  std::vector<zScalarArray> widthFields;
-  std::vector<zScalarArray> trackFields; // per-vertex inner(0)/outer(1) mask, parallel to pathFields
   zObjGraphArray trimSlotGraphs2D;
 
 public:
@@ -143,7 +142,7 @@ public:
   //--------------------------
 
   bool isLoaded() const { return i_InputMesh != nullptr; }
-  int getLayerCount() const { return int(sectionMeshes.size()); }
+  int getLayerCount() const { return int(sectionGraphs.size()); }
 
   zObjMesh &getInputMesh() { return *i_InputMesh; }
   const zObjMesh &getInputMesh() const { return *i_InputMesh; }
@@ -159,33 +158,15 @@ public:
   std::vector<zScalarArray> &getVScalar() { return m_VScalar; }
   const std::vector<zScalarArray> &getVScalar() const { return m_VScalar; }
 
-  zObjMeshArray &getSectionMeshes() { return sectionMeshes; }
-  const zObjMeshArray &getSectionMeshes() const { return sectionMeshes; }
   zObjGraphArray &getSectionGraphs() { return sectionGraphs; }
   const zObjGraphArray &getSectionGraphs() const { return sectionGraphs; }
   zObjGraphArray &getBracingGraphs() { return bracingGraphs; }
   const zObjGraphArray &getBracingGraphs() const { return bracingGraphs; }
 
-  zObjMeshArray &get2DSectionMeshes() { return sectionMeshes2D; }
-  const zObjMeshArray &get2DSectionMeshes() const { return sectionMeshes2D; }
   zObjGraphArray &get2DSectionGraphs() { return sectionGraphs2D; }
   const zObjGraphArray &get2DSectionGraphs() const { return sectionGraphs2D; }
   zObjGraphArray &get2DBracingGraphs() { return bracingGraphs2D; }
   const zObjGraphArray &get2DBracingGraphs() const { return bracingGraphs2D; }
-
-  std::vector<zScalarArray> &getPathFields() { return pathFields; }
-  const std::vector<zScalarArray> &getPathFields() const { return pathFields; }
-  std::vector<zScalarArray> &getWidthFields() { return widthFields; }
-  const std::vector<zScalarArray> &getWidthFields() const {
-    return widthFields;
-  }
-  std::vector<zScalarArray> &getTrackFields() { return trackFields; }
-  const std::vector<zScalarArray> &getTrackFields() const {
-    return trackFields;
-  }
-
-  zObjMeshScalarField &getScalarField() { return m_ScalarField; }
-  const zObjMeshScalarField &getScalarField() const { return m_ScalarField; }
 
   zObjGraphArray &getTrimSlotGraphs2D() { return trimSlotGraphs2D; }
   const zObjGraphArray &getTrimSlotGraphs2D() const {
@@ -204,27 +185,25 @@ public:
   /*! \brief Corner extraction, V-loops, U-mesh, U-loop, bracing parameterization. */
   bool computeBasicStructure();
 
-  /*! \brief Calculates layer meshes, boundary section graphs, layer bracing graphs. */
-  bool computeSlice();
+  /*! \brief Calculates layer meshes (output via outSectionMeshes, owned by the caller), boundary section graphs, layer bracing graphs. */
+  bool computeSlice(zObjMeshArray &outSectionMeshes);
 
-  /*! \brief 2D unrolling for all 3D section meshes, boundary graphs, bracing graphs. */
-  bool computeUnroll();
+  /*! \brief 2D unrolling of sectionMeshes (input) into outSectionMeshes2D (output, owned by the caller), plus boundary/bracing graphs. */
+  bool computeUnroll(const zObjMeshArray &sectionMeshes,
+                     zObjMeshArray &outSectionMeshes2D);
 
-  /*! \brief 2D SDF scalar fields; extracts flat isocontour print paths (split per layer into inner/outer tracks) into outPrintPaths2D. */
-  bool computeField(std::vector<std::vector<PrintPath>> &outPrintPaths2D);
-
-  /*! \brief Runs computeBasicStructure -> computeSlice -> computeUnroll -> computeField. */
-  bool computeSlicer(std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
-    return computeBasicStructure() && computeSlice() && computeUnroll() &&
-           computeField(outPrintPaths2D);
-  }
-
-  /*! \brief Projects 2D PrintPaths back to 3D section meshes. */
-  bool computeProjection(const std::vector<std::vector<PrintPath>> &in2DPaths,
-                         std::vector<std::vector<PrintPath>> &out3DPaths);
+  /*! \brief 2D SDF scalar fields only - stops at outScalarField/outPathFields/outWidthFields/outTrackFields, no isocontour extraction (that's zPrintSyn::extractTrackPaths now). sectionMeshes2D is the computeUnroll output, passed back in. */
+  bool computeField(const zObjMeshArray &sectionMeshes2D,
+                    zObjMeshScalarField &outScalarField,
+                    std::vector<zScalarArray> &outPathFields,
+                    std::vector<zScalarArray> &outWidthFields,
+                    std::vector<zScalarArray> &outTrackFields);
 
   // Color/palette/pipe-mesh helpers and translateMesh/translateGraph/
   // segmentGraph live in zTsUtils, not here. exportToOBJ lives on zTs3DP.
+  // Isocontour extraction and 3D projection live on zPrintSyn now
+  // (extractTrackPaths / computeProjection) - zSlicer stops at field
+  // computation so the two classes' steps don't interleave.
 };
 
 /** @}*/

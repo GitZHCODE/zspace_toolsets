@@ -31,27 +31,54 @@ namespace zSpace {
 //---- PIPELINE EXECUTION METHODS
 //--------------------------
 
-// Runs m_Slicer's geometry pipeline, extracting 2D print paths.
+// Runs m_Slicer's geometry pipeline (basic structure -> slice -> unroll ->
+// field), stopping at field computation - no isocontour extraction here
+// (see computeExtraction).
 ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   m_2DPrintPaths.clear();
   m_3DPrintPaths.clear();
-  bool success = m_Slicer.computeSlicer(m_2DPrintPaths);
+
+  if (!m_Slicer.computeBasicStructure()) {
+    m_Status = m_Slicer.getStatus();
+    return false;
+  }
+  if (!m_Slicer.computeSlice(m_SectionMeshes)) {
+    m_Status = m_Slicer.getStatus();
+    return false;
+  }
+  if (!m_Slicer.computeUnroll(m_SectionMeshes, m_SectionMeshes2D)) {
+    m_Status = m_Slicer.getStatus();
+    return false;
+  }
+  bool success = m_Slicer.computeField(m_SectionMeshes2D, m_ScalarField,
+                                       m_PathFields, m_WidthFields,
+                                       m_TrackFields);
   m_Status = m_Slicer.getStatus();
+  return success;
+}
+
+// Extracts m_PathFields/m_WidthFields/m_TrackFields into m_2DPrintPaths.
+ZSPACE_INLINE bool zTs3DP::computeExtraction() {
+  bool success = m_PrintSyn.extractTrackPaths(
+      m_ScalarField, m_PathFields, m_WidthFields, m_TrackFields,
+      m_2DPrintPaths);
+  m_Status = m_PrintSyn.getStatus();
   return success;
 }
 
 // Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn.
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
-  bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths,
-                                            m_Slicer.get2DSectionMeshes());
+  bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths, m_SectionMeshes2D);
   m_Status = m_PrintSyn.getStatus();
   return success;
 }
 
 // Projects m_2DPrintPaths back onto the 3D section meshes.
 ZSPACE_INLINE bool zTs3DP::computeProjection() {
-  bool success = m_Slicer.computeProjection(m_2DPrintPaths, m_3DPrintPaths);
-  m_Status = m_Slicer.getStatus();
+  bool success = m_PrintSyn.computeProjection(
+      m_2DPrintPaths, m_SectionMeshes2D, m_SectionMeshes, m_Slicer.getVScalar(),
+      m_Slicer.getSettings().LayerSpacing, m_3DPrintPaths);
+  m_Status = m_PrintSyn.getStatus();
   return success;
 }
 
@@ -90,9 +117,9 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
   std::vector<std::string> exportedFiles;
 
   // 1. 3D Section Meshes
-  if (!m_Slicer.getSectionMeshes().empty()) {
+  if (!m_SectionMeshes.empty()) {
     std::string path = dir + "/section_meshes.obj";
-    if (zTsUtils::exportMeshToOBJ(m_Slicer.getSectionMeshes(), path))
+    if (zTsUtils::exportMeshToOBJ(m_SectionMeshes, path))
       exportedFiles.push_back("section_meshes.obj");
   }
 
@@ -124,30 +151,26 @@ ZSPACE_INLINE bool zTs3DP::exportToOBJ(const std::string &directoryPath) {
   }
 
   // 5. 2D Colored Width Fields (Discrete grouped colors)
-  if (!m_Slicer.getWidthFields().empty() &&
-      zFnMesh(m_Slicer.getScalarField()).numVertices() > 0) {
-    const auto &widthFields = m_Slicer.getWidthFields();
-    std::vector<std::vector<zColor>> layerColors(widthFields.size());
-    for (size_t l = 0; l < widthFields.size(); l++)
-      zTsUtils::colorWidthField(widthFields[l], layerColors[l]);
+  if (!m_WidthFields.empty() && zFnMesh(m_ScalarField).numVertices() > 0) {
+    std::vector<std::vector<zColor>> layerColors(m_WidthFields.size());
+    for (size_t l = 0; l < m_WidthFields.size(); l++)
+      zTsUtils::colorWidthField(m_WidthFields[l], layerColors[l]);
 
     std::string path = dir + "/width_fields.obj";
-    if (zTsUtils::exportColoredMeshToOBJ(m_Slicer.getScalarField(), layerColors,
-                                         path, "width_field_layer_"))
+    if (zTsUtils::exportColoredMeshToOBJ(m_ScalarField, layerColors, path,
+                                         "width_field_layer_"))
       exportedFiles.push_back("width_fields.obj");
   }
 
   // 6. 2D Colored Path Fields
-  if (!m_Slicer.getPathFields().empty() &&
-      zFnMesh(m_Slicer.getScalarField()).numVertices() > 0) {
-    const auto &pathFields = m_Slicer.getPathFields();
-    std::vector<std::vector<zColor>> layerColors(pathFields.size());
-    for (size_t l = 0; l < pathFields.size(); l++)
-      zTsUtils::colorPathField(pathFields[l], layerColors[l]);
+  if (!m_PathFields.empty() && zFnMesh(m_ScalarField).numVertices() > 0) {
+    std::vector<std::vector<zColor>> layerColors(m_PathFields.size());
+    for (size_t l = 0; l < m_PathFields.size(); l++)
+      zTsUtils::colorPathField(m_PathFields[l], layerColors[l]);
 
     std::string path = dir + "/path_fields.obj";
-    if (zTsUtils::exportColoredMeshToOBJ(m_Slicer.getScalarField(), layerColors,
-                                         path, "path_field_layer_"))
+    if (zTsUtils::exportColoredMeshToOBJ(m_ScalarField, layerColors, path,
+                                         "path_field_layer_"))
       exportedFiles.push_back("path_fields.obj");
   }
 

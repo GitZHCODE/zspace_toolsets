@@ -196,8 +196,10 @@ bool _unrollMesh(zObjMesh &sourceMesh, const zIntPairArray &bsfHalfEdgePairs,
 //--------------------------
 
 // Computes the dual graph BSF order, then unrolls each layer's section mesh to 2D.
-ZSPACE_INLINE bool zSlicer::computeUnroll() {
-  sectionMeshes2D.clear();
+ZSPACE_INLINE bool
+zSlicer::computeUnroll(const zObjMeshArray &sectionMeshes,
+                       zObjMeshArray &outSectionMeshes2D) {
+  outSectionMeshes2D.clear();
   sectionGraphs2D.clear();
   bracingGraphs2D.clear();
 
@@ -209,8 +211,9 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
   }
 
   zIntPairArray bsfHalfEdgePairs;
-  if (zFnMesh(sectionMeshes[0]).numPolygons() > 1) {
-    if (!_computeDualGraph(sectionMeshes[0], bsfHalfEdgePairs)) {
+  if (zFnMesh(const_cast<zObjMesh &>(sectionMeshes[0])).numPolygons() > 1) {
+    if (!_computeDualGraph(const_cast<zObjMesh &>(sectionMeshes[0]),
+                           bsfHalfEdgePairs)) {
       m_Status = "failed: Could not compute dual graph for unroll.";
       printError("[computeUnroll] " + m_Status);
       return false;
@@ -219,7 +222,7 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
 
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
-  sectionMeshes2D.assign(totalLayers, zObjMesh());
+  outSectionMeshes2D.assign(totalLayers, zObjMesh());
   sectionGraphs2D.assign(totalLayers, zObjGraph());
   if (!m_BracingParams.empty()) {
     bracingGraphs2D.assign(totalLayers, zObjGraph());
@@ -227,9 +230,9 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
 
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
-    if (_unrollMesh(sectionMeshes[l], bsfHalfEdgePairs,
-                    sectionMeshes2D[l])) {
-      zFnMesh fnFlatMesh(sectionMeshes2D[l]);
+    if (_unrollMesh(const_cast<zObjMesh &>(sectionMeshes[l]), bsfHalfEdgePairs,
+                    outSectionMeshes2D[l])) {
+      zFnMesh fnFlatMesh(outSectionMeshes2D[l]);
       zPointArray flatMeshPos;
       fnFlatMesh.getVertexPositions(flatMeshPos);
 
@@ -246,7 +249,7 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
 
         if (!m_BracingParams.empty()) {
           realizeParameterGraph(
-              m_BracingParams, sectionMeshes2D[l], bracingGraphs2D[l]);
+              m_BracingParams, outSectionMeshes2D[l], bracingGraphs2D[l]);
         }
       }
     }
@@ -257,77 +260,10 @@ ZSPACE_INLINE bool zSlicer::computeUnroll() {
       std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
 
   std::ostringstream out;
-  out << "Computed unroll: " << sectionMeshes2D.size() << " layers in "
+  out << "Computed unroll: " << outSectionMeshes2D.size() << " layers in "
       << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
   m_Status = out.str();
   printSuccess("[computeUnroll] " + m_Status);
-  return true;
-}
-
-//--------------------------
-//---- PUBLIC METHODS: STEP 5 (PROJECT 2D PRINT PATHS BACK TO 3D)
-//--------------------------
-
-// Inverse of computeUnroll: maps (possibly post-processed) 2D paths back to
-// 3D. Each layer's inner/outer track PrintPaths are projected independently.
-ZSPACE_INLINE bool zSlicer::computeProjection(
-    const std::vector<std::vector<PrintPath>> &in2DPaths,
-    std::vector<std::vector<PrintPath>> &out3DPaths) {
-  const int totalLayers = int(in2DPaths.size());
-  if (totalLayers == 0 || sectionMeshes2D.empty() || sectionMeshes.empty()) {
-    m_Status = "failed: No 2D print paths or section meshes available for "
-               "projection.";
-    printError("[computeProjection] " + m_Status);
-    return false;
-  }
-
-  out3DPaths.assign(totalLayers, std::vector<PrintPath>());
-  for (int l = 0; l < totalLayers; l++) {
-    out3DPaths[l].assign(in2DPaths[l].size(), PrintPath());
-  }
-
-  zFloatArray meshVertexHeights;
-  if (!m_VScalar.empty() && totalLayers > 1) {
-    meshVertexHeights.resize(m_VScalar.size());
-    const float denom = float(totalLayers - 1);
-    for (size_t k = 0; k < m_VScalar.size(); k++) {
-      meshVertexHeights[k] = (!m_VScalar[k].empty())
-                                 ? float(m_VScalar[k].back() / denom)
-                                 : i_Settings.LayerSpacing;
-    }
-  }
-
-  int totalPaths = 0;
-  const auto wallStart = std::chrono::high_resolution_clock::now();
-
-#pragma omp parallel for schedule(dynamic)
-  for (int l = 0; l < totalLayers; l++) {
-    for (size_t r = 0; r < in2DPaths[l].size(); r++) {
-      out3DPaths[l][r].graph = in2DPaths[l][r].graph;
-      out3DPaths[l][r].widths = in2DPaths[l][r].widths;
-      out3DPaths[l][r].trackIds = in2DPaths[l][r].trackIds;
-
-      zFnGraph fnContour(out3DPaths[l][r].graph);
-      if (fnContour.numVertices() > 0 && l < int(sectionMeshes2D.size()) &&
-          l < int(sectionMeshes.size())) {
-        remapGraph(out3DPaths[l][r].graph, sectionMeshes2D[l], sectionMeshes[l],
-                   &out3DPaths[l][r].normals, &meshVertexHeights,
-                   &out3DPaths[l][r].heights);
-      }
-    }
-#pragma omp atomic
-    totalPaths += int(in2DPaths[l].size());
-  }
-
-  const auto wallEnd = std::chrono::high_resolution_clock::now();
-  const double wallTotalMs =
-      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
-
-  std::ostringstream out;
-  out << "Projected " << totalPaths << " 3D PrintPaths in " << std::fixed
-      << std::setprecision(2) << wallTotalMs << " ms";
-  m_Status = out.str();
-  printSuccess("[computeProjection] " + m_Status);
   return true;
 }
 

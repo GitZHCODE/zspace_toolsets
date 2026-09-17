@@ -1,15 +1,3 @@
-// This file is part of zspace, a simple C++ collection of geometry
-// data-structures & algorithms, data analysis & visualization framework.
-//
-// Copyright (C) 2019 ZSPACE
-//
-// This Source Code Form is subject to the terms of the MIT License
-// If a copy of the MIT License was not distributed with this file, You can
-// obtain one at https://opensource.org/licenses/MIT.
-//
-// Author : Vishu Bhooshan <vishu.bhooshan@zaha-hadid.com>
-//
-
 #ifndef EIGEN_DONT_PARALLELIZE
 #define EIGEN_DONT_PARALLELIZE
 #endif
@@ -90,7 +78,8 @@ bool _getUVStart(zObjMesh &mesh, int startVID, zItMeshHalfEdge &heUStart,
   return numSegments > 0;
 }
 
-// Boundary loop extraction, in-place vertex alignment, and corner split detection
+// Boundary loop extraction, in-place vertex alignment, and corner split
+// detection
 void _createBoundaryEdgeGraph(zObjMesh &mesh, zObjGraph &outGraph,
                               std::vector<int> &outOldVertexIds,
                               int startVertexId = 0, bool topoSplit = true,
@@ -137,8 +126,8 @@ void _createBoundaryEdgeGraph(zObjMesh &mesh, zObjGraph &outGraph,
   double signedArea = 0.0;
   for (int i = 0; i < N; i++) {
     int nxt = (i + 1) % N;
-    signedArea += (positions[i].x * positions[nxt].y -
-                   positions[nxt].x * positions[i].y);
+    signedArea +=
+        (positions[i].x * positions[nxt].y - positions[nxt].x * positions[i].y);
   }
   if (signedArea < 0.0) {
     std::reverse(positions.begin() + 1, positions.end());
@@ -332,23 +321,19 @@ bool _walkUVLoop(zObjMesh &mesh, zItMeshHalfEdge heUStart,
 //---- PUBLIC METHODS: STEP 1 (3D SLICING)
 //--------------------------
 
-// Extracts corner UV start, U-mesh, U-loop, V-loops, and bracing parameterization.
+// Extracts corner UV start, U-mesh, U-loop, V-loops, and bracing
+// parameterization.
 ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
   m_VLoops.clear();
   m_VScalar.clear();
-  sectionMeshes.clear();
   sectionGraphs.clear();
   bracingGraphs.clear();
-  sectionMeshes2D.clear();
   sectionGraphs2D.clear();
   bracingGraphs2D.clear();
-  pathFields.clear();
-  widthFields.clear();
   trimSlotGraphs2D.clear();
   m_BracingParams.clear();
   zFnMesh(m_UMesh).clear();
   zFnGraph(m_ULoop).clear();
-  zFnMeshScalarField(m_ScalarField).clear();
 
   if (!i_InputMesh) {
     m_Status = "failed: i_InputMesh is null.";
@@ -380,8 +365,8 @@ ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
 
   if (!_walkUVLoop(*i_InputMesh, heUStart, heVStart, numSegments,
                    i_Settings.TopoSplit, i_Settings.AngleSplit,
-                   i_Settings.AngleSplitTol, m_UMesh, m_ULoop,
-                   m_VLoops, m_VScalar, m_BoundarySplitIndices)) {
+                   i_Settings.AngleSplitTol, m_UMesh, m_ULoop, m_VLoops,
+                   m_VScalar, m_BoundarySplitIndices)) {
     m_VLoops.clear();
     m_VScalar.clear();
     m_BoundarySplitIndices.clear();
@@ -401,8 +386,8 @@ ZSPACE_INLINE bool zSlicer::computeBasicStructure() {
 }
 
 // Interpolates layer section meshes/boundaries/bracing along the V-loops.
-ZSPACE_INLINE bool zSlicer::computeSlice() {
-  sectionMeshes.clear();
+ZSPACE_INLINE bool zSlicer::computeSlice(zObjMeshArray &outSectionMeshes) {
+  outSectionMeshes.clear();
   sectionGraphs.clear();
   bracingGraphs.clear();
 
@@ -422,7 +407,7 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
 
   if (minLoopLength == (std::numeric_limits<float>::max)() ||
       minLoopLength <= 1e-6f) {
-    sectionMeshes.clear();
+    outSectionMeshes.clear();
     m_Status = "failed: V-loops length is zero or invalid.";
     printError("[computeSlice] " + m_Status);
     return false;
@@ -434,8 +419,9 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
 
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
-  // 1. Interpolate 3D section mesh, extract boundaries, and reconstruct bracing in parallel
-  sectionMeshes.assign(totalLayers, m_UMesh);
+  // 1. Interpolate 3D section mesh, extract boundaries, and reconstruct bracing
+  // in parallel
+  outSectionMeshes.assign(totalLayers, m_UMesh);
   sectionGraphs.assign(totalLayers, zObjGraph());
   if (!m_BracingParams.empty()) {
     bracingGraphs.assign(totalLayers, zObjGraph());
@@ -444,7 +430,7 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
 #pragma omp parallel for schedule(dynamic)
   for (int l = 0; l < totalLayers; l++) {
     const double ratio = double(l) / (totalLayers - 1);
-    zFnMesh fnMesh(sectionMeshes[l]);
+    zFnMesh fnMesh(outSectionMeshes[l]);
     zPoint *points = fnMesh.getRawVertexPositions();
     if (points) {
       for (size_t i = 0; i < m_VLoops.size() && i < m_VScalar.size() &&
@@ -455,12 +441,12 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
     }
 
     std::vector<int> secOldVertexIds;
-    _createBoundaryEdgeGraph(sectionMeshes[l], sectionGraphs[l],
+    _createBoundaryEdgeGraph(outSectionMeshes[l], sectionGraphs[l],
                              secOldVertexIds, 0);
 
     if (!m_BracingParams.empty()) {
-      realizeParameterGraph(
-          m_BracingParams, sectionMeshes[l], bracingGraphs[l]);
+      realizeParameterGraph(m_BracingParams, outSectionMeshes[l],
+                            bracingGraphs[l]);
     }
   }
 
@@ -470,7 +456,7 @@ ZSPACE_INLINE bool zSlicer::computeSlice() {
 
   std::ostringstream out;
   out << "Computed slices: V-loops=" << m_VLoops.size()
-      << " sectionMeshes=" << sectionMeshes.size() << " in " << std::fixed
+      << " sectionMeshes=" << outSectionMeshes.size() << " in " << std::fixed
       << std::setprecision(2) << wallTotalMs << " ms";
   m_Status = out.str();
   printSuccess("[computeSlice] " + m_Status);
