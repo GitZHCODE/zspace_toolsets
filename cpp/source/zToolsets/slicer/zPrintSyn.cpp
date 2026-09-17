@@ -927,56 +927,6 @@ void _extractTrackPaths(const zPointArray &rawPositions,
   outPaths.push_back(p);
 }
 
-} // anonymous namespace
-
-//--------------------------
-//---- PUBLIC METHODS
-//--------------------------
-
-// Runs resamplePrintPath -> filterGlitches -> orientLayer on every layer's
-// inner/outer track paths (in parallel per layer), then
-// alignLayerStartPoints across all layers using sectionMeshes2D.
-ZSPACE_INLINE bool
-zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
-                           const zObjMeshArray &sectionMeshes2D) {
-  const int totalLayers = int(ioPaths.size());
-  if (totalLayers == 0) {
-    m_Status = "failed: No print paths available.";
-    printError("[zPrintSyn] " + m_Status);
-    return false;
-  }
-
-  const auto wallStart = std::chrono::high_resolution_clock::now();
-  int totalPaths = 0;
-
-#pragma omp parallel for schedule(dynamic)
-  for (int l = 0; l < totalLayers; l++) {
-    for (auto &path : ioPaths[l]) {
-      if (resamplePrintPath(path)) {
-        filterGlitches(path);
-      }
-    }
-    orientLayer(ioPaths[l], true);
-#pragma omp atomic
-    totalPaths += int(ioPaths[l].size());
-  }
-
-  alignLayerStartPoints(ioPaths, sectionMeshes2D, i_Settings.SeamOffset,
-                        i_Settings.SeamSize);
-
-  const auto wallEnd = std::chrono::high_resolution_clock::now();
-  const double wallTotalMs =
-      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
-
-  std::ostringstream out;
-  out << "Post-processed " << totalPaths << " print paths in " << std::fixed
-      << std::setprecision(2) << wallTotalMs
-      << " ms (sampleLen=" << i_Settings.ResampleLength << "mm)";
-  m_Status = out.str();
-  printSuccess("[zPrintSyn] " + m_Status);
-  return true;
-}
-
 // Fixed-spacing arc-length resample of ioPath.graph, carrying
 // widths/heights/normals along. The sampling phase resets at each
 // preserved feature/corner vertex (and at the open path's true endpoint)
@@ -985,11 +935,10 @@ zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
 // sampleLength apart regardless of the input's original vertex spacing
 // (unlike a simple "subdivide long segments" pass, this can also make
 // an already-dense input coarser).
-ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
+bool _resamplePrintPath(PrintPath &ioPath, float sampleLength,
+                        float featureAngleTol) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
-  const float sampleLength =
-      (i_Settings.ResampleLength > 1e-4f) ? i_Settings.ResampleLength : 0.005f;
   if (N < 2 || sampleLength <= 1e-6f)
     return false;
 
@@ -1003,8 +952,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
     sequence[i] = i;
 
   std::vector<int> featureFlags;
-  _detectFeatureAngles(positions, sequence, i_Settings.FeatureAngleTol,
-                       featureFlags);
+  _detectFeatureAngles(positions, sequence, featureAngleTol, featureFlags);
 
   const zFloatArray &weights = ioPath.widths;
   const zFloatArray &heights = ioPath.heights;
@@ -1157,7 +1105,7 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPath(PrintPath &ioPath) {
 }
 
 // Smooths localized width glitches (isolated spikes/dips) in ioPath.widths.
-ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
+void _filterGlitches(PrintPath &ioPath) {
   const bool closed = isClosedGraph(ioPath.graph);
   zFloatArray &widths = ioPath.widths;
   const int n = static_cast<int>(widths.size());
@@ -1184,8 +1132,7 @@ ZSPACE_INLINE void zPrintSyn::filterGlitches(PrintPath &ioPath) {
 // Orients one layer's ring path in place - CCW if ccw is true, CW if false
 // (extraction already produces at most one ring per layer, already
 // inner-before-outer ordered).
-ZSPACE_INLINE bool zPrintSyn::orientLayer(std::vector<PrintPath> &ringPaths,
-                                          bool ccw) {
+bool _orientLayer(std::vector<PrintPath> &ringPaths, bool ccw) {
   if (ringPaths.empty())
     return false;
 
@@ -1202,25 +1149,130 @@ ZSPACE_INLINE bool zPrintSyn::orientLayer(std::vector<PrintPath> &ringPaths,
   return true;
 }
 
-// Aligns every layer's ring start point to the same barycentric point on
-// the underlying mesh, constrained to the inner track. Seeds from the
-// first usable layer by walking seamOffset from its extracted start along
-// the inner segment (clamped so it can't cross into outer), parameterizes
-// that point against the seed layer's 2D section mesh, then realizes the
-// same parametric point on every other layer's mesh and rotates that
-// layer's ring to start at its nearest inner-segment point - no further
-// offset there, just the nearest match - tracking the same physical spot
-// on the model rather than a fixed 2D region, so it stays close
-// layer-to-layer even through taper/twist. Finally cuts every ring open
-// at its (now aligned) start via _cutGapBeforeStart(seamSize), so each
-// layer ends as an open chain ready for chainLayersIntoOnePath.
-ZSPACE_INLINE bool
-zPrintSyn::alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
-                                 const zObjMeshArray &sectionMeshes2D,
-                                 double seamOffset, double seamSize) {
-  const int totalLayers = int(ioPaths.size());
-  if (totalLayers == 0 || int(sectionMeshes2D.size()) < totalLayers)
+} // anonymous namespace
+
+//--------------------------
+//---- PUBLIC METHODS
+//--------------------------
+
+// Step 1: extracts each layer's isocontour into a single oriented,
+// inner-before-outer PrintPath per layer. Parallel across layers
+// internally.
+ZSPACE_INLINE bool zPrintSyn::extractPrintPaths(
+    zObjMeshScalarField &scalarField,
+    const std::vector<zScalarArray> &pathFields,
+    const std::vector<zScalarArray> &widthFields,
+    const std::vector<zScalarArray> &trackFields,
+    std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
+  const int totalLayers = int(pathFields.size());
+  if (totalLayers == 0 || widthFields.size() != size_t(totalLayers) ||
+      trackFields.size() != size_t(totalLayers)) {
+    m_Status = "failed: mismatched or empty field arrays.";
+    printError("[zPrintSyn::extractPrintPaths] " + m_Status);
     return false;
+  }
+
+  outPrintPaths2D.assign(totalLayers, std::vector<PrintPath>());
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+
+#pragma omp parallel
+  {
+    zObjMeshScalarField localField = scalarField;
+
+#pragma omp for schedule(dynamic)
+    for (int l = 0; l < totalLayers; l++) {
+      zPointArray rawPositions;
+      zIntArray rawEdges;
+      zFloatArray rawWidths;
+      zFloatArray rawTrackIds;
+      _extractRawIsoContour(localField, pathFields[l], widthFields[l],
+                            trackFields[l], rawPositions, rawEdges, rawWidths,
+                            rawTrackIds);
+      _extractTrackPaths(rawPositions, rawEdges, rawWidths, rawTrackIds, 0.08,
+                         1.0, outPrintPaths2D[l]);
+    }
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Extracted track paths for " << totalLayers << " layers in "
+      << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
+  m_Status = out.str();
+  printSuccess("[zPrintSyn::extractPrintPaths] " + m_Status);
+  return true;
+}
+
+// Step 2: runs _resamplePrintPath -> _filterGlitches on every layer's
+// paths (in parallel per layer), then forces each layer's ring CCW via
+// _orientLayer.
+ZSPACE_INLINE bool
+zPrintSyn::resamplePrintPath(std::vector<std::vector<PrintPath>> &ioPaths) {
+  const int totalLayers = int(ioPaths.size());
+  if (totalLayers == 0) {
+    m_Status = "failed: No print paths available.";
+    printError("[zPrintSyn::resamplePrintPath] " + m_Status);
+    return false;
+  }
+
+  const float sampleLength =
+      (i_Settings.ResampleLength > 1e-4f) ? i_Settings.ResampleLength : 0.005f;
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+  int totalPaths = 0;
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    for (auto &path : ioPaths[l]) {
+      if (_resamplePrintPath(path, sampleLength, i_Settings.FeatureAngleTol)) {
+        _filterGlitches(path);
+      }
+    }
+    _orientLayer(ioPaths[l], true);
+#pragma omp atomic
+    totalPaths += int(ioPaths[l].size());
+  }
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Resampled " << totalPaths << " print paths in " << std::fixed
+      << std::setprecision(2) << wallTotalMs
+      << " ms (sampleLen=" << sampleLength << "mm)";
+  m_Status = out.str();
+  printSuccess("[zPrintSyn::resamplePrintPath] " + m_Status);
+  return true;
+}
+
+// Step 3: aligns every layer's ring start point to the same barycentric
+// point on the underlying mesh, constrained to the inner track. Seeds from
+// the first usable layer by walking i_Settings.SeamOffset from its
+// extracted start along the inner segment (clamped so it can't cross into
+// outer), parameterizes that point against the seed layer's 2D section
+// mesh, then realizes the same parametric point on every other layer's
+// mesh and rotates that layer's ring to start at its nearest inner-segment
+// point - no further offset there, just the nearest match - tracking the
+// same physical spot on the model rather than a fixed 2D region, so it
+// stays close layer-to-layer even through taper/twist. Finally cuts every
+// ring open at its (now aligned) start via
+// _cutGapBeforeStart(i_Settings.SeamSize), so each layer ends as an open
+// chain ready for linkPrintPath.
+ZSPACE_INLINE bool
+zPrintSyn::alignStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
+                            const zObjMeshArray &sectionMeshes2D) {
+  const double seamOffset = i_Settings.SeamOffset;
+  const double seamSize = i_Settings.SeamSize;
+  const int totalLayers = int(ioPaths.size());
+  if (totalLayers == 0 || int(sectionMeshes2D.size()) < totalLayers) {
+    m_Status = "failed: No print paths or mismatched section meshes.";
+    printError("[zPrintSyn::alignStartPoints] " + m_Status);
+    return false;
+  }
 
   int seedLayer = -1;
   for (int l = 0; l < totalLayers; l++) {
@@ -1322,14 +1374,26 @@ zPrintSyn::alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
     _cutGapBeforeStart(ioPaths[l][0], seamSize);
   }
 
-  return alignedCount > 0;
+  if (alignedCount == 0) {
+    m_Status = "failed: No layers could be aligned.";
+    printError("[zPrintSyn::alignStartPoints] " + m_Status);
+    return false;
+  }
+
+  std::ostringstream out;
+  out << "Aligned start points for " << alignedCount << " of " << totalLayers
+      << " layers";
+  m_Status = out.str();
+  printSuccess("[zPrintSyn::alignStartPoints] " + m_Status);
+  return true;
 }
 
-// Concatenates every layer's single (post-alignLayerStartPoints, open)
+// Step 5: concatenates every layer's single (post-alignStartPoints, open)
 // PrintPath end-to-start into one continuous bottom-to-top PrintPath.
 // Simple sequential concatenation already connects each layer's last
 // point to the next layer's first point via the edge between them.
-ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
+// Sequential (order-dependent), no internal parallelism.
+ZSPACE_INLINE bool zPrintSyn::linkPrintPath(
     const std::vector<std::vector<PrintPath>> &layeredPaths,
     PrintPath &outCombined) {
   outCombined = PrintPath();
@@ -1356,7 +1420,7 @@ ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
     if (ringPaths.empty())
       continue;
     const PrintPath &layerPath = ringPaths[0]; // one path per layer, post
-                                               // alignLayerStartPoints
+                                               // alignStartPoints
 
     zFnGraph fnGraph(const_cast<zObjGraph &>(layerPath.graph));
     zPointArray positions;
@@ -1413,65 +1477,27 @@ ZSPACE_INLINE bool zPrintSyn::chainLayersIntoOnePath(
     outCombined.normals = combinedNormals;
   if (hasTrackIds)
     outCombined.trackIds = combinedTrackIds;
-  return true;
-}
-
-ZSPACE_INLINE bool zPrintSyn::extractTrackPaths(
-    zObjMeshScalarField &scalarField,
-    const std::vector<zScalarArray> &pathFields,
-    const std::vector<zScalarArray> &widthFields,
-    const std::vector<zScalarArray> &trackFields,
-    std::vector<std::vector<PrintPath>> &outPrintPaths2D) {
-  const int totalLayers = int(pathFields.size());
-  if (totalLayers == 0 || widthFields.size() != size_t(totalLayers) ||
-      trackFields.size() != size_t(totalLayers)) {
-    zTsUtils::printError("[zPrintSyn::extractTrackPaths] failed: mismatched "
-                         "or empty field arrays.");
-    return false;
-  }
-
-  outPrintPaths2D.assign(totalLayers, std::vector<PrintPath>());
-
-  const auto wallStart = std::chrono::high_resolution_clock::now();
-
-#pragma omp parallel
-  {
-    zObjMeshScalarField localField = scalarField;
-
-#pragma omp for schedule(dynamic)
-    for (int l = 0; l < totalLayers; l++) {
-      zPointArray rawPositions;
-      zIntArray rawEdges;
-      zFloatArray rawWidths;
-      zFloatArray rawTrackIds;
-      _extractRawIsoContour(localField, pathFields[l], widthFields[l],
-                            trackFields[l], rawPositions, rawEdges, rawWidths,
-                            rawTrackIds);
-      _extractTrackPaths(rawPositions, rawEdges, rawWidths, rawTrackIds, 0.08,
-                         1.0, outPrintPaths2D[l]);
-    }
-  }
-
-  const auto wallEnd = std::chrono::high_resolution_clock::now();
-  const double wallTotalMs =
-      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
 
   std::ostringstream out;
-  out << "Extracted track paths for " << totalLayers << " layers in "
-      << std::fixed << std::setprecision(2) << wallTotalMs << " ms";
-  zTsUtils::printSuccess("[zPrintSyn::extractTrackPaths] " + out.str());
+  out << "Linked " << layeredPaths.size() << " layers into one print path ("
+      << total << " points)";
+  m_Status = out.str();
+  printSuccess("[zPrintSyn::linkPrintPath] " + m_Status);
   return true;
 }
 
-ZSPACE_INLINE bool zPrintSyn::computeProjection(
+// Step 4: projects 2D PrintPaths back onto the 3D section meshes.
+// Parallel across layers internally.
+ZSPACE_INLINE bool zPrintSyn::projectPrintPath(
     const std::vector<std::vector<PrintPath>> &in2DPaths,
     const zObjMeshArray &sectionMeshes2D, const zObjMeshArray &sectionMeshes,
     const std::vector<zScalarArray> &vScalar, float layerSpacing,
     std::vector<std::vector<PrintPath>> &out3DPaths) {
   const int totalLayers = int(in2DPaths.size());
   if (totalLayers == 0 || sectionMeshes2D.empty() || sectionMeshes.empty()) {
-    zTsUtils::printError("[zPrintSyn::computeProjection] failed: No 2D print "
-                         "paths or section meshes available for projection.");
+    m_Status = "failed: No 2D print paths or section meshes available for "
+              "projection.";
+    printError("[zPrintSyn::projectPrintPath] " + m_Status);
     return false;
   }
 
@@ -1521,7 +1547,8 @@ ZSPACE_INLINE bool zPrintSyn::computeProjection(
   std::ostringstream out;
   out << "Projected " << totalPaths << " 3D PrintPaths in " << std::fixed
       << std::setprecision(2) << wallTotalMs << " ms";
-  zTsUtils::printSuccess("[zPrintSyn::computeProjection] " + out.str());
+  m_Status = out.str();
+  printSuccess("[zPrintSyn::projectPrintPath] " + m_Status);
   return true;
 }
 

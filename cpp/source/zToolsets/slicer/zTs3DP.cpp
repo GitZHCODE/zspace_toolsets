@@ -32,8 +32,7 @@ namespace zSpace {
 //--------------------------
 
 // Runs m_Slicer's geometry pipeline (basic structure -> slice -> unroll ->
-// field), stopping at field computation - no isocontour extraction here
-// (see computeExtraction).
+// field).
 ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   m_2DPrintPaths.clear();
   m_3DPrintPaths.clear();
@@ -57,43 +56,33 @@ ZSPACE_INLINE bool zTs3DP::computeSlicer() {
   return success;
 }
 
-// Extracts m_PathFields/m_WidthFields/m_TrackFields into m_2DPrintPaths.
-ZSPACE_INLINE bool zTs3DP::computeExtraction() {
-  bool success = m_PrintSyn.extractTrackPaths(
-      m_ScalarField, m_PathFields, m_WidthFields, m_TrackFields,
-      m_2DPrintPaths);
-  m_Status = m_PrintSyn.getStatus();
-  return success;
-}
-
-// Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn.
+// Runs m_PrintSyn's full toolpath pipeline (extractPrintPaths ->
+// resamplePrintPath -> alignStartPoints -> projectPrintPath ->
+// linkPrintPath) over the slicer's field outputs.
 ZSPACE_INLINE bool zTs3DP::computePrintSyn() {
-  bool success = m_PrintSyn.computePrintSyn(m_2DPrintPaths, m_SectionMeshes2D);
-  m_Status = m_PrintSyn.getStatus();
-  return success;
-}
-
-// Projects m_2DPrintPaths back onto the 3D section meshes.
-ZSPACE_INLINE bool zTs3DP::computeProjection() {
-  bool success = m_PrintSyn.computeProjection(
-      m_2DPrintPaths, m_SectionMeshes2D, m_SectionMeshes, m_Slicer.getVScalar(),
-      m_Slicer.getSettings().LayerSpacing, m_3DPrintPaths);
-  m_Status = m_PrintSyn.getStatus();
-  return success;
-}
-
-// Chains every layer's single 3D ring end-to-start into one continuous
-// path.
-ZSPACE_INLINE bool zTs3DP::computeChainedPath() {
-  bool success =
-      m_PrintSyn.chainLayersIntoOnePath(m_3DPrintPaths, m_ResultantPrintPath);
-  if (success) {
-    m_Status = "Chained all layers into one continuous print path.";
-    zTsUtils::printSuccess("[zTs3DP::computeChainedPath] " + m_Status);
-  } else {
-    m_Status = "failed: Could not chain layers into one path.";
-    zTsUtils::printError("[zTs3DP::computeChainedPath] " + m_Status);
+  if (!m_PrintSyn.extractPrintPaths(m_ScalarField, m_PathFields, m_WidthFields,
+                                    m_TrackFields, m_2DPrintPaths)) {
+    m_Status = m_PrintSyn.getStatus();
+    return false;
   }
+  if (!m_PrintSyn.resamplePrintPath(m_2DPrintPaths)) {
+    m_Status = m_PrintSyn.getStatus();
+    return false;
+  }
+  if (!m_PrintSyn.alignStartPoints(m_2DPrintPaths, m_SectionMeshes2D)) {
+    m_Status = m_PrintSyn.getStatus();
+    return false;
+  }
+  if (!m_PrintSyn.projectPrintPath(
+          m_2DPrintPaths, m_SectionMeshes2D, m_SectionMeshes,
+          m_Slicer.getVScalar(), m_Slicer.getSettings().LayerSpacing,
+          m_3DPrintPaths)) {
+    m_Status = m_PrintSyn.getStatus();
+    return false;
+  }
+  bool success =
+      m_PrintSyn.linkPrintPath(m_3DPrintPaths, m_ResultantPrintPath);
+  m_Status = m_PrintSyn.getStatus();
   return success;
 }
 

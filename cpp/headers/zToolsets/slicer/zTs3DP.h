@@ -50,9 +50,6 @@ protected:
   std::vector<std::vector<PrintPath>> m_3DPrintPaths;
   PrintPath m_ResultantPrintPath;
 
-  // Data shared between m_Slicer's field computation and m_PrintSyn's
-  // extraction/projection steps - owned here instead of by zSlicer, so the
-  // two classes' steps don't need to reach into each other.
   zObjMeshArray m_SectionMeshes;
   zObjMeshArray m_SectionMeshes2D;
   zObjMeshScalarField m_ScalarField;
@@ -93,39 +90,21 @@ public:
 
   /*! \brief Runs m_Slicer's geometry pipeline (basic structure -> slice ->
    * unroll -> field), producing m_SectionMeshes/m_SectionMeshes2D/
-   * m_ScalarField/m_PathFields/m_WidthFields/m_TrackFields. Stops at field
-   * computation - no isocontour extraction (see computeExtraction). */
+   * m_ScalarField/m_PathFields/m_WidthFields/m_TrackFields. */
   bool computeSlicer();
 
-  /*! \brief Extracts m_PathFields/m_WidthFields/m_TrackFields into
-   * m_2DPrintPaths via m_PrintSyn::extractTrackPaths. Call after
+  /*! \brief Runs m_PrintSyn's full toolpath pipeline (extractPrintPaths ->
+   * resamplePrintPath -> alignStartPoints -> projectPrintPath ->
+   * linkPrintPath) over the slicer's field outputs, producing
+   * m_2DPrintPaths/m_3DPrintPaths/m_ResultantPrintPath. Call after
    * computeSlicer. */
-  bool computeExtraction();
-
-  /*! \brief Cleans up/resamples m_2DPrintPaths in place via m_PrintSyn. */
   bool computePrintSyn();
 
-  /*! \brief Projects m_2DPrintPaths back onto the 3D section meshes, producing
-   * m_3DPrintPaths. */
-  bool computeProjection();
-
-  /*! \brief Chains every layer's single 3D ring end-to-start into one
-   * continuous path, producing m_ResultantPrintPath. Call after
-   * computeProjection. */
-  bool computeChainedPath();
-
-  /*! \brief Runs computeSlicer -> computeExtraction -> computePrintSyn ->
-   * computeProjection -> computeChainedPath. */
+  /*! \brief Runs computeSlicer -> computePrintSyn. */
   bool computePipeline() {
     if (!computeSlicer())
       return false;
-    if (!computeExtraction())
-      return false;
     if (!computePrintSyn())
-      return false;
-    if (!computeProjection())
-      return false;
-    if (!computeChainedPath())
       return false;
     return true;
   }

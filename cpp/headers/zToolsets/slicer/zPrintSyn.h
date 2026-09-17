@@ -56,63 +56,55 @@ public:
 
   const std::string &getStatus() const { return m_Status; }
 
-  /*! \brief Runs resamplePrintPath -> filterGlitches -> orientLayer on every
-   * layer's inner/outer track paths (in parallel per layer), then
-   * alignLayerStartPoints across all layers using sectionMeshes2D. */
-  bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
-                       const zObjMeshArray &sectionMeshes2D);
+  //--------------------------
+  //---- PIPELINE STEPS (public) - everything else is a private helper
+  //--------------------------
 
-  /*! \brief Step 1: arc-length resamples ioPath.graph, carrying
-   * widths/heights/normals along. */
-  bool resamplePrintPath(PrintPath &ioPath);
+  /*! \brief Step 1: extracts each layer's isocontour (marching triangles on
+   * scalarField, tagged by pathFields/widthFields/trackFields) into a single
+   * oriented, inner-before-outer, CCW closed-loop PrintPath per layer.
+   * Parallel across layers internally. */
+  bool extractPrintPaths(zObjMeshScalarField &scalarField,
+                        const std::vector<zScalarArray> &pathFields,
+                        const std::vector<zScalarArray> &widthFields,
+                        const std::vector<zScalarArray> &trackFields,
+                        std::vector<std::vector<PrintPath>> &outPrintPaths2D);
 
-  /*! \brief Step 2: filters localized width glitches in ioPath.widths. */
-  static void filterGlitches(PrintPath &ioPath);
+  /*! \brief Step 2: arc-length resamples every layer's ring (carrying
+   * widths/heights/normals/trackIds along), smooths localized width
+   * glitches, then forces the ring CCW. Parallel across layers internally. */
+  bool resamplePrintPath(std::vector<std::vector<PrintPath>> &ioPaths);
 
-  /*! \brief Step 3: orients one layer's ring path in place - counter-
-   * clockwise if ccw is true, clockwise if false (extraction already
-   * produces at most one ring per layer, already inner-before-outer
-   * ordered). */
-  static bool orientLayer(std::vector<PrintPath> &ringPaths, bool ccw);
-
-  /*! \brief Step 4: aligns every layer's ring start point to the same
+  /*! \brief Step 3: aligns every layer's ring start point to the same
    * barycentric point on the underlying mesh (tracks the model through
    * taper/twist), constrained to the inner track, then cuts each ring open -
-   * walking backward seamSize from the new start to find the new end point,
+   * walking backward SeamSize from the new start to find the new end point,
    * leaving that gap open between them. Seeds from the first usable layer by
-   * walking seamOffset from its extracted start along the inner segment; every
-   * other layer's start is just the nearest-inner-point match to that seed, no
-   * further offset. */
-  static bool
-  alignLayerStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
-                        const zObjMeshArray &sectionMeshes2D, double seamOffset,
-                        double seamSize);
+   * walking SeamOffset from its extracted start along the inner segment;
+   * every other layer's start is just the nearest-inner-point match to that
+   * seed, no further offset. Parallel across layers internally (after a
+   * short sequential seed step). */
+  bool alignStartPoints(std::vector<std::vector<PrintPath>> &ioPaths,
+                       const zObjMeshArray &sectionMeshes2D);
 
-  /*! \brief Concatenates every layer's single ring PrintPath end-to-start into
-   * one continuous bottom-to-top PrintPath, connecting each layer's last point
-   * to the next layer's first point. Call after computeProjection (3D
-   * paths), once alignLayerStartPoints has opened each layer's ring at its
-   * start. */
-  static bool chainLayersIntoOnePath(
-      const std::vector<std::vector<PrintPath>> &layeredPaths,
-      PrintPath &outCombined);
+  /*! \brief Step 4: projects 2D PrintPaths back onto the 3D section meshes.
+   * vScalar/layerSpacing come from zSlicer (getVScalar()/
+   * getSettings().LayerSpacing) - the only zSlicer-owned inputs this step
+   * needs. Parallel across layers internally. */
+  bool projectPrintPath(const std::vector<std::vector<PrintPath>> &in2DPaths,
+                       const zObjMeshArray &sectionMeshes2D,
+                       const zObjMeshArray &sectionMeshes,
+                       const std::vector<zScalarArray> &vScalar,
+                       float layerSpacing,
+                       std::vector<std::vector<PrintPath>> &out3DPaths);
 
-  /*! \brief Extracts each layer's isocontour (marching triangles on scalarField, tagged by pathFields/widthFields/trackFields) into a single oriented, inner-before-outer, CCW closed-loop PrintPath per layer - moved here from zSlicer::computeField so zSlicer stops at field computation and all downstream toolpath-synthesis steps live on zPrintSyn. */
-  static bool
-  extractTrackPaths(zObjMeshScalarField &scalarField,
-                    const std::vector<zScalarArray> &pathFields,
-                    const std::vector<zScalarArray> &widthFields,
-                    const std::vector<zScalarArray> &trackFields,
-                    std::vector<std::vector<PrintPath>> &outPrintPaths2D);
-
-  /*! \brief Projects 2D PrintPaths back onto the 3D section meshes (moved here from zSlicer::computeProjection). vScalar/layerSpacing come from zSlicer (getVScalar()/getSettings().LayerSpacing) - the only zSlicer-owned inputs this step still needs. */
-  static bool
-  computeProjection(const std::vector<std::vector<PrintPath>> &in2DPaths,
-                    const zObjMeshArray &sectionMeshes2D,
-                    const zObjMeshArray &sectionMeshes,
-                    const std::vector<zScalarArray> &vScalar,
-                    float layerSpacing,
-                    std::vector<std::vector<PrintPath>> &out3DPaths);
+  /*! \brief Step 5: concatenates every layer's single (open, post-
+   * alignStartPoints) ring PrintPath end-to-start into one continuous
+   * bottom-to-top PrintPath, connecting each layer's last point to the next
+   * layer's first point. Sequential (order-dependent), no internal
+   * parallelism. */
+  bool linkPrintPath(const std::vector<std::vector<PrintPath>> &layeredPaths,
+                    PrintPath &outCombined);
 };
 
 /** @}*/
