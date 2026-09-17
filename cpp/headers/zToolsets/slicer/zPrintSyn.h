@@ -14,14 +14,8 @@
 #include <zspace/zInterface/objects/zObjMesh.h>
 #include <zspace/zInterface/objects/zObjMeshField.h>
 
-#include <chrono>
-#include <iomanip>
-#include <sstream>
 #include <string>
 #include <vector>
-#if defined(_OPENMP)
-#include <omp.h>
-#endif
 
 namespace zSpace {
 
@@ -67,44 +61,7 @@ public:
    * per layer), then alignLayerStartPoints across all layers using
    * sectionMeshes2D. */
   bool computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
-                       const zObjMeshArray &sectionMeshes2D) {
-    const int totalLayers = int(ioPaths.size());
-    if (totalLayers == 0) {
-      m_Status = "failed: No print paths available.";
-      zTsUtils::printError("[zPrintSyn] " + m_Status);
-      return false;
-    }
-
-    const auto wallStart = std::chrono::high_resolution_clock::now();
-    int totalPaths = 0;
-
-#pragma omp parallel for schedule(dynamic)
-    for (int l = 0; l < totalLayers; l++) {
-      for (auto &path : ioPaths[l]) {
-        if (buildSequencePrintPath(path) && resamplePrintPath(path)) {
-          filterGlitches(path);
-        }
-      }
-      orientAndWeldLayer(ioPaths[l]);
-#pragma omp atomic
-      totalPaths += int(ioPaths[l].size());
-    }
-
-    alignLayerStartPoints(ioPaths, sectionMeshes2D, i_Settings.SeamOffset,
-                          i_Settings.SeamSize);
-
-    const auto wallEnd = std::chrono::high_resolution_clock::now();
-    const double wallTotalMs =
-        std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
-
-    std::ostringstream out;
-    out << "Post-processed " << totalPaths << " print paths in " << std::fixed
-        << std::setprecision(2) << wallTotalMs
-        << " ms (sampleLen=" << i_Settings.ResampleLength << "mm)";
-    m_Status = out.str();
-    zTsUtils::printSuccess("[zPrintSyn] " + m_Status);
-    return true;
-  }
+                       const zObjMeshArray &sectionMeshes2D);
 
   /*! \brief Step 1: directly rebuilds ioPath.graph from its existing vertex
    * order (already cleaned/split/ordered upstream during extraction). */

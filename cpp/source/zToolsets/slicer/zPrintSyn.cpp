@@ -892,13 +892,10 @@ void _extractTrackPaths(const zPointArray &rawPositions,
     std::vector<int> &mainRing = closedLoops[mainIdx];
     const int m = static_cast<int>(mainRing.size());
 
-    double area = 0.0;
-    for (int i = 0; i < m; i++) {
-      const zPoint &p0 = rawPositions[mainRing[i]];
-      const zPoint &p1 = rawPositions[mainRing[(i + 1) % m]];
-      area += (p0.x * p1.y - p1.x * p0.y);
-    }
-    if (area < 0.0)
+    zPointArray ringPositions(m);
+    for (int i = 0; i < m; i++)
+      ringPositions[i] = rawPositions[mainRing[i]];
+    if (signedArea2D(ringPositions) < 0.0)
       std::reverse(mainRing.begin(), mainRing.end());
 
     if (hasTrackIds) {
@@ -968,6 +965,51 @@ void _extractTrackPaths(const zPointArray &rawPositions,
 //--------------------------
 //---- PUBLIC METHODS
 //--------------------------
+
+// Runs buildSequencePrintPath -> resamplePrintPath -> filterGlitches ->
+// orientAndWeldLayer on every layer's inner/outer track paths (in parallel
+// per layer), then alignLayerStartPoints across all layers using
+// sectionMeshes2D.
+ZSPACE_INLINE bool
+zPrintSyn::computePrintSyn(std::vector<std::vector<PrintPath>> &ioPaths,
+                           const zObjMeshArray &sectionMeshes2D) {
+  const int totalLayers = int(ioPaths.size());
+  if (totalLayers == 0) {
+    m_Status = "failed: No print paths available.";
+    printError("[zPrintSyn] " + m_Status);
+    return false;
+  }
+
+  const auto wallStart = std::chrono::high_resolution_clock::now();
+  int totalPaths = 0;
+
+#pragma omp parallel for schedule(dynamic)
+  for (int l = 0; l < totalLayers; l++) {
+    for (auto &path : ioPaths[l]) {
+      if (buildSequencePrintPath(path) && resamplePrintPath(path)) {
+        filterGlitches(path);
+      }
+    }
+    orientAndWeldLayer(ioPaths[l]);
+#pragma omp atomic
+    totalPaths += int(ioPaths[l].size());
+  }
+
+  alignLayerStartPoints(ioPaths, sectionMeshes2D, i_Settings.SeamOffset,
+                        i_Settings.SeamSize);
+
+  const auto wallEnd = std::chrono::high_resolution_clock::now();
+  const double wallTotalMs =
+      std::chrono::duration<double, std::milli>(wallEnd - wallStart).count();
+
+  std::ostringstream out;
+  out << "Post-processed " << totalPaths << " print paths in " << std::fixed
+      << std::setprecision(2) << wallTotalMs
+      << " ms (sampleLen=" << i_Settings.ResampleLength << "mm)";
+  m_Status = out.str();
+  printSuccess("[zPrintSyn] " + m_Status);
+  return true;
+}
 
 // Directly rebuilds ioPath.graph from its existing vertex order. The
 // spur-pruning/gap-welding/chain-selection this used to do now happens once

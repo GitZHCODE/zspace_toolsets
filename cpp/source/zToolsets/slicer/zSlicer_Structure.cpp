@@ -123,13 +123,7 @@ void _createBoundaryEdgeGraph(zObjMesh &mesh, zObjGraph &outGraph,
     return;
 
   // 3. Align orientation (counter-clockwise)
-  double signedArea = 0.0;
-  for (int i = 0; i < N; i++) {
-    int nxt = (i + 1) % N;
-    signedArea +=
-        (positions[i].x * positions[nxt].y - positions[nxt].x * positions[i].y);
-  }
-  if (signedArea < 0.0) {
+  if (signedArea2D(positions) < 0.0) {
     std::reverse(positions.begin() + 1, positions.end());
     std::reverse(loopVertexIds.begin() + 1, loopVertexIds.end());
     std::reverse(isCorner.begin() + 1, isCorner.end());
