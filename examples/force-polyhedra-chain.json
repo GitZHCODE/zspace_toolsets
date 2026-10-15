@@ -1,0 +1,12 @@
+{
+  "graph": {
+    "vertexPositions": [-2, 0, 0, -1, 0, 0.5, 0, 0, 0.8, 1, 0, 0.5, 2, 0, 0],
+    "edgeConnects": [0, 1, 1, 2, 2, 3, 3, 4]
+  },
+  "supports": [0, 4],
+  "masses": [0, 1, 1, 1, 0],
+  "gravity": [0, 0, -1],
+  "settings": { "formWeight": 0.5 },
+  "solveEquilibrium": true,
+  "equilibriumIterations": 6000
+}

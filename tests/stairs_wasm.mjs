@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const factory=(await import('../wasm/out/zspace_toolsets.js')).default;
+const m=await factory({wasmBinary:await readFile(new URL('../wasm/out/zspace_toolsets.wasm',import.meta.url))});
+const call=(name,args=[],types=args.map(()=>'number'))=>m.ccall(name,'number',types,args);
+const error=()=>m.UTF8ToString(call('zspace_toolsets_last_error'));
+const ok=value=>assert.equal(value,1,error());
+const h=call('zspace_stairs_create');assert.ok(h);
+const input={graph:{vertexPositions:[-5,0,0,0,0,2,5,0,0,0,5,0],edgeConnects:[0,1,1,2,1,3]},settings:{width:1,divisions:4,vertexWidths:[1,2,1,1]}};
+const update=(handle,data)=>{m.FS.writeFile('/stairs.json',JSON.stringify(data));return call('zspace_stairs_update',[handle,'/stairs.json'],['number','string']);};
+const result=()=>{const p=call('zspace_stairs_result',[h]);assert.ok(p,error());return JSON.parse(m.UTF8ToString(p));};
+ok(update(h,input));const before=result();assert.equal(before.supports.length,9);assert.equal(before.mesh.vertexPositions.length,120);assert.equal(before.mesh.faceCounts.length,24);
+ok(call('zspace_stairs_step',[h,5]));const after=result();
+for(let i=0;i<after.mesh.vertexPositions.length;i++)if(i%3!==2)assert.equal(after.mesh.vertexPositions[i],before.mesh.vertexPositions[i]);
+for(const v of before.supports)assert.equal(after.mesh.vertexPositions[3*v+2],before.mesh.vertexPositions[3*v+2]);
+assert.ok(after.forceDensities.every(q=>Number.isFinite(q)&&q<=0));
+assert.equal(update(h,{...input,settings:{width:-1}}),0);assert.deepEqual(result(),after);
+assert.equal(call('zspace_stairs_step',[h,-1]),0);assert.equal(call('zspace_ctubes_unroll',[h,1]),0);
+const other=call('zspace_ctubes_create');assert.equal(update(other,input),0);ok(call('zspace_toolsets_destroy',[other]));
+// Binary tag format is versioned and public: test malformed/out-of-heap buffers here.
+assert.equal(call('zspace_stairs_update_from_buffers',[h,0,0]),0);
+ok(call('zspace_toolsets_destroy',[h]));assert.equal(call('zspace_stairs_step',[h,1]),0);
+console.log('Parametric Stairs WASM checks passed');
