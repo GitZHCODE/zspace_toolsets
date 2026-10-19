@@ -23,10 +23,8 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
-#include <limits>
 #include <sstream>
 #include <string>
-#include <utility>
 #include <vector>
 
 #if defined(ZSPACE_TS3DP_OPENUSD)
@@ -62,9 +60,9 @@ std::string formatPrintPathUSDA(const std::string &text) {
     const auto first = line.find_first_not_of(" \t");
     const std::string declaration = first == std::string::npos ? "" : line.substr(first);
     const bool vectors = declaration.find("point3f[] points = [") == 0 ||
-                         declaration.find("normal3f[] normals = [") == 0;
-    const bool scalars = declaration.find("float[] widths = [") == 0 ||
-                         declaration.find("float[] primvars:height = [") == 0;
+                         declaration.find("normal3f[] primvars:printNormals = [") == 0;
+    const bool scalars = declaration.find("float[] primvars:printWidths = [") == 0 ||
+                         declaration.find("float[] primvars:printHeight = [") == 0;
     const auto begin = line.find("= [");
     const auto end = line.rfind(']');
     if ((!vectors && !scalars) || begin == std::string::npos ||
@@ -109,7 +107,7 @@ std::string formatPrintPathUSDA(const std::string &text) {
 #endif
 
 ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
-    const std::string &filePath, std::string *outError) {
+    const std::string &inputFilePath, const std::string &filePath, std::string *outError) {
   if (outError) outError->clear();
   const auto fail = [&](const std::string &message) {
     if (outError) *outError = message;
@@ -153,24 +151,36 @@ ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
       widths.push_back(path.widths[id]);
       heights.push_back(path.heights[id]);
     }
-    auto stage = pxr::UsdStage::CreateInMemory();
-    if (!stage) return fail("Could not create USD stage.");
-    pxr::UsdGeomSetStageMetersPerUnit(stage, 0.001);
-    pxr::UsdGeomSetStageUpAxis(stage, pxr::UsdGeomTokens->z);
+    // Load a fresh private layer so exporting over the input does not mutate
+    // another live stage or reuse stale cached file contents.
+    auto layer = pxr::SdfLayer::OpenAsAnonymous(inputFilePath);
+    if (!layer) return fail("Could not open input USD file.");
+    auto stage = pxr::UsdStage::Open(layer);
+    if (!stage) return fail("Could not open input USD stage.");
+    if (!stage->GetPrimAtPath(pxr::SdfPath("/block")) ||
+        !stage->GetPrimAtPath(pxr::SdfPath("/bracing")) ||
+        !stage->GetPrimAtPath(pxr::SdfPath("/slotpoint")))
+      return fail("Input USD must contain /block, /bracing and /slotpoint.");
+    if (stage->GetPrimAtPath(pxr::SdfPath("/printpath"))) {
+      if (!stage->RemovePrim(pxr::SdfPath("/printpath")) ||
+          stage->GetPrimAtPath(pxr::SdfPath("/printpath")))
+        return fail("Cannot replace a printpath composed from another USD layer.");
+    }
     auto curve = pxr::UsdGeomBasisCurves::Define(stage, pxr::SdfPath("/printpath"));
-    stage->SetDefaultPrim(curve.GetPrim());
     pxr::VtArray<int> counts;
     counts.push_back(int(ids.size()));
     const bool ok = curve.CreateTypeAttr().Set(pxr::UsdGeomTokens->linear) &&
         curve.CreateWrapAttr().Set(curves.front().Closed ? pxr::UsdGeomTokens->periodic : pxr::UsdGeomTokens->nonperiodic) &&
         curve.CreateCurveVertexCountsAttr().Set(counts) &&
         curve.CreatePointsAttr().Set(points) &&
-        curve.CreateNormalsAttr().Set(normals) &&
-        curve.SetNormalsInterpolation(pxr::UsdGeomTokens->vertex) &&
-        curve.CreateWidthsAttr().Set(widths) &&
-        curve.SetWidthsInterpolation(pxr::UsdGeomTokens->vertex) &&
         pxr::UsdGeomPrimvarsAPI(curve.GetPrim()).CreatePrimvar(
-            pxr::TfToken("height"), pxr::SdfValueTypeNames->FloatArray,
+            pxr::TfToken("printNormals"), pxr::SdfValueTypeNames->Normal3fArray,
+            pxr::UsdGeomTokens->vertex).Set(normals) &&
+        pxr::UsdGeomPrimvarsAPI(curve.GetPrim()).CreatePrimvar(
+            pxr::TfToken("printWidths"), pxr::SdfValueTypeNames->FloatArray,
+            pxr::UsdGeomTokens->vertex).Set(widths) &&
+        pxr::UsdGeomPrimvarsAPI(curve.GetPrim()).CreatePrimvar(
+            pxr::TfToken("printHeight"), pxr::SdfValueTypeNames->FloatArray,
             pxr::UsdGeomTokens->vertex).Set(heights);
     if (!ok) return fail("Could not author USD curve attributes.");
     if (extension == ".usda") {
@@ -401,408 +411,6 @@ ZSPACE_INLINE bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInpu
     return false;
   }
 #endif
-}
-
-//--------------------------
-//---- PRIVATE HELPERS
-//--------------------------
-
-namespace {
-
-// Parses the rest of a "v" line: x y z, then an optional r g b. Vertices
-// without a color get black so colors stay index-aligned with positions.
-void _parseVertex(std::istringstream &iss, zPointArray &positions,
-                  zColorArray &colors, bool &anyColor) {
-  std::vector<double> values;
-  double value;
-  while (iss >> value)
-    values.push_back(value);
-  while (values.size() < 3)
-    values.push_back(0.0);
-  positions.push_back(zPoint(values[0], values[1], values[2]));
-  if (values.size() >= 6) {
-    colors.push_back(zColor(static_cast<float>(values[3]),
-                            static_cast<float>(values[4]),
-                            static_cast<float>(values[5]), 1.0f));
-    anyColor = true;
-  } else {
-    colors.push_back(zColor(0.0f, 0.0f, 0.0f, 1.0f));
-  }
-}
-
-// Parses the vertex index of an "f"/"l" token ("7", "7/2", "7//3", "7/2/3",
-// or negative = relative to the vertices read so far) into a 0-based index;
-// -1 if malformed or out of range.
-int _parseIndex(const std::string &token, int vertexCount) {
-  try {
-    const int raw = std::stoi(token.substr(0, token.find('/')));
-    const int index = (raw < 0) ? vertexCount + raw : raw - 1;
-    return (index >= 0 && index < vertexCount) ? index : -1;
-  } catch (...) {
-    return -1;
-  }
-}
-
-// Reads every index token left on an "f"/"l" line; false on any bad index.
-bool _parseIndices(std::istringstream &iss, int vertexCount,
-                   zIntArray &outIndices) {
-  outIndices.clear();
-  std::string token;
-  while (iss >> token) {
-    const int index = _parseIndex(token, vertexCount);
-    if (index < 0)
-      return false;
-    outIndices.push_back(index);
-  }
-  return true;
-}
-
-// OBJ indices are global across objects. Compact only after parsing indices.
-void _compactOBJPositions(zPointArray &positions, zIntArray &connects) {
-  zIntArray localIds(positions.size(), -1);
-  for (int id : connects) localIds[id] = 0;
-  zPointArray compact;
-  for (size_t i = 0; i < positions.size(); ++i) {
-    if (localIds[i] < 0) continue;
-    localIds[i] = static_cast<int>(compact.size());
-    compact.push_back(positions[i]);
-  }
-  for (int &id : connects) id = localIds[id];
-  positions.swap(compact);
-}
-
-// Positions written with enough digits to read back bit-identical.
-void _writePositions(std::ofstream &ofs, const zPointArray &positions,
-                     const zColorArray &colors) {
-  const auto defaultPrecision = ofs.precision();
-  for (size_t i = 0; i < positions.size(); i++) {
-    ofs.precision(std::numeric_limits<double>::max_digits10);
-    ofs << "v " << double(positions[i].x) << " " << double(positions[i].y)
-        << " " << double(positions[i].z);
-    if (!colors.empty()) {
-      ofs.precision(defaultPrecision);
-      ofs << " " << colors[i].r << " " << colors[i].g << " " << colors[i].b;
-    }
-    ofs << "\n";
-  }
-  ofs.precision(defaultPrecision);
-}
-
-} // anonymous namespace
-
-//--------------------------
-//---- READERS
-//--------------------------
-
-ZSPACE_INLINE bool parseFaceMaterial(const std::string &name, int &outTag,
-                                     int &outWidthId) {
-  std::string key = name;
-  std::transform(key.begin(), key.end(), key.begin(),
-                 [](unsigned char c) { return char(std::tolower(c)); });
-  // Blender duplicates: "side_1.001" -> "side_1".
-  const size_t dot = key.rfind('.');
-  if (dot != std::string::npos && dot + 1 < key.size() &&
-      std::all_of(key.begin() + dot + 1, key.end(),
-                  [](unsigned char c) { return std::isdigit(c) != 0; }))
-    key.erase(dot);
-
-  outWidthId = 0;
-  if (key == "bottom") {
-    outTag = static_cast<int>(VertexTag::Bottom);
-    return true;
-  }
-  if (key == "top") {
-    outTag = static_cast<int>(VertexTag::Top);
-    return true;
-  }
-  if (key == "side") {
-    outTag = static_cast<int>(VertexTag::Side);
-    return true;
-  }
-  if (key.rfind("side_", 0) == 0 && key.size() > 5 &&
-      std::all_of(key.begin() + 5, key.end(),
-                  [](unsigned char c) { return std::isdigit(c) != 0; })) {
-    try {
-      outWidthId = std::stoi(key.substr(5));
-    } catch (...) {
-      return false;
-    }
-    outTag = static_cast<int>(VertexTag::Side);
-    return true;
-  }
-  return false;
-}
-
-ZSPACE_INLINE bool readMeshFromOBJ(const std::string &filePath,
-                                   zObjMesh &outMesh, zIntArray &outFaceTags,
-                                   zIntArray &outFaceWidthIds,
-                                   std::string *outError,
-                                   const std::string &objectName) {
-  outFaceTags.clear();
-  outFaceWidthIds.clear();
-  const auto fail = [&](const std::string &reason) {
-    if (outError)
-      *outError = reason;
-    return false;
-  };
-  std::ifstream ifs(filePath);
-  if (!ifs.is_open())
-    return fail("cannot open " + filePath);
-
-  zPointArray positions;
-  zColorArray colors; // parsed only to skip them
-  bool anyColor = false;
-  zIntArray polyCounts, polyConnects, face, faceTags, faceWidthIds;
-  // Material of the current "usemtl" block: -1 = none yet / unknown name.
-  int currentTag = -1, currentWidthId = 0;
-  std::string currentMaterial;
-  int untagged = 0, firstUntaggedLine = -1, lineNumber = 0;
-  std::string currentObject;
-  std::string line;
-  while (std::getline(ifs, line)) {
-    lineNumber++;
-    std::istringstream iss(line);
-    std::string tag;
-    iss >> tag;
-    if (tag == "o") {
-      iss >> currentObject;
-    } else if (tag == "v") {
-      _parseVertex(iss, positions, colors, anyColor);
-    } else if (tag == "usemtl" && (objectName.empty() || currentObject == objectName)) {
-      std::getline(iss >> std::ws, currentMaterial);
-      while (!currentMaterial.empty() &&
-             std::isspace(static_cast<unsigned char>(currentMaterial.back())))
-        currentMaterial.pop_back();
-      if (!parseFaceMaterial(currentMaterial, currentTag, currentWidthId))
-        return fail("line " + std::to_string(lineNumber) + ": unknown material \"" +
-                    currentMaterial +
-                    "\" (expected bottom, top, side or side_<n>)");
-    } else if (tag == "f" && (objectName.empty() || currentObject == objectName)) {
-      if (!_parseIndices(iss, int(positions.size()), face))
-        return fail("line " + std::to_string(lineNumber) +
-                    ": invalid face index");
-      if (face.size() >= 3) {
-        if (currentTag < 0) {
-          if (firstUntaggedLine < 0)
-            firstUntaggedLine = lineNumber;
-          untagged++;
-        }
-        polyCounts.push_back(int(face.size()));
-        polyConnects.insert(polyConnects.end(), face.begin(), face.end());
-        faceTags.push_back(currentTag);
-        faceWidthIds.push_back(currentWidthId);
-      }
-    }
-  }
-
-  if (positions.empty() || polyCounts.empty())
-    return fail("no \"v\"/\"f\" lines");
-  if (untagged > 0)
-    return fail(std::to_string(untagged) +
-                " faces have no \"usemtl\" before them (first on line " +
-                std::to_string(firstUntaggedLine) + ")");
-
-  zFnMesh fnMesh(outMesh);
-  fnMesh.clear();
-  if (!objectName.empty()) _compactOBJPositions(positions, polyConnects);
-  fnMesh.create(positions, polyCounts, polyConnects);
-  if (fnMesh.numPolygons() != int(faceTags.size()))
-    return fail("mesh has " + std::to_string(fnMesh.numPolygons()) +
-                " faces after creation, " + std::to_string(faceTags.size()) +
-                " read - face tags would not line up");
-  outFaceTags = faceTags;
-  outFaceWidthIds = faceWidthIds;
-  return true;
-}
-
-ZSPACE_INLINE bool readGraphFromOBJ(const std::string &filePath,
-                                    zObjGraph &outGraph,
-                                    const std::string &objectName) {
-  std::ifstream ifs(filePath);
-  if (!ifs.is_open())
-    return false;
-
-  zPointArray positions;
-  zColorArray colors; // parsed only to skip them - graphs carry no colors
-  bool anyColor = false;
-  zIntArray edgeConnects, indices;
-  std::string currentObject;
-  std::string line;
-  while (std::getline(ifs, line)) {
-    std::istringstream iss(line);
-    std::string tag;
-    iss >> tag;
-    if (tag == "o") {
-      iss >> currentObject;
-    } else if (tag == "v") {
-      _parseVertex(iss, positions, colors, anyColor);
-    } else if (tag == "l" && (objectName.empty() || currentObject == objectName)) {
-      if (!_parseIndices(iss, int(positions.size()), indices))
-        return false;
-      for (size_t k = 0; k + 1 < indices.size(); k++) {
-        edgeConnects.push_back(indices[k]);
-        edgeConnects.push_back(indices[k + 1]);
-      }
-    }
-  }
-
-  if (positions.empty() || edgeConnects.empty())
-    return false;
-
-  zFnGraph fnGraph(outGraph);
-  fnGraph.clear();
-  if (!objectName.empty()) _compactOBJPositions(positions, edgeConnects);
-  fnGraph.create(positions, edgeConnects);
-  return true;
-}
-
-ZSPACE_INLINE bool readPointsFromOBJ(const std::string &filePath,
-                                     zPointArray &outPoints,
-                                     const std::string &objectName) {
-  std::ifstream ifs(filePath);
-  if (!ifs.is_open())
-    return false;
-
-  zPointArray positions;
-  zColorArray colors; // parsed only to skip them
-  bool anyColor = false;
-  std::string currentObject;
-  std::string line;
-  while (std::getline(ifs, line)) {
-    std::istringstream iss(line);
-    std::string tag;
-    iss >> tag;
-    if (tag == "o")
-      iss >> currentObject;
-    else if (tag == "v" && (objectName.empty() || currentObject == objectName))
-      _parseVertex(iss, positions, colors, anyColor);
-  }
-
-  if (positions.empty())
-    return false;
-  outPoints = positions;
-  return true;
-}
-
-//--------------------------
-//---- WRITERS
-//--------------------------
-
-ZSPACE_INLINE bool exportMeshToOBJ(const zObjMesh &mesh,
-                                   const std::string &filePath,
-                                   const zIntArray &faceTags,
-                                   const zIntArray &faceWidthIds) {
-  zFnMesh fnMesh(const_cast<zObjMesh &>(mesh));
-  zPointArray positions;
-  fnMesh.getVertexPositions(positions);
-  zIntArray polyConnects, polyCounts;
-  fnMesh.getPolygonData(polyConnects, polyCounts);
-  if (!faceTags.empty() && faceTags.size() != polyCounts.size())
-    return false;
-  if (!faceWidthIds.empty() && faceWidthIds.size() != polyCounts.size())
-    return false;
-
-  std::ofstream ofs(filePath);
-  if (!ofs.is_open())
-    return false;
-
-  ofs << "# zTsIO mesh: " << positions.size() << " vertices, "
-      << polyCounts.size() << " faces"
-      << (faceTags.empty() ? "" : ", face tags as usemtl") << "\n";
-  _writePositions(ofs, positions, zColorArray());
-
-  const auto materialOf = [&](size_t f) {
-    const int tag = faceTags[f];
-    if (tag == static_cast<int>(VertexTag::Bottom))
-      return std::string("bottom");
-    if (tag == static_cast<int>(VertexTag::Top))
-      return std::string("top");
-    return "side_" + std::to_string(faceWidthIds.empty() ? 0 : faceWidthIds[f]);
-  };
-  std::string lastMaterial;
-  size_t offset = 0;
-  for (size_t f = 0; f < polyCounts.size(); f++) {
-    const int count = polyCounts[f];
-    if (!faceTags.empty()) {
-      const std::string material = materialOf(f);
-      if (material != lastMaterial) {
-        ofs << "usemtl " << material << "\n";
-        lastMaterial = material;
-      }
-    }
-    ofs << "f";
-    for (int i = 0; i < count; i++)
-      ofs << " " << (polyConnects[offset + i] + 1);
-    ofs << "\n";
-    offset += count;
-  }
-  return bool(ofs);
-}
-
-ZSPACE_INLINE bool exportGraphToOBJ(const zObjGraph &graph,
-                                    const std::string &filePath) {
-  zFnGraph fnGraph(const_cast<zObjGraph &>(graph));
-  zPointArray positions;
-  zIntArray edgeConnects;
-  fnGraph.getVertexPositions(positions);
-  fnGraph.getEdgeData(edgeConnects);
-
-  std::ofstream ofs(filePath);
-  if (!ofs.is_open())
-    return false;
-
-  // Chain edges into polylines: open chains run between vertices whose
-  // degree is not 2; whatever is left afterwards are closed loops.
-  const int numVerts = int(positions.size());
-  const int numEdges = int(edgeConnects.size() / 2);
-  std::vector<std::vector<std::pair<int, int>>> adjacency(numVerts);
-  for (int e = 0; e < numEdges; e++) {
-    const int a = edgeConnects[2 * e], b = edgeConnects[2 * e + 1];
-    adjacency[a].push_back({b, e});
-    adjacency[b].push_back({a, e});
-  }
-  std::vector<bool> usedEdge(numEdges, false);
-  std::vector<zIntArray> polylines;
-
-  const auto walk = [&](int start, int firstEdge) {
-    zIntArray polyline = {start};
-    int current = start, edge = firstEdge;
-    while (edge >= 0) {
-      usedEdge[edge] = true;
-      const int a = edgeConnects[2 * edge], b = edgeConnects[2 * edge + 1];
-      current = (a == current) ? b : a;
-      polyline.push_back(current);
-      edge = -1;
-      if (current == start || adjacency[current].size() != 2)
-        break;
-      for (const auto &nb : adjacency[current])
-        if (!usedEdge[nb.second]) {
-          edge = nb.second;
-          break;
-        }
-    }
-    polylines.push_back(polyline);
-  };
-
-  for (int v = 0; v < numVerts; v++)
-    if (adjacency[v].size() != 2)
-      for (const auto &nb : adjacency[v])
-        if (!usedEdge[nb.second])
-          walk(v, nb.second);
-  for (int e = 0; e < numEdges; e++)
-    if (!usedEdge[e])
-      walk(edgeConnects[2 * e], e);
-
-  ofs << "# zTsIO graph: " << numVerts << " vertices, " << numEdges
-      << " edges as " << polylines.size() << " polylines\n";
-  _writePositions(ofs, positions, zColorArray());
-  for (const zIntArray &polyline : polylines) {
-    ofs << "l";
-    for (int v : polyline)
-      ofs << " " << (v + 1);
-    ofs << "\n";
-  }
-  return bool(ofs);
 }
 
 } // namespace zTsIO

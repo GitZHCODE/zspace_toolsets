@@ -16,7 +16,7 @@
 #pragma once
 
 // The one shared header of the ts3dp toolset: common types, geometry/topology
-// and coloring utilities (zTsUtils), 2D SDF field kernels (zTsField) and OBJ
+// and coloring utilities (zTsUtils), 2D SDF field kernels (zTsField) and USD
 // file IO (zTsIO). Implementations stay split over utils/*.cpp.
 
 #ifndef EIGEN_DONT_PARALLELIZE
@@ -72,8 +72,8 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
  */
 enum VertexTag : int { Interior = 0, Bottom = 1, Top = 2, Side = 3 };
 // Input convention: one tag per input-mesh FACE (Bottom = print floor, Top =
-// print ceiling, Side = wall), e.g. from the OBJ's "usemtl" names
-// (zTsIO::readMeshFromOBJ()). The slicers derive the per-vertex tags they
+// print ceiling, Side = wall), from USD FaceTag attributes
+// (zTsIO::readSlicerInputUSD()). The slicers derive the per-vertex tags they
 // work with from them - zTsUtils::vertexTagsFromFaceTags().
 
 /*! \struct SlicerSettings
@@ -686,7 +686,7 @@ void extractRawIsoContour(const zObjMeshScalarField &field,
 } // namespace zTsField
 
 //--------------------------
-//---- WAVEFRONT OBJ IO                           (utils/IO.cpp)
+//---- USD IO                           (utils/IO.cpp)
 //--------------------------
 // The only file IO in ts3dp. The slicer operators, zPrintSyn and zTs3DP never
 // call these - callers (sketches, tools) load/save with them and exchange
@@ -694,14 +694,16 @@ void extractRawIsoContour(const zObjMeshScalarField &field,
 //
 // Face tags travel as "usemtl" names: every "f" line takes the material of
 // the last "usemtl" before it - "bottom", "top", "side" or "side_<n>" (wall,
-// width group n -> SlicerSettings::BoundaryWidth[n]); see parseFaceMaterial().
+// width group n -> SlicerSettings::BoundaryWidth[n]); stored in the USD input.
 // Vertex colors on "v" lines are ignored.
 
 namespace zTsIO {
 
-// Export one connected PrintPath as a linear USD BasisCurves prim.
-// Coordinates, widths and heights use millimeters. Attributes follow graph order.
-bool exportPrintPathUSD(const PrintPath &path, const std::string &filePath,
+// Copy an input USD and replace /printpath with one connected BasisCurves prim.
+// Vertex primvars printNormals/printWidths/printHeight correspond 1:1 to points.
+// Coordinates and lengths use the input stage's units. Stage metadata is preserved.
+bool exportPrintPathUSD(const PrintPath &path, const std::string &inputFilePath,
+                        const std::string &filePath,
                         std::string *outError = nullptr);
 
 // SettingsJSON preserves the existing {"slicer": {...}, "printSyn": {...}} schema.
@@ -726,53 +728,6 @@ bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInput &out,
                        const std::string &blockPath = "/block",
                        const std::string &bracingPath = "/bracing",
                        const std::string &startPath = "/slotpoint");
-
-/*! \brief Material name -> face tag: "bottom" -> Bottom, "top" -> Top,
- * "side" -> Side (width group 0), "side_<n>" -> Side (width group n). Case
- * insensitive; a trailing ".<digits>" (Blender's duplicate suffix) is
- * ignored. False for any other name. */
-bool parseFaceMaterial(const std::string &name, int &outTag, int &outWidthId);
-
-/*! \brief Reads a polygon mesh from an OBJ file's "v" and "f" lines (all
- * objects merged unless objectName selects an "o" block; f tokens may be
- * v, v/vt, v//vn, v/vt/vn or negative) with
- * one face tag (VertexTag) and width group per face, in face order, from the
- * "usemtl" names (parseFaceMaterial()); other lines are ignored. False
- * (outError says why) if the file cannot be read, has no faces, a face index
- * is invalid, or a face has no or an unknown material. */
-bool readMeshFromOBJ(const std::string &filePath, zObjMesh &outMesh,
-                     zIntArray &outFaceTags, zIntArray &outFaceWidthIds,
-                     std::string *outError = nullptr,
-                     const std::string &objectName = std::string());
-
-/*! \brief Reads a graph from an OBJ file with no faces: its "v" lines and
- * "l" polylines (consecutive indices become edges; "f" and other lines
- * ignored). objectName selects an "o" block and remaps global vertex indices.
- * False if the file cannot be read, has no edges or an index is
- * invalid. */
-bool readGraphFromOBJ(const std::string &filePath, zObjGraph &outGraph,
-                      const std::string &objectName = std::string());
-
-/*! \brief Reads only the "v" lines of an OBJ file (e.g. a slot anchor saved
- * as a single point; colors and every other line ignored). False if the
- * file cannot be read or has no vertex. objectName selects an "o" block. */
-bool readPointsFromOBJ(const std::string &filePath, zPointArray &outPoints,
-                       const std::string &objectName = std::string());
-
-/*! \brief Writes mesh as OBJ "v"/"f" lines. If faceTags is non-empty it
- * must hold one VertexTag per face and is written as "usemtl" lines
- * ("bottom", "top", "side_<n>" with n from faceWidthIds, 0 if empty), so
- * readMeshFromOBJ() reads the tags back. False on a count mismatch or if the
- * file cannot be written. */
-bool exportMeshToOBJ(const zObjMesh &mesh, const std::string &filePath,
-                     const zIntArray &faceTags = zIntArray(),
-                     const zIntArray &faceWidthIds = zIntArray());
-
-/*! \brief Writes graph as OBJ curves: its vertices as "v" lines and its edges
- * chained into "l" polylines (a closed loop repeats its first index). Reads
- * back with readGraphFromOBJ() to the same vertices and edges. False if the
- * file cannot be written. */
-bool exportGraphToOBJ(const zObjGraph &graph, const std::string &filePath);
 
 } // namespace zTsIO
 

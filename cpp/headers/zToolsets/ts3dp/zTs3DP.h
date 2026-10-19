@@ -112,7 +112,7 @@ public:
    * the copies. faceTags: one VertexTag (Bottom/Top/Side - see Utils.h) per
    * mesh face in polygon order, required by both operators (they derive the
    * vertex tags) - e.g. the "usemtl" names read with
-   * zTsIO::readMeshFromOBJ(). faceWidthIds: the width group per face
+   * zTsIO::readSlicerInputUSD(). faceWidthIds: the width group per face
    * (side_<n> -> SlicerSettings::BoundaryWidth[n]; empty = group 0).
    * zTs3DP does no file IO. */
   void setInputMesh(zObjMesh &mesh, const zIntArray &faceTags = zIntArray(),
@@ -124,7 +124,7 @@ public:
 
   /*! \brief Boundary trim-slot anchor (DoubleBoundary), world coordinates
    * like the input mesh - e.g. the first point of a point-only OBJ read with
-   * zTsIO::readPointsFromOBJ(). Both operators put the slot
+   * zTsIO::readSlicerInputUSD(). Both operators put the slot
    * SlicerSettings::BoundarySlotOffset * w either side of its nearest point
    * on the floor boundary (even layers counter-clockwise, odd clockwise,
    * seen from +Z). clearSlotAnchor() invalidates the required slot point until set again. */
