@@ -9,11 +9,19 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(iglDir)/headers;$(iglDir)/build/_deps/eigen-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>IGL_STATIC_LIBRARY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(iglDir)/headers;$(iglDir)/build/_deps/eigen-src;$(iglDir)/build/_deps/tetgen-src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>IGL_STATIC_LIBRARY;TETLIBRARY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(iglDir)/build/lib/igl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!--
+        tetgen.lib / igl_copyleft_tetgen.lib were built by igl's own CMake
+        fetch (PlatformToolset v142, RuntimeLibrary MultiThreaded[Debug]DLL).
+        If this project's RuntimeLibrary setting differs (/MT vs /MD), the
+        linker will report LNK2038 RuntimeLibrary mismatches - rebuild the
+        igl/_deps/tetgen-build tree with matching /MD or /MT settings, or
+        override RuntimeLibrary here to match, if that happens.
+      -->
+      <AdditionalDependencies>$(iglDir)/build/lib/igl.lib;$(iglDir)/build/lib/tetgen.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

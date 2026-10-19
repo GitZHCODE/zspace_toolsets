@@ -16,7 +16,7 @@
 
 namespace zSpace
 {
-	ZSPACE_TOOLSETS_INLINE  zExtTsSDFSlicer::zExtTsSDFSlicer(zSlicer* s)
+	ZSPACE_TOOLSETS_INLINE  zExtTsSDFSlicer::zExtTsSDFSlicer(TopologySlicer* s)
 	{
 		slicer = s;
 		updateAttributes();
@@ -51,10 +51,10 @@ namespace zSpace
 		std::string pathSt(path);
 		//extSlicer = zExtTsSDFSlicer();
 		cout << pathSt << endl;
-		//zSlicer s;// = new zSlicer();
+		//TopologySlicer s;// = new TopologySlicer();
 		//s.setFromJSON(pathSt, blockID);
 
-		extSlicer.slicer = new zSlicer();
+		extSlicer.slicer = new TopologySlicer();
 		extSlicer.slicer->setFromJSON(pathSt, blockID);
 		extSlicer.updateAttributes();
 
@@ -79,7 +79,7 @@ namespace zSpace
 			printf("\n slicer is null - FieldMesh");
 			return 0;
 		}
-		//zSlicer* slicer = extSlicer.slicer;
+		//TopologySlicer* slicer = extSlicer.slicer;
 		zDomain<zPoint> bb = zDomain<zPoint>(zPoint(pointDomainMin[0], pointDomainMin[1], pointDomainMin[2]), zPoint(pointDomainMax[0], pointDomainMax[1], pointDomainMax[2]));
 		extSlicer.slicer->createFieldMesh(bb, resX, resY);
 		extSlicer.updateAttributes();
@@ -143,7 +143,7 @@ namespace zSpace
 	ZSPACE_TOOLSETS_INLINE void ext_sdf_CheckFolder(char* folderDirectoryChar, float neopreneOffsetMin, float neopreneOffsetMax, float heightDomainMin, float heightDomainMax)
 	{
 		std::string folder(folderDirectoryChar);
-		zSlicer slicer = zSlicer();
+		TopologySlicer slicer = TopologySlicer();
 
 		zDomainFloat neopreneOffset = zDomainFloat(neopreneOffsetMin, neopreneOffsetMax);
 		zDomainFloat printHeightDomain(heightDomainMin, heightDomainMax);

@@ -168,16 +168,22 @@
     <ClInclude Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.h">
       <Filter>Depends\SPA</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTsUtils.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\ts3dp\zTs3DP.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zSlicer.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\ts3dp\utils\Utils.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zTs3DP.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\ts3dp\zSlicer\zSlicer.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cpp\headers\zToolsets\slicer\zPrintSyn.h">
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\ts3dp\zSlicer\TopologySlicer.h">
+      <Filter>Header Files\Slicer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\ts3dp\zSlicer\HarmonicSlicer.h">
+      <Filter>Header Files\Slicer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cpp\headers\zToolsets\ts3dp\printsyn\zPrintSyn.h">
       <Filter>Header Files\Slicer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cpp\headers\base\zSpace_Toolsets.h">
@@ -293,25 +299,58 @@
     <ClCompile Include="..\..\..\..\zspace_core\cpp\depends\spa\spa.c">
       <Filter>Depends\SPA</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsUtils.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zTs3DP.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTsUtils_Export.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\utils\Utils.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zSlicer_Structure.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\utils\Color.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zSlicer_Unroll.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\utils\IO.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zSlicer_Field.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\utils\Unroll.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zTs3DP.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\utils\Field.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\cpp\source\zToolsets\slicer\zPrintSyn.cpp">
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\topology\Structure.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\topology\Unroll.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\topology\Field.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\topology\PostProcess.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\Structure.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\Heat.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\Harmonic.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\TracingUV.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\Contour.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\Field.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\zSlicer\harmonic\PostProcess.cpp">
+      <Filter>Source Files\Slicer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cpp\source\zToolsets\ts3dp\printsyn\zPrintSyn.cpp">
       <Filter>Source Files\Slicer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\cpp\source\zToolsets\geometry\zTsPaneling.cpp">
