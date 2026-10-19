@@ -1435,8 +1435,14 @@ ZSPACE_INLINE bool zPrintSyn::linkPrintPaths(const PrintPathArray &paths3D,
 
   bool hasHeights = false, hasNormals = false, hasTrackIds = false;
   bool hasMultiplePaths = false;
-  for (const auto &ringPaths : paths3D) {
-    hasMultiplePaths |= ringPaths.size() > 1;
+  for (size_t layer = 0; layer < paths3D.size(); ++layer) {
+    const auto &ringPaths = paths3D[layer];
+    if (ringPaths.size() > 1) {
+      hasMultiplePaths = true;
+      zTsUtils::printDebug("[linkPrintPaths] layer=" + std::to_string(layer) +
+          " MultiplePrintPaths: pathCount=" + std::to_string(ringPaths.size()) +
+          "; paths remain disconnected in the combined graph.");
+    }
     for (const PrintPath &path : ringPaths) {
       if (!path.heights.empty())
         hasHeights = true;

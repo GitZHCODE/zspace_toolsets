@@ -1,6 +1,7 @@
 """Select three meshes: block (faces), bracing (edges only), slotpoint (one vertex).
 Block materials: bottom/top/side_N. Bracing: INT EDGE attribute widthid, default 0.
-All width values live in settings. USD loose edges use custom edgeVertexIndices.
+All width values live in settings. Each bracing edge becomes a two-point BasisCurve.
+USD schemas: Mesh block, BasisCurves bracing, Points slotpoint; IDs are uniform primvars.
 World coordinates and widths use Blender units. No pxr required.
 """
 import bpy
@@ -136,8 +137,8 @@ def block_text(obj, widths):
             '    point3f[] points = ' + points(evaluated.matrix_world @ v.co for v in mesh.vertices),
             '    int[] faceVertexCounts = ' + array(counts),
             '    int[] faceVertexIndices = ' + array(indices),
-            '    custom int[] FaceTag = ' + array(tags),
-            '    custom int[] widthid = ' + array(ids), '}'])
+            '    int[] primvars:FaceTag = ' + array(tags) + ' (interpolation = "uniform")',
+            '    int[] primvars:widthid = ' + array(ids) + ' (interpolation = "uniform")', '}'])
     finally:
         evaluated.to_mesh_clear()
 
@@ -155,13 +156,12 @@ def bracing_text(obj, widths):
     if any(i < 0 or i >= len(widths) for i in ids):
         raise ValueError("Edge widthid is outside settings BracingWidth")
     return '\n'.join([
-        'def Mesh "bracing" {',
-        '    uniform token subdivisionScheme = "none"',
-        '    point3f[] points = ' + points(obj.matrix_world @ v.co for v in mesh.vertices),
-        '    int[] faceVertexCounts = []',
-        '    int[] faceVertexIndices = []',
-        '    custom int[] edgeVertexIndices = ' + array(v for e in mesh.edges for v in e.vertices),
-        '    custom int[] widthid = ' + array(ids), '}'])
+        'def BasisCurves "bracing" {',
+        '    point3f[] points = ' + points(obj.matrix_world @ mesh.vertices[v].co for e in mesh.edges for v in e.vertices),
+        '    uniform token type = "linear"',
+        '    uniform token wrap = "nonperiodic"',
+        '    int[] curveVertexCounts = ' + array(2 for e in mesh.edges),
+        '    int[] primvars:widthid = ' + array(ids) + ' (interpolation = "uniform")', '}'])
 
 
 def export_selected():
@@ -181,8 +181,8 @@ def export_selected():
         '    metersPerUnit = ' + number(bpy.context.scene.unit_settings.scale_length),
         '    customLayerData = {', dictionary(settings), '    }', ')',
         block_text(objects['block'], widths), bracing_text(objects['bracing'], bracing_widths),
-        'def Mesh "slotpoint" {', '    point3f[] points = ' + points([anchor]),
-        '    int[] faceVertexCounts = []', '    int[] faceVertexIndices = []', '}', ''])
+        'def Points "slotpoint" {', '    point3f[] points = ' + points([anchor]),
+        '}', ''])
     path = Path(bpy.path.abspath(OUTPUT_PATH)).expanduser()
     if path.suffix.lower() != '.usda':
         raise ValueError("OUTPUT_PATH must end in .usda")

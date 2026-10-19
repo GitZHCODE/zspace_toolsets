@@ -1213,21 +1213,58 @@ ZSPACE_INLINE bool extractPrintPaths(const zObjMeshScalarField &fieldGrid,
   extractTrackPaths(positions, edges, widths, tracks, weldTolerance, spurLength, outPaths);
   if (outPaths.empty()) return fail();
   size_t openCount = 0, closedCount = 0, invalidGraphCount = 0;
-  for (const PrintPath &path : outPaths) {
+  size_t longestIndex = outPaths.size();
+  double longestLength = 0.0;
+  for (size_t index = 0; index < outPaths.size(); ++index) {
+    const PrintPath &path = outPaths[index];
     std::vector<GraphPolyline> curves;
-    if (!graphPolylines(path.graph, curves)) {
+    if (!graphPolylines(path.graph, curves) || curves.size() != 1) {
       ++invalidGraphCount;
       continue;
     }
-    for (const GraphPolyline &curve : curves) {
-      if (curve.Closed && curve.Vertices.size() >= 3) ++closedCount;
-      else if (!curve.Closed) ++openCount;
+    const GraphPolyline &curve = curves.front();
+    if (!curve.Closed) {
+      ++openCount;
+      continue;
+    }
+    zPointArray points;
+    zFnGraph(const_cast<zObjGraph &>(path.graph)).getVertexPositions(points);
+    auto ids = curve.Vertices;
+    if (ids.size() > 1 && ids.front() == ids.back()) ids.pop_back();
+    bool valid = ids.size() >= 3 && ids.size() == points.size() &&
+        path.widths.size() == points.size() &&
+        (path.trackIds.empty() || path.trackIds.size() == points.size());
+    double length = 0.0;
+    for (size_t i = 0; valid && i < ids.size(); ++i) {
+      const int a = ids[i], b = ids[(i + 1) % ids.size()];
+      if (a < 0 || b < 0 || size_t(a) >= points.size() || size_t(b) >= points.size()) {
+        valid = false;
+        break;
+      }
+      length += std::sqrt(vecDistSq(points[a], points[b]));
+    }
+    if (!valid || !std::isfinite(length) || length <= 0.0) {
+      ++invalidGraphCount;
+      continue;
+    }
+    ++closedCount;
+    if (length > longestLength) {
+      longestLength = length;
+      longestIndex = index;
     }
   }
-  if (openCount > 0 || invalidGraphCount > 0 || closedCount == 0)
+  if (outPaths.size() != 1 || longestIndex == outPaths.size())
     report("openCurves=" + std::to_string(openCount) +
         " closedCurves=" + std::to_string(closedCount) +
-        " invalidGraphs=" + std::to_string(invalidGraphCount));
+        " invalidGraphs=" + std::to_string(invalidGraphCount) +
+        " kept=" + std::to_string(longestIndex < outPaths.size() ? 1 : 0) +
+        " discarded=" + std::to_string(outPaths.size() - (longestIndex < outPaths.size() ? 1 : 0)));
+  if (longestIndex == outPaths.size()) {
+    outPaths.clear();
+    return false;
+  }
+  if (longestIndex != 0) std::swap(outPaths.front(), outPaths[longestIndex]);
+  outPaths.resize(1);
   return true;
 }
 

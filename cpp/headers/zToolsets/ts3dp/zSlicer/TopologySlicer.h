@@ -84,14 +84,11 @@ protected:
   zObjMesh _UMesh;
   zObjGraphArray _VLoops;
   std::vector<zScalarArray> _VScalar;
-  // Harmonic (uniform-weight) interpolation system for _UMesh's interior
-  // vertices: _InteriorLaplacian * dInterior = _InteriorCoupling * dBoundary,
-  // where d is each vertex's displacement from its _UMesh rest position.
-  // Empty when the floor cap has no interior vertices.
+  // Input-mesh vertex ids along each V-loop, 1:1 with _VLoops[i]'s vertices.
+  std::vector<zIntArray> _VLoopVertexIds;
+  zIntArray _UMeshVertexIds;
   Eigen::SparseMatrix<double> _InteriorLaplacian;
   Eigen::SparseMatrix<double> _InteriorCoupling;
-  // Width group of the wall face between V-loop i and i + 1 at every segment
-  // k of V-loop i (_VLoopSegmentWidthIds[i][k]) - see _layerEdgeWidthIds().
   std::vector<zIntArray> _VLoopSegmentWidthIds;
   ParameterGraph _BracingParams;
   std::string _Status;
@@ -186,6 +183,10 @@ public:
 
   std::vector<zScalarArray> &getVScalar() { return _VScalar; }
   const std::vector<zScalarArray> &getVScalar() const { return _VScalar; }
+  const std::vector<zIntArray> &getVLoopVertexIds() const {
+    return _VLoopVertexIds;
+  }
+  const zIntArray &getUMeshVertexIds() const { return _UMeshVertexIds; }
 
   zObjGraphArray &getIsoMeshBoundary() { return o_IsoMeshBoundary; }
   const zObjGraphArray &getIsoMeshBoundary() const { return o_IsoMeshBoundary; }

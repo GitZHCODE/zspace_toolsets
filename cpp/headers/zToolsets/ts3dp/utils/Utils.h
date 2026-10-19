@@ -699,14 +699,19 @@ void extractRawIsoContour(const zObjMeshScalarField &field,
 
 namespace zTsIO {
 
+// Export one connected PrintPath as a linear USD BasisCurves prim.
+// Coordinates, widths and heights use millimeters. Attributes follow graph order.
+bool exportPrintPathUSD(const PrintPath &path, const std::string &filePath,
+                        std::string *outError = nullptr);
+
 // SettingsJSON preserves the existing {"slicer": {...}, "printSyn": {...}} schema.
 // Coordinates include USD object transforms, in the stage's authored units.
 struct SlicerUSDInput {
   zObjMesh Block;
   zIntArray FaceTags;
   zIntArray FaceWidthIds; // Per-face widthid into settings BoundaryWidth.
-  zIntArray BracingWidthIds; // Per-input-edge widthid into settings BracingWidth.
-  zObjGraphArray BracingCurves; // One rib per input edge, in authored order.
+  zIntArray BracingWidthIds; // Per-curve widthid into settings BracingWidth.
+  zObjGraphArray BracingCurves; // One graph per USD curve, in authored order.
   zFloatArray BracingPrintWidths;
   zPoint StartPoint;
   std::string SettingsJSON;
