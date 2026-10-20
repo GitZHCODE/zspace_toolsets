@@ -274,3 +274,7 @@ __pycache__/
 /wasm/cache/
 /wasm/tmp/
 /wasm/out/
+# Locally built OpenUSD SDK
+/cpp/depends/openusd-minimal/
+
+/legacy/pre-v3/cpp/depends/openusd-minimal/

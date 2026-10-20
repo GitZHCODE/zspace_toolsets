@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <headers/zToolsets/geometry/zTsSDFSlicer.h>
+#include <headers/zToolsets/ts3dp/zSlicer/TopologySlicer.h>
 
 #include <headers/zToolsets/externalMethods/zExtMesh.h>
 #include <headers/zToolsets/externalMethods/zExtGraph.h>
@@ -27,7 +27,7 @@ namespace zSpace
 {
 	struct zExtTsSDFSlicer
 	{
-		zTsSDFSlicer* slicer;
+		TopologySlicer* slicer;
 		int blockID;
 		int deckBlock;
 		int leftPlaneExist;
@@ -37,7 +37,7 @@ namespace zSpace
 		int contourGraphCount;
 		int trimGraphCount;
 		
-		zExtTsSDFSlicer(zTsSDFSlicer* slicer);
+		zExtTsSDFSlicer(TopologySlicer* slicer);
 		void updateAttributes();
 
 		/*zExtMesh rightMesh;
