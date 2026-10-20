@@ -27,6 +27,10 @@ The first migrated toolset is `zTs3DP`, a 3D-printing pipeline for SDF-based sli
 tension/compression assignments, vertex masses and bounded force densities.
 See [Vault API, build and viewer workflow](docs/architecture/vault-best-fit-fdm.md).
 
+`zTsSlicing` adds the desktop tagged topology/harmonic slicing and PrintSyn
+pipeline through `<zspace/slicing.h>`. See [tagged slicing](docs/architecture/tagged-slicing.md)
+for input tags, optional TetGen/OpenUSD/OpenMP dependencies, and native tests.
+
 Build:
 
 ```bat

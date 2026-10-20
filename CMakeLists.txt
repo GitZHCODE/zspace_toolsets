@@ -16,6 +16,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+option(ZSPACE_TOOLSETS_WITH_TETGEN "Enable harmonic slicing with an external TetGen library" OFF)
+option(ZSPACE_TOOLSETS_SLICING_WITH_OPENUSD "Enable tagged slicer USD IO with an external OpenUSD SDK" OFF)
+option(ZSPACE_TOOLSETS_SLICING_OPENMP "Enable OpenMP in the slicing engine" OFF)
+set(ZSPACE_TETGEN_ROOT "" CACHE PATH "TetGen installation root (include/tetgen.h and lib/tetgen)")
+
 set(ZSPACE_TOOLSETS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
@@ -56,6 +61,10 @@ file(GLOB_RECURSE ZSPACE_TOOLSETS_HEADERS CONFIGURE_DEPENDS
   "${ZSPACE_TOOLSETS_ROOT}/include/zspace/*.h"
 )
 
+if(NOT ZSPACE_TOOLSETS_WITH_TETGEN)
+  list(FILTER ZSPACE_TOOLSETS_SOURCES EXCLUDE REGEX "/slicing/zSlicer/harmonic/")
+endif()
+
 add_library(zSpace_Toolsets ${ZSPACE_TOOLSETS_LIBRARY_TYPE}
   ${ZSPACE_TOOLSETS_SOURCES}
   ${ZSPACE_TOOLSETS_HEADERS}
@@ -79,6 +88,32 @@ target_compile_definitions(zSpace_Toolsets
     $<$<BOOL:${ZSPACE_TOOLSETS_BUILD_SHARED}>:ZSPACE_TOOLSETS_EXPORTS>
 )
 
+if(ZSPACE_TOOLSETS_WITH_TETGEN)
+  find_path(ZSPACE_TETGEN_INCLUDE_DIR tetgen.h HINTS "${ZSPACE_TETGEN_ROOT}" PATH_SUFFIXES include REQUIRED)
+  find_library(ZSPACE_TETGEN_LIBRARY NAMES tetgen tet HINTS "${ZSPACE_TETGEN_ROOT}" PATH_SUFFIXES lib REQUIRED)
+  target_include_directories(zSpace_Toolsets SYSTEM PRIVATE "${ZSPACE_TETGEN_INCLUDE_DIR}")
+  target_compile_definitions(zSpace_Toolsets PUBLIC ZSPACE_TOOLSETS_WITH_TETGEN PRIVATE TETLIBRARY)
+  target_link_libraries(zSpace_Toolsets PRIVATE "${ZSPACE_TETGEN_LIBRARY}")
+endif()
+
+if(ZSPACE_TOOLSETS_SLICING_OPENMP)
+  find_package(OpenMP REQUIRED COMPONENTS CXX)
+  # Layer-level parallelism owns scheduling; avoid nested Eigen threads.
+  target_compile_definitions(zSpace_Toolsets PRIVATE EIGEN_DONT_PARALLELIZE)
+  target_link_libraries(zSpace_Toolsets PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
+if(ZSPACE_TOOLSETS_SLICING_WITH_OPENUSD)
+  if(NOT COMMAND zspace_link_openusd)
+    if(NOT EXISTS "${ZSPACE_CORE_DIR}/cmake/ZSpaceOpenUSD.cmake")
+      message(FATAL_ERROR "Slicer USD IO requires the zspace_core OpenUSD CMake helper and ZSPACE_OPENUSD_ROOT")
+    endif()
+    include("${ZSPACE_CORE_DIR}/cmake/ZSpaceOpenUSD.cmake")
+  endif()
+  zspace_link_openusd(zSpace_Toolsets)
+  target_compile_definitions(zSpace_Toolsets PRIVATE ZSPACE_TS3DP_OPENUSD)
+endif()
+
 if(MSVC)
   target_compile_options(zSpace_Toolsets PRIVATE /MP /W3 /permissive- /wd4251)
   target_compile_definitions(zSpace_Toolsets PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -96,6 +131,16 @@ install(EXPORT zspaceToolsetsTargets FILE zspaceToolsetsTargets.cmake NAMESPACE 
 
 if(ZSPACE_TOOLSETS_BUILD_TESTS)
   include(CTest)
+  add_executable(zspace_toolsets_slicing tests/smoke/zspace_toolsets_slicing.cpp)
+  target_link_libraries(zspace_toolsets_slicing PRIVATE zspace::toolsets)
+  add_test(NAME zspace_toolsets.slicing.topology COMMAND zspace_toolsets_slicing topology)
+  add_test(NAME zspace_toolsets.slicing.invalid COMMAND zspace_toolsets_slicing invalid)
+  add_test(NAME zspace_toolsets.slicing.features COMMAND zspace_toolsets_slicing features)
+  add_test(NAME zspace_toolsets.slicing.parallel COMMAND zspace_toolsets_slicing parallel)
+  set_tests_properties(zspace_toolsets.slicing.parallel PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=4")
+  if(ZSPACE_TOOLSETS_WITH_TETGEN)
+    add_test(NAME zspace_toolsets.slicing.harmonic COMMAND zspace_toolsets_slicing harmonic)
+  endif()
   add_executable(zspace_toolsets_force_polyhedra tests/smoke/zspace_toolsets_force_polyhedra.cpp)
   target_link_libraries(zspace_toolsets_force_polyhedra PRIVATE zspace::toolsets)
   add_test(NAME zspace_toolsets.force_polyhedra COMMAND zspace_toolsets_force_polyhedra)

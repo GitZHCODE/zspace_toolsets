@@ -12,7 +12,9 @@ $env:EMCC_TEMP_DIR = $env:TEMP
 $env:EMSDK_PYTHON = Join-Path $EmsdkDir 'python/3.13.3_64bit/python.exe'
 New-Item -ItemType Directory -Force "$root/wasm/out", "$root/wasm/build", $env:TEMP, $env:EM_CACHE | Out-Null
 $exclude = @('zFnComputeMesh.cpp','zObjectComputeMesh.cpp','zFnMeshField.cpp','zFnPointField.cpp','zObjectMeshField.cpp','zObjectPointField.cpp','zObjectComputeField2D.cpp')
-$sources = @(Get-ChildItem "$core/src/zCore", "$core/src/zInterface", "$core/src/zIO", "$root/src/zToolsets", "$root/wasm/bridge" -Recurse -Filter '*.cpp' | Where-Object { $_.Name -notin $exclude } | ForEach-Object { $_.FullName })
+# Tagged slicing is native-only until its bridge and field/TetGen dependencies
+# are explicitly integrated. Keep the existing browser runtime source set stable.
+$sources = @(Get-ChildItem "$core/src/zCore", "$core/src/zInterface", "$core/src/zIO", "$root/src/zToolsets", "$root/wasm/bridge" -Recurse -Filter '*.cpp' | Where-Object { $_.Name -notin $exclude -and $_.FullName -notmatch '[\\/]fabrication[\\/]slicing[\\/]' } | ForEach-Object { $_.FullName })
 $argsCommon = @('-fexceptions','-include',"$core/wasm/bridge/zspace_wasm_compat.h",'-DZSPACE_STATIC_LIBRARY','-DZSPACE_TOOLSETS_STATIC_LIBRARY',"-I$core/wasm/bridge","-I$core","-I$core/include","-I$core/third_party","-I$core/third_party/depends","-I$root/include",'-std=c++17','-O2')
 # Compile objects separately so a toolset edit does not rebuild the entire kernel.
 # A header or build-script change invalidates the cache conservatively.
