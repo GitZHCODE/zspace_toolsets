@@ -73,6 +73,10 @@ ZSPACE_INLINE bool HarmonicSlicer::computeField(bool useParallel) {
 }
 
 ZSPACE_INLINE bool HarmonicSlicer::computeFieldImpl(bool useParallel) {
+  if (!zTsField::validateFieldSettings(i_Settings)) {
+    _Status = "failed: invalid physical field parameters (minimum 1e-4 mm).";
+    return false;
+  }
   clearFields();
 
   if (!i_SlotPoint) {
@@ -93,7 +97,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computeFieldImpl(bool useParallel) {
     printDebug("[computeFieldImpl] " + _Status);
     return false;
   }
-  const double cellSize = (i_Settings.FieldCellSize > 1e-3f) ? static_cast<double>(i_Settings.FieldCellSize) : 50.0;
+  const double cellSize = static_cast<double>(i_Settings.FieldCellSize);
   const double scaleUp = (i_Settings.FieldScaleUp > 1e-6f) ? static_cast<double>(i_Settings.FieldScaleUp) : 1.0;
 
   // The bottom cap and all its actual side-boundary components.
@@ -264,7 +268,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computeFieldImpl(bool useParallel) {
     }
 
     // Boundary slot: the anchor's 2D image re-located on this layer's loop,
-    // +/- BoundarySlotOffset * w by parity, w = width of the edge there. The
+    // +/- SlotOffset * w by parity, w = width of the edge there. The
     // 2D loop turns like the world loop seen from +Z (computeContours()), so it
     // gives the sense itself.
     zObjGraph boundarySlot;
@@ -279,7 +283,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computeFieldImpl(bool useParallel) {
         const int edge = loopEdges[anchor.edge];
         slotWidth = zTsField::widthOfGroup(
             i_Settings.BoundaryWidth, (edge < static_cast<int>(edgeIds.size())) ? edgeIds[edge] : 0);
-        layerSlotted[k] = zTsField::createParitySlot(loop2D, anchor, isEven, i_Settings.BoundarySlotOffset * slotWidth,
+        layerSlotted[k] = zTsField::createParitySlot(loop2D, anchor, isEven, i_Settings.SlotOffset * slotWidth,
                                                      static_cast<zScalar>(slotWidth), boundarySlot);
         slotResult = layerSlotted[k] ? "Created" : "CreationFailed: invalid width, anchor or tangent";
       }
@@ -290,7 +294,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computeFieldImpl(bool useParallel) {
 
     if (zFnGraph(o_BracingGraphs2D[k]).numEdges() > 0)
       if (!zTsField::appendBracingSegments(o_BracingGraphs2D[k], i_Settings,
-            isEven ? i_Settings.BracingSlotEven : i_Settings.BracingSlotOdd, segments, k)) continue;
+            i_Settings.BracingSlot, segments, k)) continue;
 
     std::vector<zScalarArray> segDistances;
     zScalarArray boundarySigns;
@@ -329,6 +333,8 @@ ZSPACE_INLINE bool HarmonicSlicer::computeFieldImpl(bool useParallel) {
 
 ZSPACE_INLINE bool HarmonicSlicer::computePrintPath(bool useParallel) {
   const bool success = computePrintPathImpl(useParallel);
+  if (success) updatePrintStatistics(false);
+  else resetPrintStatistics();
   if (success) zTsUtils::printSuccess("[HarmonicSlicer::computePrintPath] Success");
   else zTsUtils::printError("[HarmonicSlicer::computePrintPath] Failed");
   return success;
@@ -338,6 +344,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computePrintPathImpl(bool useParallel) {
   o_PrintPaths2D.clear();
   o_PrintPaths3D.clear();
   o_ResultantPrintPath = PrintPath();
+  resetPrintStatistics();
   const int n = int(o_PathFields.size());
   if (n == 0 || o_WidthFields.size() != size_t(n) || o_TrackFields.size() != size_t(n) ||
       o_IsoMeshes2D.size() != size_t(n) || o_IsoMeshes.size() != size_t(n)) {

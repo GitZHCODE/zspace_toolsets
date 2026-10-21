@@ -88,6 +88,10 @@ ZSPACE_INLINE bool TopologySlicer::computeField(bool useParallel) {
 }
 
 ZSPACE_INLINE bool TopologySlicer::computeFieldImpl(bool useParallel) {
+  if (!zTsField::validateFieldSettings(i_Settings)) {
+    _Status = "failed: invalid physical field parameters (minimum 1e-4 mm).";
+    return false;
+  }
   const zObjMeshArray &sectionMeshes2D = o_IsoMeshes2D;
   zObjMeshScalarField &outScalarField = o_ScalarField;
   std::vector<zScalarArray> &outPathFields = o_PathFields;
@@ -117,7 +121,7 @@ ZSPACE_INLINE bool TopologySlicer::computeFieldImpl(bool useParallel) {
 
   const float printOverlapWidth = i_Settings.OverlapWidth;
   const float targetCellSize =
-      (i_Settings.FieldCellSize > 1e-3f) ? i_Settings.FieldCellSize : 50.0f;
+      i_Settings.FieldCellSize;
 
   zDomain<zPoint> layerFieldBB;
   int resX = 0, resY = 0;
@@ -136,7 +140,7 @@ ZSPACE_INLINE bool TopologySlicer::computeFieldImpl(bool useParallel) {
   // through the 3D floor section onto every layer's unrolled chart (the
   // same transfer zPrintSyn::alignStartPoints() uses for the seam), and
   // re-located there on that layer's own boundary; offset +/-
-  // BoundarySlotOffset * w by layer parity.
+  // SlotOffset * w by layer parity.
   zTsField::LoopAnchor slotAnchor;
   zPointArray slotPoints2D;
   std::vector<char> slotPointValid;
@@ -209,15 +213,13 @@ ZSPACE_INLINE bool TopologySlicer::computeFieldImpl(bool useParallel) {
         if (zTsField::locateLoopAnchor(layerLoop2D, slotPoints2D[l],
                                        layerAnchor, &layerLoop3D))
           zTsField::createParitySlot(layerLoop2D, layerAnchor, l % 2 == 0,
-                                     i_Settings.BoundarySlotOffset * slotWidth,
+                                     i_Settings.SlotOffset * slotWidth,
                                      slotWidth, boundarySlot);
       }
 
       if (hasValidBracing) {
-        const float bracingTrimRatio = (l % 2 == 0) ? i_Settings.BracingSlotEven
-                                                    : i_Settings.BracingSlotOdd;
         if (!zTsField::appendBracingSegments(unrollBracingGraph, i_Settings,
-              bracingTrimRatio, segmentGraphs, l)) continue;
+              i_Settings.BracingSlot, segmentGraphs, l)) continue;
       }
 
       std::vector<zScalarArray> segDistances;
@@ -305,6 +307,8 @@ ZSPACE_INLINE void TopologySlicer::_layerEdgeWidthIds(int layer, int totalLayers
 
 ZSPACE_INLINE bool TopologySlicer::computePrintPath(bool useParallel) {
   const bool success = computePrintPathImpl(useParallel);
+  if (success) updatePrintStatistics(false);
+  else resetPrintStatistics();
   if (success) zTsUtils::printSuccess("[TopologySlicer::computePrintPath] Success");
   else zTsUtils::printError("[TopologySlicer::computePrintPath] Failed");
   return success;
@@ -314,6 +318,7 @@ ZSPACE_INLINE bool TopologySlicer::computePrintPathImpl(bool useParallel) {
   o_PrintPaths2D.clear();
   o_PrintPaths3D.clear();
   o_ResultantPrintPath = PrintPath();
+  resetPrintStatistics();
   const int n = int(o_PathFields.size());
   if (n == 0 || o_WidthFields.size() != size_t(n) || o_TrackFields.size() != size_t(n) ||
       o_IsoMeshes2D.size() != size_t(n) || o_IsoMeshes.size() != size_t(n)) {
@@ -333,7 +338,7 @@ ZSPACE_INLINE bool TopologySlicer::computePrintPathImpl(bool useParallel) {
       continue;
     }
     if (!zTsField::mapPrintPaths(o_PrintPaths2D[k], o_IsoMeshes2D[k], o_IsoMeshes[k],
-                                &o_VertexLayerHeights, o_PrintPaths3D[k], k)) failed[k] = 1;
+                                &_VLength, o_PrintPaths3D[k], k)) failed[k] = 1;
   }
   for (int k = 0; k < n; ++k) {
     for (const std::string &message : pathDebug[k]) {

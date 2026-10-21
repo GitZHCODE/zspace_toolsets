@@ -21,7 +21,7 @@ examples/
 tests/
 ```
 
-The first migrated toolset is `zTs3DP`, a 3D-printing pipeline for SDF-based slicing, unrolled slice fields, contour extraction, and print-path synthesis.
+The maintained slicer is `zTsSlicing` under `fabrication/slicing`, providing tagged Topology/Harmonic slicing, field generation, contour extraction and PrintSyn. Include `<zspace/slicing.h>` or `<zspace/toolsets.h>`.
 
 `zTsVault` provides Best Fit Force Density modelling with support vertices,
 tension/compression assignments, vertex masses and bounded force densities.

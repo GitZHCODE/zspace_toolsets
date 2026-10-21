@@ -30,7 +30,6 @@
 #include <zspace/zInterface/objects/zObjMesh.h>
 #include <zspace/zInterface/objects/zObjMeshField.h>
 
-#include <Eigen/Sparse>
 
 #include <string>
 #include <vector>
@@ -61,9 +60,8 @@ namespace zSpace {
  *  - V-loops: from every U-loop vertex, its one edge leaving the floor, then
  *    straight up the quad edge loop until the first Top-tagged vertex; each
  *    column has its own segment count.
- *  Layers interpolate every column at the same normalized arc length; U-mesh
- *  interior vertices (no column) follow their boundary by harmonic
- *  interpolation of its displacement.
+ *  Layers interpolate every column at the same normalized arc length.
+ *  U-mesh interior vertices are not supported.
  */
 class ZSPACE_TOOLSETS TopologySlicer : public zSlicer {
 protected:
@@ -74,7 +72,7 @@ protected:
   //---- INPUTS
   zObjMesh *i_BlockMesh;
   zIntArray i_FaceTags;
-  zIntArray i_FaceWidthIds;  
+  zIntArray i_FaceWidthIds;
   zObjGraph *i_BracingGraph;
   const zPoint *i_SlotPoint = nullptr;
   SlicerSettings i_Settings;
@@ -84,11 +82,7 @@ protected:
   zObjMesh _UMesh;
   zObjGraphArray _VLoops;
   std::vector<zScalarArray> _VScalar;
-  // Input-mesh vertex ids along each V-loop, 1:1 with _VLoops[i]'s vertices.
-  std::vector<zIntArray> _VLoopVertexIds;
-  zIntArray _UMeshVertexIds;
-  Eigen::SparseMatrix<double> _InteriorLaplacian;
-  Eigen::SparseMatrix<double> _InteriorCoupling;
+  zFloatArray _VLength;
   std::vector<zIntArray> _VLoopSegmentWidthIds;
   ParameterGraph _BracingParams;
   std::string _Status;
@@ -96,20 +90,20 @@ protected:
   //---- OUTPUTS
   zObjMeshArray o_IsoMeshes;
   zObjGraphArray o_IsoMeshBoundary;
-  
+
   zObjMeshArray o_IsoMeshes2D;
   zObjGraphArray o_IsoMeshBoundary2D;
   zObjGraphArray o_BracingGraphs2D;
-  
+
   zObjMeshScalarField o_ScalarField;
   std::vector<zScalarArray> o_PathFields;
   std::vector<zScalarArray> o_WidthFields;
   std::vector<zScalarArray> o_TrackFields;
-  zFloatArray o_VertexLayerHeights;
 
   //---- OUTPUTS : computePostProcess() (cleared by computeSlicer())
   PrintPathArray o_PrintPaths2D;
   PrintPathArray o_PrintPaths3D;
+  zDomain<float> o_LayerHeightDomain = zDomain<float>(0.0f, 0.0f);
   PrintPath o_ResultantPrintPath;
 
 public:
@@ -155,11 +149,11 @@ public:
   }
   void setSlotAnchor(const zPoint &inAnchor) override {
     i_SlotPoint = &inAnchor;
-   
+
   }
   void clearSlotAnchor() override {
     i_SlotPoint = nullptr;
-   
+
   }
 
   void setStatus(const std::string &inStatus) { _Status = inStatus; }
@@ -183,10 +177,6 @@ public:
 
   std::vector<zScalarArray> &getVScalar() { return _VScalar; }
   const std::vector<zScalarArray> &getVScalar() const { return _VScalar; }
-  const std::vector<zIntArray> &getVLoopVertexIds() const {
-    return _VLoopVertexIds;
-  }
-  const zIntArray &getUMeshVertexIds() const { return _UMeshVertexIds; }
 
   zObjGraphArray &getIsoMeshBoundary() { return o_IsoMeshBoundary; }
   const zObjGraphArray &getIsoMeshBoundary() const { return o_IsoMeshBoundary; }
@@ -217,7 +207,10 @@ public:
     return o_TrackFields;
   }
   const zFloatArray &getVertexLayerHeights() const {
-    return o_VertexLayerHeights;
+    return _VLength;
+  }
+  const zDomain<float> &getLayerHeightDomain() const {
+    return o_LayerHeightDomain;
   }
 
   const ParameterGraph &getBracingParams() const { return _BracingParams; }
@@ -233,7 +226,7 @@ public:
   //--------------------------
 
   /*! \brief From the input mesh and its vertex tags: U-mesh (Bottom faces),
-   * U-loop, V-loops with per-vertex values, interior interpolation system and
+   * U-loop, V-loops with per-vertex values,
    * bracing parameterization - see the class comment. Fails (with a status
    * naming the offending vertex/face) on non-quad faces, missing tags, a
    * disconnected or multi-loop floor, or a column that does not reach Top

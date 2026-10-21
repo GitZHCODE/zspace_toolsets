@@ -128,14 +128,19 @@ void compute(Session& current, const Json& input) {
   }
   settings.OverlapWidth=number(options,"overlapWidth",0,0,1e6);
   settings.DoubleBoundary=options.value("doubleBoundary",false);
-  settings.BoundarySlotOffset=number(options,"boundarySlotOffset",1,-100,100);
-  settings.BracingSlotEven=number(options,"bracingSlotEven",0.5,0,1);
-  settings.BracingSlotOdd=number(options,"bracingSlotOdd",0.5,0,1);
-  settings.HTraceStepFraction=number(options,"traceStepFraction",0.2,0.001,1);
-  settings.HTraceMaxSteps=number(options,"traceMaxSteps",100000,100,1000000);
-  settings.HEqualiseIterations=number(options,"equaliseIterations",2,0,20);
-  settings.HArapIterations=number(options,"arapIterations",10,0,100);
-  settings.HUnrollStart=number(options,"unrollStart",0,0,1);
+  settings.SlotOffset=number(options,"slotOffset",number(options,"boundarySlotOffset",1,-100,100),-100,100);
+  // Older clients may provide a shared even/odd value. Different values cannot
+  // express the new width-based offset rule; require the new settings explicitly.
+  const double even = number(options,"bracingSlotEven",0.5,0,1);
+  const double odd = number(options,"bracingSlotOdd",even,0,1);
+  if (!options.contains("bracingSlot") && even != odd)
+    throw std::invalid_argument("Use bracingSlot and slotOffset instead of separate even/odd slot positions.");
+  settings.BracingSlot=number(options,"bracingSlot",even,0,1);
+  settings._HTraceStepFraction=number(options,"traceStepFraction",0.2,0.001,1);
+  settings._HTraceMaxSteps=number(options,"traceMaxSteps",100000,100,1000000);
+  settings._HEqualiseIterations=number(options,"equaliseIterations",2,0,20);
+  settings._HArapIterations=number(options,"arapIterations",10,0,100);
+  settings._HUnrollStart=number(options,"unrollStart",0,0,1);
   auto& post=candidate->getPrintSynSetting();
   post.ResampleLength=number(options,"resampleLength",0.2,0.001,1e6);
   post.FeatureAngleTol=number(options,"featureAngle",90,0,180);

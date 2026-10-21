@@ -48,6 +48,8 @@ ZSPACE_INLINE bool HarmonicSlicer::computeSlicerImpl(bool useParallel) {
 // step and its layers, and false is returned.
 ZSPACE_INLINE bool HarmonicSlicer::computePostProcess(const PrintSynSetting &settings, bool useParallel) {
   const bool success = computePostProcessImpl(settings, useParallel);
+  if (success) updatePrintStatistics(true);
+  else resetPrintStatistics();
   if (success) zTsUtils::printSuccess("[HarmonicSlicer::computePostProcess] Success");
   else zTsUtils::printError("[HarmonicSlicer::computePostProcess] Failed");
   return success;

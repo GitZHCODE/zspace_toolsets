@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -34,6 +35,7 @@
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/basisCurves.h>
 #include <pxr/usd/usdGeom/points.h>
+#include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdGeom/xformCache.h>
 #include <pxr/usd/usdGeom/metrics.h>
@@ -59,10 +61,32 @@ std::string formatPrintPathUSDA(const std::string &text) {
   while (std::getline(input, line)) {
     const auto first = line.find_first_not_of(" \t");
     const std::string declaration = first == std::string::npos ? "" : line.substr(first);
-    const bool vectors = declaration.find("point3f[] points = [") == 0 ||
-                         declaration.find("normal3f[] primvars:printNormals = [") == 0;
-    const bool scalars = declaration.find("float[] primvars:printWidths = [") == 0 ||
-                         declaration.find("float[] primvars:printHeight = [") == 0;
+    const bool statisticArray = declaration.find("double[] printheightdomain = ") == 0 ||
+                                declaration.find("double[] printwidthdomain = ") == 0;
+    const bool statisticScalar = declaration.find("double printlength = ") == 0 ||
+                                 declaration.find("double printvolume = ") == 0;
+    if (statisticArray || statisticScalar) {
+      const auto equals = line.find("= ");
+      std::string values = line.substr(equals + 2);
+      for (char &c : values) if (c == '[' || c == ']' || c == ',') c = ' ';
+      std::istringstream numbers(values);
+      double value;
+      output << line.substr(0, equals + 2) << std::fixed << std::setprecision(2);
+      if (statisticArray) output << '[';
+      bool firstValue = true;
+      while (numbers >> value) {
+        if (!firstValue) output << ", ";
+        output << value;
+        firstValue = false;
+      }
+      if (statisticArray) output << ']';
+      output << '\n';
+      continue;
+    }
+    const bool vectors = declaration.find("custom point3f[] points = [") == 0 ||
+                         declaration.find("custom normal3f[] printNormals = [") == 0;
+    const bool scalars = declaration.find("custom float[] printWidths = [") == 0 ||
+                         declaration.find("custom float[] printHeight = [") == 0;
     const auto begin = line.find("= [");
     const auto end = line.rfind(']');
     if ((!vectors && !scalars) || begin == std::string::npos ||
@@ -107,7 +131,7 @@ std::string formatPrintPathUSDA(const std::string &text) {
 #endif
 
 ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
-    const std::string &inputFilePath, const std::string &filePath, std::string *outError) {
+    const std::string &inputFilePath, const std::string &filePath, int layerCount, std::string *outError, int blockid) {
   if (outError) outError->clear();
   const auto fail = [&](const std::string &message) {
     if (outError) *outError = message;
@@ -117,6 +141,7 @@ ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
   return fail("USD export requires ZSPACE_TS3DP_OPENUSD and linked OpenUSD libraries.");
 #else
   try {
+    if (layerCount <= 0) return fail("Export requires a positive actual layer count.");
     const auto dot = filePath.find_last_of('.');
     std::string extension = dot == std::string::npos ? "" : filePath.substr(dot);
     std::transform(extension.begin(), extension.end(), extension.begin(),
@@ -151,38 +176,74 @@ ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
       widths.push_back(path.widths[id]);
       heights.push_back(path.heights[id]);
     }
+    const auto heightRange = std::minmax_element(heights.begin(), heights.end());
+    const auto widthRange = std::minmax_element(widths.begin(), widths.end());
+    double printLength = 0.0, printVolume = 0.0;
+    const size_t segmentCount = curves.front().Closed ? points.size() : points.size() - 1;
+    for (size_t i = 0; i < segmentCount; ++i) {
+      const auto &a = points[i];
+      const auto &b = points[(i + 1) % points.size()];
+      const double distance = std::hypot(double(b[0]) - a[0],
+          double(b[1]) - a[1], double(b[2]) - a[2]);
+      printLength += distance;
+      printVolume += double(heights[i]) * double(widths[i]) * distance;
+    }
+    if (!std::isfinite(printLength) || !std::isfinite(printVolume))
+      return fail("Print statistics overflow.");
     // Load a fresh private layer so exporting over the input does not mutate
     // another live stage or reuse stale cached file contents.
     auto layer = pxr::SdfLayer::OpenAsAnonymous(inputFilePath);
     if (!layer) return fail("Could not open input USD file.");
     auto stage = pxr::UsdStage::Open(layer);
     if (!stage) return fail("Could not open input USD stage.");
-    if (!stage->GetPrimAtPath(pxr::SdfPath("/block")) ||
-        !stage->GetPrimAtPath(pxr::SdfPath("/bracing")) ||
-        !stage->GetPrimAtPath(pxr::SdfPath("/slotpoint")))
-      return fail("Input USD must contain /block, /bracing and /slotpoint.");
-    if (stage->GetPrimAtPath(pxr::SdfPath("/printpath"))) {
-      if (!stage->RemovePrim(pxr::SdfPath("/printpath")) ||
-          stage->GetPrimAtPath(pxr::SdfPath("/printpath")))
-        return fail("Cannot replace a printpath composed from another USD layer.");
+    // Preserve the source stage units while exporting internally millimetric paths.
+    const double sourceUnit = pxr::UsdGeomGetStageMetersPerUnit(stage);
+    if (!std::isfinite(sourceUnit) || sourceUnit <= 0) return fail("Invalid stage metersPerUnit.");
+    const double fromMillimetres = 0.001 / sourceUnit;
+    for (auto &p : points) p *= static_cast<float>(fromMillimetres);
+    for (auto &w : widths) w *= static_cast<float>(fromMillimetres);
+    for (auto &h : heights) h *= static_cast<float>(fromMillimetres);
+    printLength *= fromMillimetres;
+    printVolume *= fromMillimetres * fromMillimetres * fromMillimetres;
+    for (const auto &p : points)
+      if (!std::isfinite(p[0]) || !std::isfinite(p[1]) || !std::isfinite(p[2])) return fail("Export coordinate conversion overflow.");
+    for (float w : widths) if (!std::isfinite(w)) return fail("Export width conversion overflow.");
+    for (float h : heights) if (!std::isfinite(h)) return fail("Export height conversion overflow.");
+    if (!std::isfinite(printLength) || !std::isfinite(printVolume)) return fail("Export statistics conversion overflow.");
+    if (!stage->GetPrimAtPath(pxr::SdfPath("/AG_block")) ||
+        !stage->GetPrimAtPath(pxr::SdfPath("/Slicer_bracing")) ||
+        !stage->GetPrimAtPath(pxr::SdfPath("/Slicer_slot")))
+      return fail("Input USD must contain /AG_block, /Slicer_bracing and /Slicer_slot.");
+    // Replace current output and remove the legacy curve output on re-export.
+    for (const auto *name : {"/TDP_gcode", "/Gcode", "/printpath"}) {
+      const pxr::SdfPath outputPath(name);
+      if (stage->GetPrimAtPath(outputPath) &&
+          (!stage->RemovePrim(outputPath) || stage->GetPrimAtPath(outputPath)))
+        return fail(std::string("Cannot replace ") + name + " composed from another USD layer.");
     }
-    auto curve = pxr::UsdGeomBasisCurves::Define(stage, pxr::SdfPath("/printpath"));
-    pxr::VtArray<int> counts;
-    counts.push_back(int(ids.size()));
-    const bool ok = curve.CreateTypeAttr().Set(pxr::UsdGeomTokens->linear) &&
-        curve.CreateWrapAttr().Set(curves.front().Closed ? pxr::UsdGeomTokens->periodic : pxr::UsdGeomTokens->nonperiodic) &&
-        curve.CreateCurveVertexCountsAttr().Set(counts) &&
-        curve.CreatePointsAttr().Set(points) &&
-        pxr::UsdGeomPrimvarsAPI(curve.GetPrim()).CreatePrimvar(
-            pxr::TfToken("printNormals"), pxr::SdfValueTypeNames->Normal3fArray,
-            pxr::UsdGeomTokens->vertex).Set(normals) &&
-        pxr::UsdGeomPrimvarsAPI(curve.GetPrim()).CreatePrimvar(
-            pxr::TfToken("printWidths"), pxr::SdfValueTypeNames->FloatArray,
-            pxr::UsdGeomTokens->vertex).Set(widths) &&
-        pxr::UsdGeomPrimvarsAPI(curve.GetPrim()).CreatePrimvar(
-            pxr::TfToken("printHeight"), pxr::SdfValueTypeNames->FloatArray,
-            pxr::UsdGeomTokens->vertex).Set(heights);
-    if (!ok) return fail("Could not author USD curve attributes.");
+    auto scope = pxr::UsdGeomScope::Define(stage, pxr::SdfPath("/TDP_gcode"));
+    auto prim = scope.GetPrim();
+    auto metadata = stage->GetRootLayer()->GetCustomLayerData();
+    const auto round2 = [](double value) { return std::round(value * 100.0) / 100.0; };
+    pxr::VtArray<double> heightDomain, widthDomain;
+    heightDomain.push_back(round2(*heightRange.first));
+    heightDomain.push_back(round2(*heightRange.second));
+    widthDomain.push_back(round2(*widthRange.first));
+    widthDomain.push_back(round2(*widthRange.second));
+    metadata["blockid"] = pxr::VtValue(blockid);
+    metadata["printheightdomain"] = pxr::VtValue(heightDomain);
+    metadata["printwidthdomain"] = pxr::VtValue(widthDomain);
+    metadata["printlength"] = pxr::VtValue(round2(printLength));
+    metadata["printvolume"] = pxr::VtValue(round2(printVolume));
+    metadata.erase("printstatisticsvalid");
+    metadata["layercount"] = pxr::VtValue(layerCount);
+    stage->GetRootLayer()->SetCustomLayerData(metadata);
+    // Parallel arrays: element i always describes the same ordered print point.
+    const bool ok = prim.CreateAttribute(pxr::TfToken("points"), pxr::SdfValueTypeNames->Point3fArray, true).Set(points) &&
+        prim.CreateAttribute(pxr::TfToken("printNormals"), pxr::SdfValueTypeNames->Normal3fArray, true).Set(normals) &&
+        prim.CreateAttribute(pxr::TfToken("printWidths"), pxr::SdfValueTypeNames->FloatArray, true).Set(widths) &&
+        prim.CreateAttribute(pxr::TfToken("printHeight"), pxr::SdfValueTypeNames->FloatArray, true).Set(heights);
+    if (!ok) return fail("Could not author USD Gcode attributes.");
     if (extension == ".usda") {
       std::string text;
       if (!stage->GetRootLayer()->ExportToString(&text))
@@ -245,7 +306,7 @@ pxr::UsdPrim usdGeometry(const pxr::UsdStageRefPtr &stage, const std::string &pa
                          const std::string &kind) {
   const auto root = stage->GetPrimAtPath(pxr::SdfPath(path));
   if (!root) throw std::runtime_error("Missing " + kind + " object: " + path);
-  if ((kind == "block" && !root.IsA<pxr::UsdGeomMesh>()) || (kind == "bracing" && !root.IsA<pxr::UsdGeomBasisCurves>() && !root.IsA<pxr::UsdGeomMesh>()) || (kind == "slotpoint" && !root.IsA<pxr::UsdGeomPoints>() && !root.IsA<pxr::UsdGeomMesh>()))
+  if ((kind == "block" && !root.IsA<pxr::UsdGeomMesh>()) || (kind == "bracing" && !root.IsA<pxr::UsdGeomBasisCurves>()) || (kind == "slotpoint" && !root.IsA<pxr::UsdGeomPoints>()))
     throw std::runtime_error("Incorrect USD geometry type at " + path);
   return root;
 }
@@ -265,31 +326,22 @@ zFloatArray usdWidthTable(const nlohmann::json &settings, const std::string &key
   return result;
 }
 
-pxr::VtArray<int> usdUniformIds(const pxr::UsdPrim &prim, const char *name, size_t count, bool optional = false) {
-  const auto pv = pxr::UsdGeomPrimvarsAPI(prim).GetPrimvar(pxr::TfToken(name));
+pxr::VtArray<int> usdDataIds(const pxr::UsdPrim &prim, const char *name, size_t count, bool optional = false) {
+  const auto pv = prim.GetAttribute(pxr::TfToken(name));
   pxr::VtArray<int> values;
-  // Desktop-converted files used custom arrays before the primvar schema.
-  // An authored primvar takes precedence and must satisfy its own contract.
-  if (pv) {
-    if (pv.GetInterpolation() != pxr::UsdGeomTokens->uniform ||
-        !pv.ComputeFlattened(&values) || values.size() != count)
-      throw std::runtime_error(prim.GetPath().GetString() + ": " + name + " must be a uniform int[] with one value per face/curve.");
-  } else {
-    const auto attribute = prim.GetAttribute(pxr::TfToken(name));
-    if (!attribute && optional) { values.assign(count, 0); return values; }
-    if (!attribute || !attribute.Get(&values) || values.size() != count)
-      throw std::runtime_error(prim.GetPath().GetString() + ": " + name + " must be an int[] with one value per face/edge.");
-  }
+  if (!pv && optional) { values.assign(count, 0); return values; }
+  if (!pv || !pv.Get(&values) || values.size() != count)
+    throw std::runtime_error(prim.GetPath().GetString() + ": " + name + " must be an int[] with one value per corresponding face/curve.");
   return values;
 }
-zPointArray usdWorldPoints(const pxr::UsdGeomPointBased &geometry, pxr::UsdGeomXformCache &cache) {
+zPointArray usdWorldPoints(const pxr::UsdGeomPointBased &geometry, pxr::UsdGeomXformCache &cache, double toMillimetres) {
   pxr::VtArray<pxr::GfVec3f> points;
   if (!geometry.GetPointsAttr().Get(&points)) throw std::runtime_error("Missing points on " + geometry.GetPath().GetString());
   const auto matrix = cache.GetLocalToWorldTransform(geometry.GetPrim());
   zPointArray result;
   result.reserve(points.size());
   for (const auto &point : points) {
-    const auto p = matrix.Transform(pxr::GfVec3d(point));
+    const auto p = matrix.Transform(pxr::GfVec3d(point)) * toMillimetres;
     if (!std::isfinite(p[0]) || !std::isfinite(p[1]) || !std::isfinite(p[2]))
       throw std::runtime_error("Geometry contains non-finite transformed positions.");
     result.push_back(zPoint(p[0], p[1], p[2]));
@@ -311,31 +363,63 @@ ZSPACE_INLINE bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInpu
   try {
     auto stage = pxr::UsdStage::Open(filePath);
     if (!stage) throw std::runtime_error("Could not open USD stage: " + filePath);
-    const auto metadata = stage->GetRootLayer()->GetCustomLayerData();
+    const auto settingsPrim = stage->GetPrimAtPath(pxr::SdfPath("/Slicer_setting"));
+    if (!settingsPrim || !settingsPrim.IsA<pxr::UsdGeomScope>())
+      throw std::runtime_error("Missing Scope /Slicer_setting.");
     nlohmann::json settings = nlohmann::json::object();
     for (const std::string group : {"slicer", "printSyn"}) {
-      const auto it = metadata.find(group);
-      if (it == metadata.end() || !it->second.IsHolding<pxr::VtDictionary>())
-        throw std::runtime_error("Stage customLayerData requires dictionary " + group + ".");
-      settings[group] = usdSettingsJSON(it->second);
+      settings[group] = nlohmann::json::object();
+      const std::string prefix = group + ":";
+      for (const auto &attr : settingsPrim.GetAttributes()) {
+        const auto name = attr.GetName().GetString();
+        if (name.compare(0, prefix.size(), prefix) != 0) continue;
+        pxr::VtValue value;
+        if (!attr.Get(&value)) throw std::runtime_error("Cannot read setting " + name);
+        settings[group][name.substr(prefix.size())] = usdSettingsJSON(value);
+      }
+      if (settings[group].empty())
+        throw std::runtime_error("Slicer_setting requires attributes in namespace " + group);
     }
-    out.SettingsJSON = settings.dump();
     out.MetersPerUnit = pxr::UsdGeomGetStageMetersPerUnit(stage);
     out.UpAxis = pxr::UsdGeomGetStageUpAxis(stage).GetString();
     if (!(out.MetersPerUnit > 0) || !std::isfinite(out.MetersPerUnit))
       throw std::runtime_error("Invalid stage metersPerUnit.");
+    // Geometry and dimensional settings returned by this reader are always mm.
+    // MetersPerUnit retains the original stage unit for callers/export.
+    const double toMillimetres = out.MetersPerUnit * 1000.0;
+    const auto scaleSetting = [&](const char *group, const char *key) {
+      auto &values = settings[group];
+      if (!values.contains(key)) return;
+      auto scaleNumber = [&](nlohmann::json &v) {
+        if (!v.is_number()) throw std::runtime_error(std::string("Nonnumeric length setting: ") + key);
+        const double scaled = v.get<double>() * toMillimetres;
+        if (!std::isfinite(scaled)) throw std::runtime_error(std::string("Length setting overflow: ") + key);
+        v = scaled;
+      };
+      auto &value = values[key];
+      if (value.is_array()) for (auto &v : value) scaleNumber(v);
+      else scaleNumber(value);
+    };
+    for (const char *key : {"BoundaryWidth", "BracingWidth", "BracingCurveWidths", "OverlapWidth", "FieldCellSize", "LayerSpacing"})
+      scaleSetting("slicer", key);
+    for (const char *key : {"ResampleLength", "SeamOffset", "SeamSize"})
+      scaleSetting("printSyn", key);
+    out.SettingsJSON = settings.dump();
+    const auto data = stage->GetPrimAtPath(pxr::SdfPath("/Slicer_data"));
+    if (!data || !data.IsA<pxr::UsdGeomScope>())
+      throw std::runtime_error("Missing Scope /Slicer_data.");
     const auto block = usdGeometry(stage, blockPath, "block");
     const auto bracing = usdGeometry(stage, bracingPath, "bracing");
     const auto start = usdGeometry(stage, startPath, "slotpoint");
     pxr::UsdGeomXformCache cache(pxr::UsdTimeCode::Default());
     pxr::UsdGeomMesh mesh(block);
-    auto positions = usdWorldPoints(mesh, cache);
+    auto positions = usdWorldPoints(mesh, cache, toMillimetres);
     pxr::VtArray<int> counts, indices, tags, holes;
     if (!mesh.GetFaceVertexCountsAttr().Get(&counts) || !mesh.GetFaceVertexIndicesAttr().Get(&indices) || counts.empty())
       throw std::runtime_error("Block has no valid polygon topology.");
     mesh.GetHoleIndicesAttr().Get(&holes);
     if (!holes.empty()) throw std::runtime_error("Block contains USD hole faces; bake a closed polygon mesh first.");
-    tags = usdUniformIds(block, "FaceTag", counts.size());
+    tags = usdDataIds(data, "block:FaceTag", counts.size());
     size_t total = 0;
     for (int count : counts) {
       if (count < 3) throw std::runtime_error("Block contains a face with fewer than three vertices.");
@@ -346,7 +430,7 @@ ZSPACE_INLINE bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInpu
       throw std::runtime_error("Block has an out-of-range vertex index.");
     const auto boundaryWidths = usdWidthTable(settings, "BoundaryWidth");
     const auto bracingWidths = usdWidthTable(settings, "BracingWidth");
-    const auto faceWidthIds = usdUniformIds(block, "widthid", counts.size());
+    const auto faceWidthIds = usdDataIds(data, "block:widthid", counts.size());
     for (size_t f = 0; f < tags.size(); ++f) {
       if (tags[f] != Bottom && tags[f] != Top && tags[f] != Side)
         throw std::runtime_error("FaceTag must use Bottom=1, Top=2, Side=3.");
@@ -371,82 +455,45 @@ ZSPACE_INLINE bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInpu
     fn.create(positions, polygonCounts, connects);
     if (fn.numVertices() != static_cast<int>(positions.size()) || fn.numPolygons() != static_cast<int>(counts.size()))
       throw std::runtime_error("Mesh creation changed topology; face attributes cannot be aligned.");
-    if (bracing.IsA<pxr::UsdGeomMesh>()) {
-      // Legacy zSpace graph encoding: Mesh points plus custom edge pairs.
-      const auto points = usdWorldPoints(pxr::UsdGeomPointBased(bracing), cache);
-      pxr::VtArray<int> indices;
-      if (!bracing.GetAttribute(pxr::TfToken("edgeVertexIndices")).Get(&indices) ||
-          indices.empty() || indices.size() % 2)
-        throw std::runtime_error("Mesh bracing requires nonempty edgeVertexIndices pairs.");
-      const auto widths = usdUniformIds(bracing, "widthid", indices.size() / 2, true);
-      for (size_t e = 0; e < indices.size(); e += 2) {
-        const int a = indices[e], b = indices[e+1];
-        if (a < 0 || b < 0 || size_t(a) >= points.size() || size_t(b) >= points.size() ||
-            zTsUtils::vecDistSq(points[a], points[b]) <= 0)
-          throw std::runtime_error("Bracing edge contains an invalid index or zero-length segment.");
-      }
-      zObjGraph graph; zPointArray ownedPoints = points;
-      zIntArray edges(indices.begin(), indices.end()); zFnGraph fnGraph(graph);
-      fnGraph.create(ownedPoints, edges);
-      if (fnGraph.numEdges() != int(indices.size()/2))
-        throw std::runtime_error("Bracing graph creation changed edge order/count; widths cannot be aligned.");
-      std::vector<zTsUtils::GraphPolyline> curves;
-      if (!zTsUtils::graphPolylines(graph, curves))
-        throw std::runtime_error("Bracing requires unbranched chains or loops.");
-      out.BracingCurves.resize(curves.size());
-      for (size_t c = 0; c < curves.size(); ++c) {
-        const auto& curve = curves[c]; const int widthId = widths[curve.Edges.front()];
-        if (widthId < 0 || size_t(widthId) >= bracingWidths.size())
-          throw std::runtime_error("Bracing widthid is outside BracingWidth.");
-        for (int e : curve.Edges) if (widths[e] != widthId)
-          throw std::runtime_error("Each connected Mesh bracing curve must use one widthid.");
-        zPointArray cp; zIntArray ce;
-        for (int v : curve.Vertices) cp.push_back(points[v]);
-        for (size_t j = 0; j < curve.Edges.size(); ++j) {ce.push_back(j);ce.push_back((j+1)%cp.size());}
-        zFnGraph(out.BracingCurves[c]).create(cp,ce);
-        out.BracingWidthIds.push_back(widthId); out.BracingPrintWidths.push_back(bracingWidths[widthId]);
-      }
-    } else {
-      pxr::UsdGeomBasisCurves curves(bracing);
-      pxr::TfToken curveType, wrap;
-      curves.GetTypeAttr().Get(&curveType);
-      curves.GetWrapAttr().Get(&wrap);
-      if (curveType != pxr::UsdGeomTokens->linear ||
-          (wrap != pxr::UsdGeomTokens->nonperiodic && wrap != pxr::UsdGeomTokens->periodic))
-        throw std::runtime_error("bracing requires linear periodic or nonperiodic BasisCurves.");
-      const auto curvePoints = usdWorldPoints(curves, cache);
-      pxr::VtArray<int> curveCounts;
-      if (!curves.GetCurveVertexCountsAttr().Get(&curveCounts) || curveCounts.empty())
-        throw std::runtime_error("bracing has no curves.");
-      const bool closed = wrap == pxr::UsdGeomTokens->periodic;
-      size_t pointCount = 0;
-      for (int count : curveCounts) {
-        if (count < (closed ? 3 : 2)) throw std::runtime_error("bracing curve has too few points.");
-        pointCount += size_t(count);
-      }
-      if (pointCount != curvePoints.size()) throw std::runtime_error("bracing curve counts do not match points.");
-      const auto widthIds = usdUniformIds(bracing, "widthid", curveCounts.size(), true);
-      out.BracingWidthIds.assign(widthIds.begin(), widthIds.end());
-      out.BracingCurves.resize(curveCounts.size());
-      size_t offset = 0;
-      for (size_t c = 0; c < curveCounts.size(); ++c) {
-        const int count = curveCounts[c], id = widthIds[c];
-        if (id < 0 || size_t(id) >= bracingWidths.size())
-          throw std::runtime_error("bracing curve widthid is outside BracingWidth.");
-        zPointArray ribPoints(curvePoints.begin() + offset, curvePoints.begin() + offset + count);
-        zIntArray ribEdges;
-        for (int j = 0; j < (closed ? count : count - 1); ++j) {
-          const int next = (j + 1) % count;
-          if (zTsUtils::vecDistSq(ribPoints[j], ribPoints[next]) <= 0)
-            throw std::runtime_error("bracing contains a zero-length segment.");
-          ribEdges.push_back(j); ribEdges.push_back(next);
-        }
-        zFnGraph(out.BracingCurves[c]).create(ribPoints, ribEdges);
-        out.BracingPrintWidths.push_back(bracingWidths[id]);
-        offset += count;
-      }
+    pxr::UsdGeomBasisCurves curves(bracing);
+    pxr::TfToken curveType, wrap;
+    curves.GetTypeAttr().Get(&curveType);
+    curves.GetWrapAttr().Get(&wrap);
+    if (curveType != pxr::UsdGeomTokens->linear ||
+        (wrap != pxr::UsdGeomTokens->nonperiodic && wrap != pxr::UsdGeomTokens->periodic))
+      throw std::runtime_error("bracing requires linear periodic or nonperiodic BasisCurves.");
+    const auto curvePoints = usdWorldPoints(curves, cache, toMillimetres);
+    pxr::VtArray<int> curveCounts;
+    if (!curves.GetCurveVertexCountsAttr().Get(&curveCounts) || curveCounts.empty())
+      throw std::runtime_error("bracing has no curves.");
+    const bool closed = wrap == pxr::UsdGeomTokens->periodic;
+    size_t pointCount = 0;
+    for (int count : curveCounts) {
+      if (count < (closed ? 3 : 2)) throw std::runtime_error("bracing curve has too few points.");
+      pointCount += size_t(count);
     }
-    const auto anchors = usdWorldPoints(pxr::UsdGeomPointBased(start), cache);
+    if (pointCount != curvePoints.size()) throw std::runtime_error("bracing curve counts do not match points.");
+    const auto widthIds = usdDataIds(data, "bracing:widthid", curveCounts.size(), true);
+    out.BracingWidthIds.assign(widthIds.begin(), widthIds.end());
+    out.BracingCurves.resize(curveCounts.size());
+    size_t offset = 0;
+    for (size_t c = 0; c < curveCounts.size(); ++c) {
+      const int count = curveCounts[c], id = widthIds[c];
+      if (id < 0 || size_t(id) >= bracingWidths.size())
+        throw std::runtime_error("bracing curve widthid is outside BracingWidth.");
+      zPointArray ribPoints(curvePoints.begin() + offset, curvePoints.begin() + offset + count);
+      zIntArray ribEdges;
+      for (int j = 0; j < (closed ? count : count - 1); ++j) {
+        const int next = (j + 1) % count;
+        if (zTsUtils::vecDistSq(ribPoints[j], ribPoints[next]) <= 0)
+          throw std::runtime_error("bracing contains a zero-length segment.");
+        ribEdges.push_back(j); ribEdges.push_back(next);
+      }
+      zFnGraph(out.BracingCurves[c]).create(ribPoints, ribEdges);
+      out.BracingPrintWidths.push_back(bracingWidths[id]);
+      offset += count;
+    }
+    const auto anchors = usdWorldPoints(pxr::UsdGeomPoints(start), cache, toMillimetres);
     if (anchors.size() != 1) throw std::runtime_error("slotpoint must contain exactly one point.");
     out.StartPoint = anchors.front();
     return true;

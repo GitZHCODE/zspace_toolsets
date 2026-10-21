@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <zspace/zToolsets/fabrication/zTs3DP.h>
+#include <zspace/slicing.h>
 #include <zspace/zToolsets/fabrication/zTsCTubes.h>
 #include <zspace/zToolsets/fabrication/zTsCTubeBranching.h>
 #include <zspace/zToolsets/fabrication/zTsPanelisation.h>

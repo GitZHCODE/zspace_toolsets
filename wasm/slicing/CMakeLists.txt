@@ -9,8 +9,7 @@ set(ZSPACE_TETGEN_SOURCE_DIR "${TOOLSETS_ROOT}/wasm/cache/tetgen" CACHE PATH "Te
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS
   "${ZSPACE_CORE_DIR}/src/zCore/*.cpp"
   "${ZSPACE_CORE_DIR}/src/zInterface/*.cpp"
-  "${ZSPACE_CORE_DIR}/src/zIO/*.cpp"
-  "${TOOLSETS_ROOT}/src/zToolsets/fabrication/slicing/*.cpp")
+  "${ZSPACE_CORE_DIR}/src/zIO/*.cpp")
 list(FILTER sources EXCLUDE REGEX "/(zFnComputeMesh|zObjectComputeMesh|zObjectComputeField2D)\\.cpp$")
 list(FILTER sources EXCLUDE REGEX "/(zFnMeshField|zFnPointField)\\.cpp$")
 list(APPEND sources "${CMAKE_CURRENT_SOURCE_DIR}/mesh_field_compat.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/point_field_compat.cpp")
@@ -18,9 +17,12 @@ set(harmonic OFF)
 if(EXISTS "${ZSPACE_TETGEN_SOURCE_DIR}/tetgen.cxx" AND EXISTS "${ZSPACE_TETGEN_SOURCE_DIR}/predicates.cxx")
   set(harmonic ON)
   list(APPEND sources "${ZSPACE_TETGEN_SOURCE_DIR}/tetgen.cxx" "${ZSPACE_TETGEN_SOURCE_DIR}/predicates.cxx")
-else()
-  list(FILTER sources EXCLUDE REGEX "/slicing/zSlicer/harmonic/")
 endif()
+include("${TOOLSETS_ROOT}/cmake/SlicingSources.cmake")
+zspace_slicing_sources(slicing_sources "${TOOLSETS_ROOT}" "${harmonic}")
+# Browser slicing is compute-only; USD/file IO belongs to core.
+list(FILTER slicing_sources EXCLUDE REGEX "/utils/IO\\.cpp$")
+list(APPEND sources ${slicing_sources})
 add_executable(zspace_slicing ${sources} "${CMAKE_CURRENT_SOURCE_DIR}/zspace_slicing_bridge.cpp")
 set_target_properties(zspace_slicing PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
   SUFFIX ".js" RUNTIME_OUTPUT_DIRECTORY "${TOOLSETS_ROOT}/wasm/out")

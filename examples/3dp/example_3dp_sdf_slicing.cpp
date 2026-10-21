@@ -1,21 +1,51 @@
-#include <zspace/interface.h>
-#include <zspace/io.h>
-#include <zspace/toolsets.h>
+#include <zspace/slicing.h>
+#include <iostream>
 
-int main()
-{
-    zSpace::zTs3DP ThreeDP;
-    ThreeDP.setPrintLayerHeight(0.01f);
-    ThreeDP.setFieldResolution(200, 80);
-    ThreeDP.setPrintWidth(0.004f);
-    ThreeDP.setPrintSpacing(0.005f);
+using namespace zSpace;
 
-    if (!ThreeDP.readMesh("data/3dp/input_quad_mesh.obj")) return 1;
+namespace {
+zObjectMesh block() {
+  zObjectMesh mesh;
+  zPointArray points = {
+    {0,0,0},{4,0,0},{4,4,0},{0,4,0},
+    {0,0,1},{4,0,1},{4,4,1},{0,4,1},
+    {0,0,2},{4,0,2},{4,4,2},{0,4,2}
+  };
+  zIntArray counts(10, 4);
+  zIntArray vertices = {
+    0,3,2,1, 8,9,10,11,
+    0,1,5,4, 1,2,6,5, 2,3,7,6, 3,0,4,7,
+    4,5,9,8, 5,6,10,9, 6,7,11,10, 7,4,8,11
+  };
+  zFnMesh(mesh).create(points, counts, vertices);
+  return mesh;
+}
 
-    ThreeDP.computeSlices();
-    ThreeDP.computeUnrolledSDFs();
-    ThreeDP.computePrintPaths();
-    ThreeDP.computePrintMesh();
+void configure(zTsSlicing& session, zObjectMesh& mesh) {
+  zIntArray tags(10, Side);
+  tags[0] = Bottom;
+  tags[1] = Top;
+  session.setInputMesh(mesh, tags);
+  session.setSlotAnchor(zPoint(0, 0, 0));
+  auto& settings = session.getSettings();
+  settings.LayerSpacing = 0.5f;
+  settings.BoundaryWidth = {0.4f};
+  settings.FieldCellSize = 0.1f;
+  session.getPrintSynSetting().ResampleLength = 0.2f;
+}
 
-    return 0;
+}
+
+int main() {
+  auto mesh = block();
+  zTsSlicing slicer;
+  configure(slicer, mesh);
+  if (!slicer.computeSlicer(false) || !slicer.computePostProcess(false)) {
+    std::cerr << slicer.getStatus() << '\n';
+    return 1;
+  }
+  const auto& path = slicer.getResultantPrintPath();
+  std::cout << "Layers: " << slicer.get3DPrintPaths().size()
+            << "; print length: " << slicer.getPrintLength() << '\n';
+  return zFnGraph(const_cast<zObjGraph&>(path.graph)).numEdges() > 0 ? 0 : 1;
 }

@@ -20,6 +20,8 @@
 #include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
 
 #include <string>
+#include <algorithm>
+#include <cmath>
 
 namespace zSpace {
 
@@ -40,6 +42,72 @@ namespace zSpace {
  * functions directly on the operator's own fields, charts and sections.
  */
 class ZSPACE_TOOLSETS zSlicer {
+public:
+  // Statistics of the latest successful 3D path computation, in model units.
+  zDomain<double> o_PrintHeightDomain = zDomain<double>(0.0, 0.0);
+  zDomain<double> o_PrintWidthDomain = zDomain<double>(0.0, 0.0);
+  double o_PrintLength = 0.0;
+  double o_PrintVolume = 0.0;
+  bool o_PrintStatisticsValid = false;
+
+  const zDomain<double> &getPrintHeightDomain() const { return o_PrintHeightDomain; }
+  const zDomain<double> &getPrintWidthDomain() const { return o_PrintWidthDomain; }
+  double getPrintLength() const { return o_PrintLength; }
+  double getPrintVolume() const { return o_PrintVolume; }
+
+protected:
+  void resetPrintStatistics() {
+    o_PrintHeightDomain = zDomain<double>(0.0, 0.0);
+    o_PrintWidthDomain = zDomain<double>(0.0, 0.0);
+    o_PrintLength = o_PrintVolume = 0.0;
+    o_PrintStatisticsValid = false;
+  }
+
+  void updatePrintStatistics(bool finalPath) {
+    resetPrintStatistics();
+    double hMin = 0, hMax = 0, wMin = 0, wMax = 0, length = 0, volume = 0;
+    bool any = false;
+    const auto accumulate = [&](const PrintPath &path) {
+      zPointArray points;
+      zFnGraph(const_cast<zObjGraph &>(path.graph)).getVertexPositions(points);
+      if (points.empty() || path.heights.size() != points.size() || path.widths.size() != points.size()) return false;
+      std::vector<zTsUtils::GraphPolyline> curves;
+      if (!zTsUtils::graphPolylines(path.graph, curves)) return false;
+      for (const auto &curve : curves) {
+        const auto &ids = curve.Vertices;
+        for (size_t i = 0; i < ids.size(); ++i) {
+          const int id = ids[i];
+          const double h = path.heights[id], w = path.widths[id];
+          const auto &p = points[id];
+          if (!std::isfinite(h) || !std::isfinite(w) || h < 0 || w < 0 ||
+              !std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) return false;
+          if (!any) { hMin = hMax = h; wMin = wMax = w; any = true; }
+          hMin = std::min(hMin, h); hMax = std::max(hMax, h);
+          wMin = std::min(wMin, w); wMax = std::max(wMax, w);
+          if (i + 1 == ids.size() && !curve.Closed) continue;
+          const auto &q = points[ids[(i + 1) % ids.size()]];
+          const double d = std::hypot(double(q.x) - p.x, double(q.y) - p.y, double(q.z) - p.z);
+          length += d;
+          volume += h * w * d;
+        }
+      }
+      return true;
+    };
+    bool ok = true;
+    if (finalPath) ok = accumulate(getResultantPrintPath());
+    else for (const auto &layer : getPrintPaths3D())
+      for (const auto &path : layer) if (!accumulate(path)) ok = false;
+    if (!ok || !any || !std::isfinite(length) || !std::isfinite(volume)) {
+      zTsUtils::printDebug("[updatePrintStatistics] Missing or invalid path geometry, widths or heights; statistics unavailable.");
+      return;
+    }
+    o_PrintHeightDomain = zDomain<double>(hMin, hMax);
+    o_PrintWidthDomain = zDomain<double>(wMin, wMax);
+    o_PrintLength = length;
+    o_PrintVolume = volume;
+    o_PrintStatisticsValid = true;
+  }
+
 public:
   virtual ~zSlicer() = default;
 
@@ -66,7 +134,7 @@ public:
 
   /*! \brief Boundary trim-slot anchor (DoubleBoundary), in the same world
    * coordinates as the input mesh, borrowed (must outlive computation): the slot sits
-   * SlicerSettings::BoundarySlotOffset * w either side of the anchor's
+   * SlicerSettings::SlotOffset * w either side of the anchor's
    * nearest point on the floor boundary (even layers counter-clockwise, odd
    * clockwise, seen from +Z). An explicit slot point is required before computation. */
   virtual void setSlotAnchor(const zPoint &inAnchor) = 0;

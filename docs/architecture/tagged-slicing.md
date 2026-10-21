@@ -3,8 +3,7 @@
 The tagged slicing engine is available through `<zspace/slicing.h>` as
 `zSpace::zTsSlicing`. It ports the topology/harmonic slicers and PrintSyn from
 the desktop `slicer` branch (`2db24962`) into the maintained v3 source layout.
-The original v3 `zTs3DP`, `z3DPSlicer` and `z3DPPrintSynthesis` APIs are unchanged.
-The new name avoids colliding with that existing, differently shaped `zTs3DP` API.
+The earlier v3 3DP prototype has been removed. `zTsSlicing` is the maintained C++ slicing API.
 
 Public headers live in `include/zspace/zToolsets/fabrication/slicing/` and
 implementations in `src/zToolsets/fabrication/slicing/`. Headers no longer include
@@ -133,28 +132,9 @@ paths and the combined PrintSyn path with widths/heights/normals/track IDs. The
 viewer computes in a module worker and copies the result before releasing its
 native session. No live heap views reach viewer scene objects.
 
-The separate `wasm/slicing-usd` target adds local USD input through the native
-`readSlicerInputUSD` reader. Build the core OpenUSD WASM SDK first, then run
-`wasm/scripts/build-slicing-usd-wasm.ps1`. This emits its own pair under
-`wasm/out/slicing-usd/`. Tagged input preserves `/block`, `/bracing`, `/slotpoint`,
-face/width tags and both settings dictionaries. Plain USD accepts `/block` or a
-single polygon mesh, bakes transforms and rotates Y-up geometry to Z-up. Stage
-units are preserved. Use self-contained USD or USDZ for referenced assets. The
-importer uses two pthread workers and requires browser isolation headers.
-
-In `zspace_alice_webviewer`, install both matching generated pairs under `wasm/`
-and `wasm/slicing-usd/`, then select **WASM Slicing**. **Load local OBJ / USD**
-opens a browser file picker; plain inputs infer cap tags from horizontal Z
-faces. Controls support topology/harmonic computation, bracing and display of
-layers, fields and combined paths. The viewer setup and installed-runtime tests
-are documented in `docs/development/slicing.md` there. Generated pairs remain
-ignored; source is maintained on the `slicer` feature branch for review.
-### Legacy USD input compatibility
-
-The reader also accepts custom `FaceTag` / `widthid` arrays when the equivalent
-uniform primvars are absent. Authored primvars take precedence and invalid
-primvars are rejected. Legacy Mesh bracing stores `edgeVertexIndices` pairs
-with one width ID per edge; each unbranched connected chain/loop must use one
-width ID. A Mesh containing one point is accepted for `slotpoint` as well.
-The reader keeps authored units and all slicer/PrintSyn settings. The viewer's
-length controls use the native limits, preserving millimetre widths above 10.
+Browser USD IO is owned by the core OpenUSD runtime. Toolsets WASM excludes
+`utils/IO.cpp` and accepts only owned geometry, tags, width groups and settings.
+The viewer translates `/AG_block`, `/Slicer_bracing`, `/Slicer_slot`,
+`/Slicer_data` and `/Slicer_setting` through generic core USD queries and converts
+lengths to millimetres. See the viewer's `docs/development/slicing.md` for builds
+and tests. Native desktop IO remains available independently.

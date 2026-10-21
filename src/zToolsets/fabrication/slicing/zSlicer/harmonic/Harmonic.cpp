@@ -137,7 +137,7 @@ ZSPACE_INLINE bool HarmonicSlicer::equaliseField(TetDirichletSystem &system, zFl
   }
 
   std::vector<Eigen::Vector3d> targets(tetCount, Eigen::Vector3d::Zero());
-  for (int iteration = 0; iteration < i_Settings.HEqualiseIterations; ++iteration) {
+  for (int iteration = 0; iteration < i_Settings._HEqualiseIterations; ++iteration) {
     for (size_t t = 0; t < tetCount; ++t) {
       const Eigen::Vector3d gradient = tetGradient(t, ioField);
       const double magnitude = gradient.norm();
@@ -155,7 +155,7 @@ ZSPACE_INLINE bool HarmonicSlicer::equaliseField(TetDirichletSystem &system, zFl
   double meanAfter = 0.0, spreadAfter = 0.0;
   gradientSpread(ioField, meanAfter, spreadAfter);
   std::ostringstream out;
-  out << "equalised " << i_Settings.HEqualiseIterations << "x, target |grad|=" << target
+  out << "equalised " << i_Settings._HEqualiseIterations << "x, target |grad|=" << target
       << ", spread (max-min)/mean " << spreadBefore << " -> " << spreadAfter;
   outReport = out.str();
   return true;
@@ -171,7 +171,7 @@ ZSPACE_INLINE std::vector<double> HarmonicSlicer::capDirichletValues() const {
 }
 
 // The harmonic field w (Bottom = 0, Top = 1, harmonic inside), optionally
-// gradient-equalised (HEqualiseIterations). w is written straight into
+// gradient-equalised (_HEqualiseIterations). w is written straight into
 // _Tet.UVW's z instead of its own array: _Tet.UVW is allocated here with
 // (u,v) left as NaN placeholders until computeVolumetricParameterization()
 // fills them in.
@@ -208,7 +208,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computeHarmonicFieldImpl() {
   // Optional gradient equalisation: the slicing field (w) becomes psi; the
   // tracing, contours and layering downstream read it unchanged.
   std::string equaliseReport;
-  if (i_Settings.HEqualiseIterations > 0 && !equaliseField(system, phi, equaliseReport)) {
+  if (i_Settings._HEqualiseIterations > 0 && !equaliseField(system, phi, equaliseReport)) {
     _Status = "computeHarmonicField failed: gradient equalisation " + equaliseReport + ".";
     printDebug("[computeHarmonicFieldImpl] " + _Status);
     return false;

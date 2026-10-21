@@ -98,14 +98,13 @@ struct SlicerSettings {
   // outer loop into one chain; a single wall is already one closed loop).
   // Placed from the slot anchor point (zSlicer::setSlotAnchor(),
   // world coordinates): the anchor's nearest point on the floor boundary,
-  // then BoundarySlotOffset * w along the loop - even layers counter-
+  // then SlotOffset * w along the loop - even layers counter-
   // clockwise, odd layers clockwise (seen from +Z), w the boundary width
   // there. Both slicers place it the same way.
-  float BoundarySlotOffset = 1.0f;
-  // Bracing trim-slot ratios (0..1 along each rib), alternating by layer
-  // parity so consecutive layers interlock instead of sharing one seam.
-  float BracingSlotEven = 0.5f;
-  float BracingSlotOdd = 0.5f;
+  float SlotOffset = 1.0f;
+  // Base bracing position (0..1). Even/odd layers offset by +/- SlotOffset
+  // times the rib width in arc length; open curves clamp, closed curves wrap.
+  float BracingSlot = 0.5f;
   float FieldScaleUp = 1.05f;
   // Grid cell size, used exactly as given - keep it comfortably below the
   // narrowest bead width or the zero-isocontour may not resolve.
@@ -123,22 +122,22 @@ struct SlicerSettings {
   //---- Harmonic only (HarmonicSlicer)
   // Maximum Euler tracing step as a fraction of the current simplex's
   // minimum altitude (volume and wall traces). Must be in (0, 1].
-  double HTraceStepFraction = 0.2;
-  int HTraceMaxSteps = 100000; // includes interior steps and boundary transitions
+  double _HTraceStepFraction = 0.2;
+  int _HTraceMaxSteps = 100000; // includes interior steps and boundary transitions
   // Gradient equalisation of the slicing field: after the harmonic solve,
   // this many least-squares re-solves pull |grad| toward its volume-weighted
   // mean along the current flow direction (same Dirichlet caps), so the
   // evenly spaced iso values give more even layer heights. 0 = the plain
   // harmonic field. The layer count does not depend on it.
-  int HEqualiseIterations = 2;
+  int _HEqualiseIterations = 2;
   // ARAP (as-rigid-as-possible) iterations unrolling every slice at world
   // scale (HarmonicSlicer::computeContours()). 0 = keep the start layout.
-  int HArapIterations = 10;
+  int _HArapIterations = 10;
   // ARAP start layout of every slice, which the result is also rigidly
   // aligned back to: 0 = planar projection of the slice itself
   // (zTsUnroll::planarProjection(), its top view - default), 1 = its (u,v)
   // in the floor's physical frame.
-  int HUnrollStart = 0;
+  int _HUnrollStart = 0;
 };
 
 /*! \struct ParameterGraph
@@ -498,7 +497,7 @@ ZSPACE_TOOLSETS void alignRigid2D(zPointArray &points, const zPointArray &target
 namespace zTsField {
 
 /*! \struct FieldSegment
- *	\brief A boundary/bracing graph with its print width, offset and trim
+ *	\brief A boundary/Slicer_bracing graph with its print width, offset and trim
  * ratio - one input curve of the path/width fields. trim is read for
  * bracing only; the boundary slot is anchored (createAnchoredSlot()).
  */
@@ -517,7 +516,10 @@ struct FieldSegment {
 };
 
 /*! \brief BoundaryWidth entry of width group id: the last entry for ids
- * past the end, 0.5 for an empty list; at least 0.1 mm. */
+ * past the end; empty tables and widths below 1e-4 mm are invalid. */
+// Minimum accepted physical parameter in internal millimetres (not a geometry tolerance).
+inline constexpr float MinPhysicalParameter = 1e-4f;
+ZSPACE_TOOLSETS bool validateFieldSettings(const SlicerSettings &settings);
 ZSPACE_TOOLSETS float widthOfGroup(const std::vector<float> &widths, int id);
 ZSPACE_TOOLSETS bool appendBracingSegments(const zObjGraph &graph, const SlicerSettings &settings,
                            zScalar trim, std::vector<FieldSegment> &segments, int layer);
@@ -525,7 +527,7 @@ ZSPACE_TOOLSETS bool appendBracingSegments(const zObjGraph &graph, const SlicerS
 /*! \brief The width value computeWidthField() stores for a segment of the
  * given width: the width itself for a single-perimeter boundary, else (a
  * double-boundary bead or a bracing rib) 0.5 * width + 0.5 * overlapWidth,
- * at least 0.1 mm. */
+ * must be finite and at least 1e-4 mm. */
 ZSPACE_TOOLSETS zScalar printedWidth(zScalar width, bool isBoundary, bool doubleBoundary,
                      zScalar overlapWidth);
 
@@ -596,7 +598,7 @@ ZSPACE_TOOLSETS bool locateSlotAnchor(const zPointArray &floorLoop3D, const zPoi
 /*! \brief One layer's boundary slot in both slicer operators: even layers
  * offsetLength counter-clockwise of anchor, odd layers clockwise (seen from
  * +Z), half-length w - see createAnchoredSlot(). offsetLength is
- * SlicerSettings::BoundarySlotOffset * w. False (empty outSlot) for an
+ * SlicerSettings::SlotOffset * w. False (empty outSlot) for an
  * invalid anchor. */
 ZSPACE_TOOLSETS bool createParitySlot(const zPointArray &loop2D, const LoopAnchor &anchor,
                       bool isEven, double offsetLength, zScalar w,
@@ -699,21 +701,22 @@ ZSPACE_TOOLSETS void extractRawIsoContour(const zObjMeshScalarField &field,
 
 namespace zTsIO {
 
-// Copy an input USD and replace /printpath with one connected BasisCurves prim.
-// Vertex primvars printNormals/printWidths/printHeight correspond 1:1 to points.
-// Coordinates and lengths use the input stage's units. Stage metadata is preserved.
+// Copy an input USD and replace /TDP_gcode with a Scope containing ordered path data.
+// Custom arrays printNormals/printWidths/printHeight correspond 1:1 to points.
+// Path coordinates/lengths are millimetres; export converts to the source stage units.
 ZSPACE_TOOLSETS bool exportPrintPathUSD(const PrintPath &path, const std::string &inputFilePath,
-                        const std::string &filePath,
-                        std::string *outError = nullptr);
+                        const std::string &filePath, int layerCount,
+                        std::string *outError = nullptr, int blockid = 0);
 
 // SettingsJSON preserves the existing {"slicer": {...}, "printSyn": {...}} schema.
-// Coordinates include USD object transforms, in the stage's authored units.
+// Returned coordinates and dimensional settings are millimetres after object transforms.
+// MetersPerUnit records the source file unit; ratios, angles, tags and IDs are unchanged.
 struct SlicerUSDInput {
   zObjMesh Block;
   zIntArray FaceTags;
   zIntArray FaceWidthIds; // Per-face widthid into settings BoundaryWidth.
   zIntArray BracingWidthIds; // Per-curve widthid into settings BracingWidth.
-  zObjGraphArray BracingCurves; // One graph per USD curve, in authored order.
+  zObjGraphArray BracingCurves; // One graph per USD curve, in authored order; coordinates in mm.
   zFloatArray BracingPrintWidths;
   zPoint StartPoint;
   std::string SettingsJSON;
@@ -725,9 +728,9 @@ struct SlicerUSDInput {
 // Failure clears the output and returns a diagnostic through outError.
 ZSPACE_TOOLSETS bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInput &out,
                        std::string *outError = nullptr,
-                       const std::string &blockPath = "/block",
-                       const std::string &bracingPath = "/bracing",
-                       const std::string &startPath = "/slotpoint");
+                       const std::string &blockPath = "/AG_block",
+                       const std::string &bracingPath = "/Slicer_bracing",
+                       const std::string &startPath = "/Slicer_slot");
 
 } // namespace zTsIO
 

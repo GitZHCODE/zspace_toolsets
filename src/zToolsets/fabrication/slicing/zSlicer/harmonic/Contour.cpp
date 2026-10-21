@@ -284,8 +284,8 @@ ZSPACE_INLINE bool HarmonicSlicer::unrollIsoMesh(zObjMesh &isoMesh,
     const zPointArray &uv, zObjMesh &mesh2D, zPointArray &positions3D,
     zPointArray &unrollPositions) const {
   zFnMesh(mesh2D).clear();
-  const int iterations = (std::max)(0, i_Settings.HArapIterations);
-  const bool useUVStart = (i_Settings.HUnrollStart == 1);
+  const int iterations = (std::max)(0, i_Settings._HArapIterations);
+  const bool useUVStart = (i_Settings._HUnrollStart == 1);
   zFnMesh fnIso(isoMesh);
   fnIso.getVertexPositions(positions3D);
   if (positions3D.empty() || fnIso.numPolygons() == 0 || uv.size() != positions3D.size()) {

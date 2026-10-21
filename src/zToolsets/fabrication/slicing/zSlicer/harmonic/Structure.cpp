@@ -437,6 +437,7 @@ ZSPACE_INLINE void HarmonicSlicer::clearPrintPaths() {
   o_PrintPaths2D.clear();
   o_PrintPaths3D.clear();
   o_ResultantPrintPath = PrintPath();
+  resetPrintStatistics();
 }
 
 ZSPACE_INLINE void HarmonicSlicer::clearFields() {

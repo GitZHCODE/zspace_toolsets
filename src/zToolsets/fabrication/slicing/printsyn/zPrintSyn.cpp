@@ -85,8 +85,12 @@ bool resampleSinglePath(PrintPath &ioPath, float resampleLength,
                         float featureAngleTol) {
   zFnGraph fnGraph(ioPath.graph);
   const int N = fnGraph.numVertices();
-  const float sampleLength = (resampleLength > 0.1f) ? resampleLength : 5.0f;
-  if (N < 2 || sampleLength <= 1e-3f)
+  if (!std::isfinite(resampleLength) || resampleLength < zTsField::MinPhysicalParameter) {
+    zTsUtils::printDebug("[resampleSinglePath] ResampleLength must be finite and at least 1e-4 mm.");
+    return false;
+  }
+  const float sampleLength = resampleLength;
+  if (N < 2)
     return false;
 
   std::vector<GraphPolyline> curves;
