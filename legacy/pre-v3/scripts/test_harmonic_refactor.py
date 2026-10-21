@@ -65,7 +65,7 @@ unsigned long long makeEdgeKey(int a,int b){if(a>b)std::swap(a,b);return (static
 double triangleArea2(const zPoint &a,const zPoint &b,const zPoint &c){auto n=(b-a)^(c-a);return std::sqrt(n*n);}
 void printError(const std::string &){}
 enum class VertexTag {Bottom=0,Top=1,Side=2};
-struct Settings {int HEqualiseIterations=5;};
+struct Settings {int _HEqualiseIterations=5;};
 struct TriangleSoup {zPointArray Positions;std::vector<std::array<int,3>> Triangles;};
 class zTetrahedron {
 public:zPointArray Vertices;std::vector<std::array<int,4>> Tets;zIntArray Markers,BottomVertexIds,TopVertexIds;};

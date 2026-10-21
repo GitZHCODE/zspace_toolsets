@@ -125,7 +125,7 @@ public:
   /*! \brief Boundary trim-slot anchor (DoubleBoundary), world coordinates
    * like the input mesh - e.g. the first point of a point-only OBJ read with
    * zTsIO::readSlicerInputUSD(). Both operators put the slot
-   * SlicerSettings::BoundarySlotOffset * w either side of its nearest point
+   * SlicerSettings::SlotOffset * w either side of its nearest point
    * on the floor boundary (even layers counter-clockwise, odd clockwise,
    * seen from +Z). clearSlotAnchor() invalidates the required slot point until set again. */
   void setSlotAnchor(const zPoint &anchor);
@@ -186,6 +186,12 @@ public:
   inline const PrintPathArray &get3DPrintPaths() const {
     return _Slicer->getPrintPaths3D();
   }
+  const zDomain<double> &getPrintHeightDomain() const { return _Slicer->getPrintHeightDomain(); }
+  const zDomain<double> &getPrintWidthDomain() const { return _Slicer->getPrintWidthDomain(); }
+  double getPrintLength() const { return _Slicer->getPrintLength(); }
+  double getPrintVolume() const { return _Slicer->getPrintVolume(); }
+  bool hasPrintStatistics() const { return _Slicer->o_PrintStatisticsValid; }
+
   inline const PrintPath &getResultantPrintPath() const {
     return _Slicer->getResultantPrintPath();
   }

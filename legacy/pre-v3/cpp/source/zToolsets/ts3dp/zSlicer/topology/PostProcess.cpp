@@ -40,6 +40,7 @@ ZSPACE_INLINE bool TopologySlicer::computeSlicerImpl(bool useParallel) {
   o_PrintPaths2D.clear();
   o_PrintPaths3D.clear();
   o_ResultantPrintPath = PrintPath();
+  resetPrintStatistics();
   if (!computeBasicStructure(useParallel))
     return false;
   if (!computeSlice(useParallel))
@@ -60,6 +61,8 @@ ZSPACE_INLINE bool TopologySlicer::computeSlicerImpl(bool useParallel) {
 // step and its layers, and false is returned.
 ZSPACE_INLINE bool TopologySlicer::computePostProcess(const PrintSynSetting &settings, bool useParallel) {
   const bool success = computePostProcessImpl(settings, useParallel);
+  if (success) updatePrintStatistics(true);
+  else resetPrintStatistics();
   if (success) zTsUtils::printSuccess("[TopologySlicer::computePostProcess] Success");
   else zTsUtils::printError("[TopologySlicer::computePostProcess] Failed");
   return success;
@@ -68,7 +71,7 @@ ZSPACE_INLINE bool TopologySlicer::computePostProcess(const PrintSynSetting &set
 ZSPACE_INLINE bool TopologySlicer::computePostProcessImpl(const PrintSynSetting &settings, bool useParallel) {
   if (!computePrintPath(useParallel)) return false;
 
-  const bool ok = zPrintSyn::computePipeline(o_IsoMeshes2D, o_IsoMeshes, &o_VertexLayerHeights,
+  const bool ok = zPrintSyn::computePipeline(o_IsoMeshes2D, o_IsoMeshes, &_VLength,
       zPrintSyn::SeamMapping::SharedTopology, settings, o_PrintPaths2D, o_PrintPaths3D,
       o_ResultantPrintPath, _Status, useParallel);
   if (!ok) zTsUtils::printDebug("[computePostProcessImpl] Post-processing stopped because a helper failed or reported invalid paths; partial results are retained.");

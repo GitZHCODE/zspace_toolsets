@@ -22,7 +22,6 @@
 #include <utility>
 #include <vector>
 
-#include <Eigen/SparseCholesky>
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -338,47 +337,14 @@ bool _traceColumn(zObjMesh &mesh, const zIntArray &tags, int v, int maxSteps,
   return false;
 }
 
-// Uniform-weight harmonic interpolation system for the cap mesh's interior
-// vertices (indices >= numBoundary): outL * dInterior = outC * dBoundary.
-void _buildInteriorSystem(zObjMesh &capMesh, int numBoundary,
-                          Eigen::SparseMatrix<double> &outL,
-                          Eigen::SparseMatrix<double> &outC) {
-  zFnMesh fn(capMesh);
-  const int numInterior = fn.numVertices() - numBoundary;
-  outL.resize(0, 0);
-  outC.resize(0, 0);
-  if (numInterior <= 0)
-    return;
-
-  std::vector<Eigen::Triplet<double>> lTriplets, cTriplets;
-  std::vector<double> degree(numInterior, 0.0);
-  for (zItMeshHalfEdge he(capMesh); !he.end(); he++) {
-    const int a = he.getStartVertex().getId(), b = he.getVertex().getId();
-    if (a < numBoundary)
-      continue;
-    degree[a - numBoundary] += 1.0;
-    if (b >= numBoundary)
-      lTriplets.emplace_back(a - numBoundary, b - numBoundary, -1.0);
-    else
-      cTriplets.emplace_back(a - numBoundary, b, 1.0);
-  }
-  for (int k = 0; k < numInterior; k++)
-    lTriplets.emplace_back(k, k, degree[k]);
-
-  outL.resize(numInterior, numInterior);
-  outL.setFromTriplets(lTriplets.begin(), lTriplets.end());
-  outC.resize(numInterior, numBoundary);
-  outC.setFromTriplets(cTriplets.begin(), cTriplets.end());
-}
-
 } // namespace
 
 //--------------------------
 //---- PUBLIC METHODS: STEP 1 (3D SLICING)
 //--------------------------
 
-// Floor cap (U-mesh), U-loop, V-loops with per-vertex values, interior
-// interpolation system and bracing parameterization - all from the input
+// Floor cap (U-mesh), U-loop, V-loops with per-vertex values and
+// bracing parameterization - all from the input
 // mesh and its vertex tags (see the class comment).
 ZSPACE_INLINE bool TopologySlicer::computeBasicStructure(bool useParallel) {
   const bool success = computeBasicStructureImpl(useParallel);
@@ -392,8 +358,6 @@ ZSPACE_INLINE bool TopologySlicer::computeBasicStructureImpl(bool useParallel) {
     _VLoops.clear();
     _VScalar.clear();
     _VLoopSegmentWidthIds.clear();
-    _InteriorLaplacian.resize(0, 0);
-    _InteriorCoupling.resize(0, 0);
     _BracingParams.clear();
     zFnMesh(_UMesh).clear();
   };
@@ -413,7 +377,9 @@ ZSPACE_INLINE bool TopologySlicer::computeBasicStructureImpl(bool useParallel) {
   o_PathFields.clear();
   o_WidthFields.clear();
   o_TrackFields.clear();
-  o_VertexLayerHeights.clear();
+  _VLength.clear();
+  o_LayerHeightDomain = zDomain<float>(0.0f, 0.0f);
+  resetPrintStatistics();
 
   if (!i_SlotPoint) {
     _Status = "failed: i_SlotPoint is required. Call setSlotAnchor() before computing.";
@@ -492,21 +458,17 @@ ZSPACE_INLINE bool TopologySlicer::computeBasicStructureImpl(bool useParallel) {
     return fail("the floor cap has more than one boundary loop - only a "
                 "single loop is supported.");
 
+  for (zItMeshVertex vertex(_UMesh); !vertex.end(); vertex++) {
+    if (!vertex.onBoundary())
+      return fail("UMesh contains interior vertices; only boundary vertices with V-loops are supported.");
+  }
+
   std::vector<zIntArray> vLoopVertexIds;
   zIntArray uMeshVertexIds;
 
-  // Input-mesh id of every re-ordered _UMesh vertex (same order as
-  // _alignBoundaryVertices(): loop vertices, then the rest ascending).
-  {
-    std::vector<bool> onLoop(capOriginalIds.size(), false);
-    for (int capId : loopCapIds) {
-      uMeshVertexIds.push_back(capOriginalIds[capId]);
-      onLoop[capId] = true;
-    }
-    for (size_t capId = 0; capId < capOriginalIds.size(); capId++)
-      if (!onLoop[capId])
-        uMeshVertexIds.push_back(capOriginalIds[capId]);
-  }
+  // All UMesh vertices belong to the boundary loop, in the same order.
+  for (int capId : loopCapIds)
+    uMeshVertexIds.push_back(capOriginalIds[capId]);
 
   // 4. V-loops: one column per U-loop vertex, up to the first Top vertex.
   _VLoops.reserve(numLoopVerts);
@@ -552,10 +514,6 @@ ZSPACE_INLINE bool TopologySlicer::computeBasicStructureImpl(bool useParallel) {
     }
   }
 
-  // 6. Interior floor-cap vertices follow the boundary harmonically.
-  _buildInteriorSystem(_UMesh, numLoopVerts, _InteriorLaplacian,
-                       _InteriorCoupling);
-
   // 7. Bracing graph parameterized on the floor cap.
   if (i_BracingGraph) {
     parameterizeGraph(*i_BracingGraph, _UMesh, _BracingParams);
@@ -571,7 +529,6 @@ ZSPACE_INLINE bool TopologySlicer::computeBasicStructureImpl(bool useParallel) {
   std::ostringstream out;
   out << "Computed structure: floor cap faces=" << capFaces
       << " U-loop vertices=" << numLoopVerts
-      << " interior vertices=" << _InteriorLaplacian.rows()
       << " width groups="
       << zTsUtils::widthGroupCount(i_FaceTags, i_FaceWidthIds);
   _Status = out.str();
@@ -591,7 +548,9 @@ ZSPACE_INLINE bool TopologySlicer::computeSliceImpl(bool useParallel) {
   zObjMeshArray &outSectionMeshes = o_IsoMeshes;
   outSectionMeshes.clear();
   o_IsoMeshBoundary.clear();
-  o_VertexLayerHeights.clear();
+  _VLength.clear();
+  o_LayerHeightDomain = zDomain<float>(0.0f, 0.0f);
+  resetPrintStatistics();
 
   if (_VLoops.empty() || _VScalar.empty()) {
     _Status = "failed: No V-loops available.";
@@ -624,22 +583,12 @@ ZSPACE_INLINE bool TopologySlicer::computeSliceImpl(bool useParallel) {
     return false;
   }
 
-  // Interior floor-cap vertices (no column) are displaced harmonically with
-  // the boundary - factorized once here, solved per layer below.
-  const int numBoundary = int(_VLoops.size());
-  const int numInterior = int(_InteriorLaplacian.rows());
-  zPointArray restPositions;
-  zFnMesh(_UMesh).getVertexPositions(restPositions);
-  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> interiorSolver;
-  if (numInterior > 0) {
-    interiorSolver.compute(_InteriorLaplacian);
-    if (interiorSolver.info() != Eigen::Success) {
-      _Status = "failed: could not factorize the floor-cap interior system.";
-      printDebug("[computeSliceImpl] " + _Status);
-      return false;
-    }
+  if (zFnMesh(_UMesh).numVertices() != int(_VLoops.size()) ||
+      _VScalar.size() != _VLoops.size()) {
+    _Status = "failed: UMesh must have one V-loop per vertex; interior vertices are not supported.";
+    printDebug("[computeSliceImpl] " + _Status);
+    return false;
   }
-
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
   // 1. Interpolate 3D section mesh and extract boundaries
@@ -658,22 +607,7 @@ ZSPACE_INLINE bool TopologySlicer::computeSliceImpl(bool useParallel) {
            i++) {
         samplePolyline(_VLoops[i], _VScalar[i], ratio, points[i]);
       }
-      if (numInterior > 0) {
-        Eigen::MatrixXd boundaryDelta(numBoundary, 3);
-        for (int b = 0; b < numBoundary; b++) {
-          boundaryDelta(b, 0) = points[b].x - restPositions[b].x;
-          boundaryDelta(b, 1) = points[b].y - restPositions[b].y;
-          boundaryDelta(b, 2) = points[b].z - restPositions[b].z;
-        }
-        const Eigen::MatrixXd interiorDelta =
-            interiorSolver.solve(_InteriorCoupling * boundaryDelta);
-        for (int k = 0; k < numInterior; k++) {
-          const zPoint &rest = restPositions[numBoundary + k];
-          points[numBoundary + k] = zPoint(rest.x + interiorDelta(k, 0),
-                                           rest.y + interiorDelta(k, 1),
-                                           rest.z + interiorDelta(k, 2));
-        }
-      }
+
     }
 
     std::vector<int> secOldVertexIds;
@@ -695,13 +629,18 @@ ZSPACE_INLINE bool TopologySlicer::computeSliceImpl(bool useParallel) {
   }
 
   // Per-vertex layer spacing.
-  o_VertexLayerHeights.assign(_VScalar.size(), 0.0f);
+  _VLength.assign(_VScalar.size(), 0.0f);
   if (totalLayers > 1) {
     const float denom = float(totalLayers - 1);
     for (size_t k = 0; k < _VScalar.size(); k++) {
       if (!_VScalar[k].empty())
-        o_VertexLayerHeights[k] = float(_VScalar[k].back() / denom);
+        _VLength[k] = float(_VScalar[k].back() / denom);
     }
+  }
+
+  if (!_VLength.empty()) {
+    const auto range = std::minmax_element(_VLength.begin(), _VLength.end());
+    o_LayerHeightDomain = zDomain<float>(*range.first, *range.second);
   }
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
