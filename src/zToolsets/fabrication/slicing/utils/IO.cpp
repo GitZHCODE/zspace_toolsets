@@ -14,20 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
-#include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
-
-#ifndef ZSPACE_INLINE
-#define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
-#endif
-
-#include <algorithm>
-#include <cctype>
-#include <fstream>
-#include <iomanip>
-#include <sstream>
-#include <string>
-#include <vector>
-
+// Parse USD/Windows SDK headers before legacy zSpace global namespace imports.
 #if defined(ZSPACE_TS3DP_OPENUSD)
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/sdf/layer.h>
@@ -45,6 +32,22 @@
 #include <cmath>
 #include <stdexcept>
 #endif
+
+#include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
+
+#ifndef ZSPACE_INLINE
+#define ZSPACE_INLINE ZSPACE_TOOLSETS_INLINE
+#endif
+
+#include <algorithm>
+#include <cctype>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
+
+
 
 namespace zSpace {
 namespace zTsIO {
