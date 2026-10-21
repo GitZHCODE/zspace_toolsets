@@ -16,8 +16,8 @@ BEFORE = Path(sys.argv[1]) if len(sys.argv) > 1 else None
 tree = ast.parse((ROOT/'scripts/test_harmonic_refactor.py').read_text())
 prelude = next(ast.literal_eval(node.value) for node in tree.body
                if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'prelude' for t in node.targets))
-prelude = prelude.replace('struct Settings {int HEqualiseIterations=5;};',
-    'struct Settings {int HEqualiseIterations=5; double HTraceStepFraction=0.2; int HTraceMaxSteps=10000; double LayerSpacing=0.125; int HArapIterations=3; int HUnrollStart=0;};')
+prelude = prelude.replace('struct Settings {int _HEqualiseIterations=5;};',
+    'struct Settings {int _HEqualiseIterations=5; double _HTraceStepFraction=0.2; int _HTraceMaxSteps=10000; double LayerSpacing=0.125; int _HArapIterations=3; int _HUnrollStart=0;};')
 prelude = prelude.replace('  void clear(){mesh={};}', '''  void clear(){mesh={};}
   int numVertices(){return int(mesh.positions.size());}
   int numPolygons(){return int(mesh.counts.size());}
@@ -155,7 +155,7 @@ template<class S> void fixture(S &s,bool warped,int maxSteps){
     bool bottom=true,top=true;for(int id:tri){bottom&=s._Tet.Markers[id]==0;top&=s._Tet.Markers[id]==1;}
     s._SurfaceTriWidthIds.push_back(bottom||top?-1:0);
   }
-  s.i_Settings.HTraceMaxSteps=maxSteps;
+  s.i_Settings._HTraceMaxSteps=maxSteps;
 }
 bool sameNumber(double a,double b){return (std::isnan(a)&&std::isnan(b))||a==b;}
 void pointsEqual(const zPointArray &a,const zPointArray &b){assert(a.size()==b.size());
@@ -186,7 +186,7 @@ int main(){
   omp_set_dynamic(0);
   for(bool warped:{false,true})for(int steps:{1,10000})for(int start:{0,1}){
     current::HarmonicSlicer serial;fixture(serial,warped,steps);int degenerate=0;
-    serial.i_Settings.HUnrollStart=start;
+    serial.i_Settings._HUnrollStart=start;
     serial.prepare(false,degenerate);assert(degenerate==1);assert(serial.trace(false));
     std::string traceStatus=serial._Status;serial.extract(false);
     assert(serial.o_IsoMeshes.size()==9);
@@ -195,7 +195,7 @@ int main(){
     if(!warped&&steps>1)assert(std::count(serial._ParamValid.begin(),serial._ParamValid.end(),true)>serial._Tet.BottomVertexIds.size());
     for(int threads:{1,2,4})for(int repeat=0;repeat<3;++repeat){
       omp_set_num_threads(threads);current::HarmonicSlicer parallel;fixture(parallel,warped,steps);
-      parallel.i_Settings.HUnrollStart=start;
+      parallel.i_Settings._HUnrollStart=start;
       parallel.prepare(true,degenerate);assert(degenerate==1);assert(parallel.trace(true));parallel.extract(true);compare(serial,parallel);
     }
     BEFORE_CHECK
@@ -212,7 +212,7 @@ for line in setup.stdout.splitlines():
 code = prelude + kernels(ROOT,'current')
 if BEFORE:
     code += kernels(BEFORE,'before',True)
-    checks = checks.replace('BEFORE_CHECK', 'before::HarmonicSlicer original;fixture(original,warped,steps);original.i_Settings.HUnrollStart=start;original.prepare(false,degenerate);assert(original.trace(false));original.extract(false);compare(serial,original);')
+    checks = checks.replace('BEFORE_CHECK', 'before::HarmonicSlicer original;fixture(original,warped,steps);original.i_Settings._HUnrollStart=start;original.prepare(false,degenerate);assert(original.trace(false));original.extract(false);compare(serial,original);')
 else:
     checks = checks.replace('BEFORE_CHECK','')
 with tempfile.TemporaryDirectory(prefix='harmonic_parallel_') as tmp:

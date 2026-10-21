@@ -19,17 +19,16 @@ SETTINGS_JSON = r'''
     "BracingWidth": [0.04, 0.03, 0.02],
     "OverlapWidth": 0.0,
     "DoubleBoundary": true,
-    "BoundarySlotOffset": 1.0,
-    "BracingSlotEven": 0.45,
-    "BracingSlotOdd": 0.55,
+    "SlotOffset": 1.0,
+    "BracingSlot": 0.5,
     "FieldScaleUp": 1.1,
     "FieldCellSize": 0.005,
     "LayerSpacing": 0.01,
-    "HTraceStepFraction": 0.2,
-    "HTraceMaxSteps": 100000,
-    "HEqualiseIterations": 2,
-    "HArapIterations": 10,
-    "HUnrollStart": 0
+    "_HTraceStepFraction": 0.2,
+    "_HTraceMaxSteps": 100000,
+    "_HEqualiseIterations": 2,
+    "_HArapIterations": 10,
+    "_HUnrollStart": 0
   },
   "printSyn": {
     "ResampleLength": 0.01,
@@ -54,14 +53,14 @@ def points(values):
     return array("(" + ", ".join(number(x) for x in p) + ")" for p in values)
 
 
-def dictionary(data, indent=8):
+def dictionary(data, indent=4, namespace=""):
     lines = []
     pad = " " * indent
     for key, value in data.items():
         if not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", key):
             raise ValueError("Invalid settings key: " + key)
         if isinstance(value, dict):
-            lines += [f"{pad}dictionary {key} = {{", dictionary(value, indent+4), pad+"}"]
+            lines.append(dictionary(value, indent, namespace + key + ":"))
         else:
             if isinstance(value, bool):
                 kind, text = "bool", str(value).lower()
@@ -75,7 +74,7 @@ def dictionary(data, indent=8):
                 kind, text = "string", json.dumps(value, ensure_ascii=True)
             else:
                 raise ValueError("Unsupported setting: " + key)
-            lines.append(f"{pad}{kind} {key} = {text}")
+            lines.append(f"{pad}custom {kind} {namespace}{key} = {text}")
     return "\n".join(lines)
 
 
@@ -105,7 +104,7 @@ def roles():
     return result
 
 
-def block_text(obj, widths):
+def block_text(obj, widths, data):
     if obj.type != "MESH":
         raise ValueError("block must be a mesh")
     evaluated = obj.evaluated_get(bpy.context.evaluated_depsgraph_get())
@@ -131,19 +130,20 @@ def block_text(obj, widths):
             vertices = list(face.vertices)
             counts.append(len(vertices))
             indices.extend(reversed(vertices) if reverse else vertices)
+        data.extend(['    custom int[] block:FaceTag = ' + array(tags),
+                     '    custom int[] block:widthid = ' + array(ids)])
         return '\n'.join([
-            'def Mesh "block" {',
+            'def Mesh "AG_block" {',
             '    uniform token subdivisionScheme = "none"',
             '    point3f[] points = ' + points(evaluated.matrix_world @ v.co for v in mesh.vertices),
             '    int[] faceVertexCounts = ' + array(counts),
             '    int[] faceVertexIndices = ' + array(indices),
-            '    int[] primvars:FaceTag = ' + array(tags) + ' (interpolation = "uniform")',
-            '    int[] primvars:widthid = ' + array(ids) + ' (interpolation = "uniform")', '}'])
+            '}'])
     finally:
         evaluated.to_mesh_clear()
 
 
-def bracing_text(obj, widths):
+def bracing_text(obj, widths, data):
     if any(m.show_viewport for m in obj.modifiers):
         raise ValueError("Apply bracing modifiers before export to preserve edge widthid")
     mesh = obj.data
@@ -155,13 +155,14 @@ def bracing_text(obj, widths):
     ids = [attr.data[e.index].value if attr else 0 for e in mesh.edges]
     if any(i < 0 or i >= len(widths) for i in ids):
         raise ValueError("Edge widthid is outside settings BracingWidth")
+    data.append('    custom int[] bracing:widthid = ' + array(ids))
     return '\n'.join([
-        'def BasisCurves "bracing" {',
+        'def BasisCurves "Slicer_bracing" {',
         '    point3f[] points = ' + points(obj.matrix_world @ mesh.vertices[v].co for e in mesh.edges for v in e.vertices),
         '    uniform token type = "linear"',
         '    uniform token wrap = "nonperiodic"',
         '    int[] curveVertexCounts = ' + array(2 for e in mesh.edges),
-        '    int[] primvars:widthid = ' + array(ids) + ' (interpolation = "uniform")', '}'])
+        '}'])
 
 
 def export_selected():
@@ -176,12 +177,15 @@ def export_selected():
     if len(slot.data.vertices) != 1 or slot.data.edges or slot.data.polygons or slot.modifiers:
         raise ValueError("slotpoint must be a single-vertex mesh without edges, faces or modifiers")
     anchor = slot.matrix_world @ slot.data.vertices[0].co
+    data = []
+    block = block_text(objects['block'], widths, data)
+    bracing = bracing_text(objects['bracing'], bracing_widths, data)
     text = '\n'.join([
         '#usda 1.0', '(', '    upAxis = "Z"',
         '    metersPerUnit = ' + number(bpy.context.scene.unit_settings.scale_length),
-        '    customLayerData = {', dictionary(settings), '    }', ')',
-        block_text(objects['block'], widths), bracing_text(objects['bracing'], bracing_widths),
-        'def Points "slotpoint" {', '    point3f[] points = ' + points([anchor]),
+        ')', 'def Scope "Slicer_setting" {', dictionary(settings), '}',
+        block, bracing, 'def Scope "Slicer_data" {', *data, '}',
+        'def Points "Slicer_slot" {', '    point3f[] points = ' + points([anchor]),
         '}', ''])
     path = Path(bpy.path.abspath(OUTPUT_PATH)).expanduser()
     if path.suffix.lower() != '.usda':

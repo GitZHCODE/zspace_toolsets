@@ -33,12 +33,8 @@ namespace zSpace {
 namespace zTsField {
 ZSPACE_INLINE bool appendBracingSegments(const zObjGraph &graph, const SlicerSettings &settings,
     zScalar trim, std::vector<FieldSegment> &segments, int layer) {
-  if (settings.BracingCurveWidths.empty()) {
-    segments.emplace_back(graph, 1, static_cast<zScalar>(settings.BracingWidth), 0.0, trim);
-    return true;
-  }
   std::vector<zTsUtils::GraphPolyline> curves;
-  if (!zTsUtils::graphPolylines(graph, curves) || curves.size() != settings.BracingCurveWidths.size()) {
+  if (!zTsUtils::graphPolylines(graph, curves) || (!settings.BracingCurveWidths.empty() && curves.size() != settings.BracingCurveWidths.size())) {
     zTsUtils::printDebug("[appendBracingSegments] layer=" + std::to_string(layer) +
         " Bracing topology does not match per-curve widths; field generation stopped for this layer.");
     return false;
@@ -55,7 +51,22 @@ ZSPACE_INLINE bool appendBracingSegments(const zObjGraph &graph, const SlicerSet
     for (int i = 1; i < static_cast<int>(local.size()); ++i) { edges.push_back(i-1); edges.push_back(i); }
     if (curves[c].Closed) { edges.push_back(static_cast<int>(local.size())-1); edges.push_back(0); }
     zObjGraph rib; zFnGraph(rib).create(local, edges);
-    segments.emplace_back(rib, 1, static_cast<zScalar>(settings.BracingCurveWidths[c]), 0.0, trim);
+    const double width = settings.BracingCurveWidths.empty() ? settings.BracingWidth : settings.BracingCurveWidths[c];
+    double length = 0.0;
+    for (size_t e = 0; e < edges.size(); e += 2) {
+      const auto &a = local[edges[e]], &b = local[edges[e + 1]];
+      length += std::hypot(double(b.x) - a.x, double(b.y) - a.y, double(b.z) - a.z);
+    }
+    if (!std::isfinite(trim) || trim < 0 || trim > 1 ||
+        !std::isfinite(settings.SlotOffset) || settings.SlotOffset < 0 ||
+        !std::isfinite(width) || width <= 0 || !std::isfinite(length) || length <= 0) {
+      zTsUtils::printDebug("[appendBracingSegments] layer=" + std::to_string(layer) +
+          " Invalid BracingSlot, SlotOffset, width or curve length.");
+      return false;
+    }
+    double ratio = double(trim) + (layer % 2 == 0 ? 1.0 : -1.0) * settings.SlotOffset * width / length;
+    ratio = curves[c].Closed ? ratio - std::floor(ratio) : std::clamp(ratio, 0.0, 1.0);
+    segments.emplace_back(rib, 1, static_cast<zScalar>(width), 0.0, static_cast<zScalar>(ratio));
   }
   return true;
 }
@@ -619,18 +630,51 @@ ZSPACE_INLINE bool createSlot(const zObjGraph &sourceGraph,
   return true;
 }
 
+ZSPACE_INLINE bool validateFieldSettings(const SlicerSettings &s) {
+  const auto valid = [](double v) { return std::isfinite(v) && v >= MinPhysicalParameter; };
+  if (!valid(s.FieldCellSize) || s.BoundaryWidth.empty()) {
+    zTsUtils::printDebug("[validateFieldSettings] FieldCellSize must be finite and at least 1e-4 mm; BoundaryWidth must not be empty.");
+    return false;
+  }
+  const auto validWidth = [&](double w, bool boundary) {
+    return valid(w) && valid(boundary && !s.DoubleBoundary ? w : 0.5 * w + 0.5 * s.OverlapWidth);
+  };
+  for (float w : s.BoundaryWidth) if (!validWidth(w, true)) {
+    zTsUtils::printDebug("[validateFieldSettings] Boundary width or effective bead width is below 1e-4 mm or non-finite.");
+    return false;
+  }
+  if (s.BracingCurveWidths.empty()) {
+    if (validWidth(s.BracingWidth, false)) return true;
+  } else {
+    bool validAll = true;
+    for (float w : s.BracingCurveWidths) validAll = validAll && validWidth(w, false);
+    if (validAll) return true;
+  }
+  zTsUtils::printDebug("[validateFieldSettings] Bracing width or effective bead width is below 1e-4 mm or non-finite.");
+  return false;
+}
+
 ZSPACE_INLINE float widthOfGroup(const std::vector<float> &widths, int id) {
-  if (widths.empty())
-    return 0.5f;
+  if (widths.empty()) {
+    zTsUtils::printDebug("[widthOfGroup] Empty width table.");
+    return std::numeric_limits<float>::quiet_NaN();
+  }
   const int index = (std::max)(0, (std::min)(id, int(widths.size()) - 1));
-  return (std::max)(0.1f, widths[index]);
+  if (!std::isfinite(widths[index]) || widths[index] < MinPhysicalParameter) {
+    zTsUtils::printDebug("[widthOfGroup] Width must be finite and at least 1e-4 mm.");
+    return std::numeric_limits<float>::quiet_NaN();
+  }
+  return widths[index];
 }
 
 ZSPACE_INLINE zScalar printedWidth(zScalar width, bool isBoundary,
                                    bool doubleBoundary, zScalar overlapWidth) {
-  if (isBoundary && !doubleBoundary)
-    return width;
-  return (std::max)(zScalar(0.1), zScalar(0.5 * width + 0.5 * overlapWidth));
+  const zScalar result = isBoundary && !doubleBoundary ? width : zScalar(0.5 * width + 0.5 * overlapWidth);
+  if (!std::isfinite(result) || result < MinPhysicalParameter) {
+    zTsUtils::printDebug("[printedWidth] Effective width must be finite and at least 1e-4 mm.");
+    return std::numeric_limits<zScalar>::quiet_NaN();
+  }
+  return result;
 }
 
 ZSPACE_INLINE int loopWidthSegments(const zObjGraph &loop,
@@ -863,7 +907,11 @@ ZSPACE_INLINE bool computeGridBounds(const zPoint &minBB, const zPoint &maxBB,
   const double rawWidth = (maxBB.x - minBB.x) * scaleFactor;
   const double rawHeight = (maxBB.y - minBB.y) * scaleFactor;
 
-  const double cell = (cellSize > 1e-3) ? cellSize : 100.0;
+  if (!std::isfinite(cellSize) || cellSize < MinPhysicalParameter) {
+    zTsUtils::printDebug("[computeGridBounds] Cell size must be finite and at least 1e-4 mm.");
+    return false;
+  }
+  const double cell = cellSize;
   const int resX = (std::max)(1, static_cast<int>(std::ceil(rawWidth / cell)));
   const int resY =
       (std::max)(1, static_cast<int>(std::ceil(rawHeight / cell)));
@@ -921,7 +969,13 @@ ZSPACE_INLINE void computeWidthField(
   for (size_t k = 0; k < segments.size(); ++k) {
     if (segDistances[k].size() < static_cast<size_t>(n)) continue;
     const FieldSegment &segment = segments[k];
-    const zScalar width = (std::max)(zScalar(0.1), segment.width);
+    const zScalar width = segment.width;
+    if (!std::isfinite(width) || width < MinPhysicalParameter) {
+      zTsUtils::printDebug("[computeWidthField] Segment width must be finite and at least 1e-4 mm.");
+      if (outWidthField) outWidthField->clear();
+      if (outIdField) outIdField->clear();
+      return;
+    }
     const zScalar beadWidth = printedWidth(segment.width, segment.type == 0,
                                            doubleBoundary, overlapWidth);
     for (int i = 0; i < n; ++i) {
@@ -993,7 +1047,7 @@ ZSPACE_INLINE void computePathField(
     ribField.resize(n);
     for (int i = 0; i < n; ++i) ribField[i] = segDistances[k][i] - offset;
     const zScalarArray *rib = &ribField;
-    if (segment.trim > 1e-4 && segment.trim < 1.0 - 1e-4) {
+    if (segment.trim >= 0.0 && segment.trim <= 1.0) {
       zObjGraph slot;
       if (createSlot(segment.graph, slot, segment.trim, segment.width * 1.5)) {
         if (outTrimSlotsGraph) slotGraphs.push_back(slot);

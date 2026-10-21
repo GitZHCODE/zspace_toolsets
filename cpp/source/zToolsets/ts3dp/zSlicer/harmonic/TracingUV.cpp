@@ -114,7 +114,7 @@ ZSPACE_INLINE bool HarmonicSlicer::traceToBottom(int vertexId, const VolumeTrace
   Eigen::Vector4d b = Eigen::Vector4d::Zero();
   for (int local = 0; local < 4; ++local) if (tet[local] == vertexId) b[local] = 1.0;
 
-  const int maxSteps = i_Settings.HTraceMaxSteps;
+  const int maxSteps = i_Settings._HTraceMaxSteps;
   for (int step = 0; step < maxSteps; ++step) {
     const zTetrahedron::TetVolume &element = _Tet.Volumes[tetIndex];
     const auto &gradients = _Tet.VolumeBasisGradients[tetIndex];
@@ -146,7 +146,7 @@ ZSPACE_INLINE bool HarmonicSlicer::traceToBottom(int vertexId, const VolumeTrace
     // Limit each step locally, then re-evaluate the direction even when
     // the point remains inside the same simplex. Never step across a face.
     const double maxGradient = gradients.colwise().norm().maxCoeff();
-    const double stepLimit = i_Settings.HTraceStepFraction / maxGradient;
+    const double stepLimit = i_Settings._HTraceStepFraction / maxGradient;
     if (!std::isfinite(stepLimit) || !(stepLimit > 0.0) ||
         !std::isfinite(exitT) || exitT < 0.0) return fail("InvalidStep");
     const bool reachedBoundary = exitT <= stepLimit;
@@ -289,7 +289,7 @@ ZSPACE_INLINE bool HarmonicSlicer::traceWallToBottom(int vertexId, const WallTra
 
   int valleyTarget = -1;
   bool resolveVertex = false;
-  const int maxSteps = i_Settings.HTraceMaxSteps;
+  const int maxSteps = i_Settings._HTraceMaxSteps;
   for (int step = 0; step < maxSteps; ++step) {
     if (resolveVertex) {
       int atLocal = 0;
@@ -373,7 +373,7 @@ ZSPACE_INLINE bool HarmonicSlicer::traceWallToBottom(int vertexId, const WallTra
       if (targetLocal < 0) return fail("ValleyInvalidEdge");
       const Eigen::Vector3d target = toEigenVec(_Tet.Surface.Positions[valleyTarget]);
       const double distance = (target - x).norm();
-      const double limit = i_Settings.HTraceStepFraction / gradients.colwise().norm().maxCoeff();
+      const double limit = i_Settings._HTraceStepFraction / gradients.colwise().norm().maxCoeff();
       if (!std::isfinite(distance) || !std::isfinite(limit) || !(limit > 0.0)) return fail("InvalidStep");
       const double fraction = distance <= limit ? 1.0 : limit / distance;
       const Eigen::Vector3d oldB = b;
@@ -429,7 +429,7 @@ ZSPACE_INLINE bool HarmonicSlicer::traceWallToBottom(int vertexId, const WallTra
     // Limit each step locally, then re-evaluate the direction even when
     // the point remains inside the same simplex. Never step across a face.
     const double maxGradient = gradients.colwise().norm().maxCoeff();
-    const double stepLimit = i_Settings.HTraceStepFraction / maxGradient;
+    const double stepLimit = i_Settings._HTraceStepFraction / maxGradient;
     if (!std::isfinite(stepLimit) || !(stepLimit > 0.0) ||
         !std::isfinite(exitT) || exitT < 0.0) return fail("InvalidStep");
     const bool reachedBoundary = exitT <= stepLimit;
@@ -545,10 +545,10 @@ ZSPACE_INLINE bool HarmonicSlicer::computeVolumetricParameterizationImpl(bool us
   }
 
   const float invalidUV = std::numeric_limits<float>::quiet_NaN();
-  if (!std::isfinite(i_Settings.HTraceStepFraction) ||
-      i_Settings.HTraceStepFraction <= 0.0 || i_Settings.HTraceStepFraction > 1.0 ||
-      i_Settings.HTraceMaxSteps <= 0) {
-    _Status = "computeVolumetricParameterization failed: HTraceStepFraction must be in (0,1] and HTraceMaxSteps must be positive.";
+  if (!std::isfinite(i_Settings._HTraceStepFraction) ||
+      i_Settings._HTraceStepFraction <= 0.0 || i_Settings._HTraceStepFraction > 1.0 ||
+      i_Settings._HTraceMaxSteps <= 0) {
+    _Status = "computeVolumetricParameterization failed: _HTraceStepFraction must be in (0,1] and _HTraceMaxSteps must be positive.";
     printDebug("[computeVolumetricParameterizationImpl] " + _Status);
     return false;
   }
