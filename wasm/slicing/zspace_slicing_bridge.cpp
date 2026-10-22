@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <emscripten/emscripten.h>
 #include <emscripten/heap.h>
 #include <zspace/slicing.h>
@@ -8,6 +9,12 @@
 #include <memory>
 #include <limits>
 #include <cstdlib>
+
+// The calling slicing Worker is itself one OpenMP thread. The rest of the
+// team must fit in the workers created at module initialization.
+EM_JS(int, slicingThreadCapacity, (), {
+  return Module["slicingThreadCount"];
+});
 
 namespace {
 using namespace zSpace;
@@ -150,9 +157,18 @@ void compute(Session& current, const Json& input) {
   const double diagonal=zTsUtils::vecSub(max,min).length();
   if(settings.FieldCellSize<diagonal/1024 || settings.LayerSpacing<diagonal/1000)
     throw std::invalid_argument("Increase the field cell size or layer spacing for this model.");
-  if(!candidate->computeSlicer(false)) throw std::runtime_error(candidate->getStatus());
+  const bool useParallel=input.value("useParallel",false);
+  // Use all workers in the hardware-sized pool plus the calling thread.
+  // Disable nested teams so they cannot exhaust the pool.
+  omp_set_dynamic(0);
+  omp_set_num_threads(useParallel ? slicingThreadCapacity() : 1);
+  omp_set_max_active_levels(1);
+  int threadCount=1;
+#pragma omp parallel if(useParallel) reduction(max:threadCount)
+  { threadCount=omp_get_num_threads(); }
+  if(!candidate->computeSlicer(useParallel)) throw std::runtime_error(candidate->getStatus());
   const bool processed=input.value("postProcess",true);
-  const bool success=processed?candidate->computePostProcess(false):candidate->computePrintPath(false);
+  const bool success=processed?candidate->computePostProcess(useParallel):candidate->computePrintPath(useParallel);
   if(!success) throw std::runtime_error(candidate->getStatus());
   zObjMeshArray* slices; zObjMeshArray* charts; zObjMeshScalarField* field;
   const std::vector<zScalarArray>* pathFields; const std::vector<zScalarArray>* widthFields;
@@ -174,7 +190,7 @@ void compute(Session& current, const Json& input) {
     layers.push_back({{"slice",mesh((*slices)[i])},{"chart",mesh((*charts)[i])},
       {"paths",layerPaths},{"pathField",(*pathFields)[i]},{"widthField",(*widthFields)[i]}});
   }
-  Json result={{"mode",mode},{"status",candidate->getStatus()},{"layers",layers},
+  Json result={{"useParallel",useParallel},{"threadCount",threadCount},{"mode",mode},{"status",candidate->getStatus()},{"layers",layers},
     {"field",mesh(*field)},{"combined",path(candidate->getResultantPrintPath())},{"postProcessed",processed}};
   auto bytes=zspaceTransfer::encode(result);
   current.engine=std::move(candidate); current.result=std::move(bytes);

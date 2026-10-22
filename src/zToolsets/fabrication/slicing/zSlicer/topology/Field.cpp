@@ -2,6 +2,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/TopologySlicer.h>
 #include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
 
@@ -182,10 +183,11 @@ ZSPACE_INLINE bool TopologySlicer::computeFieldImpl(bool useParallel) {
 
   // Multi-threaded layer-by-layer computation (OpenMP); the grid is only
   // read, so every thread shares outScalarField.
-#pragma omp parallel if(useParallel)
-  {
-#pragma omp for schedule(dynamic)
-    for (int l = 0; l < totalLayers; l++) {
+
+  zTsDetail::ParallelErrors parallelErrors1(totalLayers);
+#pragma omp parallel for schedule(dynamic) if(useParallel)
+  for (int l = 0; l < totalLayers; l++) {
+    try {
       zObjGraph unrollBracingGraph;
       bool hasValidBracing = false;
       if (l < int(o_BracingGraphs2D.size())) {
@@ -236,8 +238,10 @@ ZSPACE_INLINE bool TopologySlicer::computeFieldImpl(bool useParallel) {
                                  i_Settings.DoubleBoundary, printOverlapWidth,
                                  nullptr, &outPathFields[l],
                                  &outTrackFields[l], &boundarySlot, slotWidth, &boundarySigns);
-    }
+    } catch (...) { parallelErrors1.capture(l); }
   }
+  parallelErrors1.rethrow();
+
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
   const double wallTotalMs =
@@ -330,16 +334,22 @@ ZSPACE_INLINE bool TopologySlicer::computePrintPathImpl(bool useParallel) {
   o_PrintPaths3D.resize(n);
   std::vector<char> failed(n, 0);
   std::vector<std::vector<std::string>> pathDebug(n);
+  // Flush any lazy face-list synchronization before workers share the grid.
+  (void)zFnMesh(o_ScalarField).numVertices();
+  zTsDetail::ParallelErrors parallelErrors2(n);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int k = 0; k < n; ++k) {
-    if (!zTsField::extractPrintPaths(o_ScalarField, o_PathFields[k], o_WidthFields[k],
-                                    o_TrackFields[k], o_PrintPaths2D[k], k, &pathDebug[k])) {
-      failed[k] = 1;
-      continue;
-    }
-    if (!zTsField::mapPrintPaths(o_PrintPaths2D[k], o_IsoMeshes2D[k], o_IsoMeshes[k],
-                                &_VLength, o_PrintPaths3D[k], k)) failed[k] = 1;
+    try {
+      if (!zTsField::extractPrintPaths(o_ScalarField, o_PathFields[k], o_WidthFields[k],
+                                      o_TrackFields[k], o_PrintPaths2D[k], k, &pathDebug[k])) {
+        failed[k] = 1;
+        continue;
+      }
+      if (!zTsField::mapPrintPaths(o_PrintPaths2D[k], o_IsoMeshes2D[k], o_IsoMeshes[k],
+                                  &_VLength, o_PrintPaths3D[k], k)) failed[k] = 1;
+    } catch (...) { parallelErrors2.capture(k); }
   }
+  parallelErrors2.rethrow();
   for (int k = 0; k < n; ++k) {
     for (const std::string &message : pathDebug[k]) {
       const size_t end = message.find(']');

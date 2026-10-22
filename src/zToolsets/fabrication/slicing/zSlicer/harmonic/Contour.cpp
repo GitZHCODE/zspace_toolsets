@@ -2,6 +2,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/HarmonicSlicer.h>
 
 #ifndef ZSPACE_INLINE
@@ -491,69 +492,73 @@ ZSPACE_INLINE bool HarmonicSlicer::computeContours(bool useParallel) {
       lookup.Edges[makeEdgeKey(tri[e], tri[(e + 1) % 3])] = widthId;
   }
 
+  zTsDetail::ParallelErrors parallelErrors1(numLayers);
   #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int k = 0; k < numLayers; ++k) {
-    if (k == 0 || k == numLayers - 1) {
-      extractCapMesh(k == 0 ? VertexTag::Bottom : VertexTag::Top,
-                     o_IsoMeshes[k], o_IsoMeshUV[k], lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
-    } else {
-      const float iso = static_cast<float>(k) / static_cast<float>(numLayers - 1);
-      extractIsoMesh(iso, o_IsoMeshes[k], o_IsoMeshUV[k], lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
-    }
-    zPointArray positions3D, positions2D;
-    if (unrollIsoMesh(o_IsoMeshes[k], o_IsoMeshUV[k], o_IsoMeshes2D[k],
-                       positions3D, positions2D)) {
-      generated[k] = 1;
-      zIntArray connects, counts;
-      zFnMesh(o_IsoMeshes[k]).getPolygonData(connects, counts);
-      createIsoBoundaries(positions3D, positions2D, connects, counts, _HarmonicIsoEdgeWidthIds[k],
-                           o_IsoMeshBoundary[k], o_IsoMeshBoundary2D[k], o_IsoMeshBoundaryWidthId[k], layerDebug[k]);
-    }
-
-    // Both boundary graphs share connectivity. Count connected components
-    // independently so a branched component cannot hide other closed loops.
-    zFnGraph boundary(o_IsoMeshBoundary[k]);
-    zIntArray edges;
-    boundary.getEdgeData(edges);
-    std::vector<std::vector<int>> adjacency(boundary.numVertices());
-    for (size_t e = 0; e + 1 < edges.size(); e += 2) {
-      adjacency[edges[e]].push_back(edges[e + 1]);
-      adjacency[edges[e + 1]].push_back(edges[e]);
-    }
-    int openEnds = 0, branchVertices = 0, closedLoops = 0, usablePaths = 0;
-    std::vector<char> visited(adjacency.size(), 0);
-    for (size_t start = 0; start < adjacency.size(); ++start) {
-      if (visited[start] || adjacency[start].empty()) continue;
-      std::vector<int> pending(1, static_cast<int>(start));
-      visited[start] = 1;
-      int vertices = 0, ends = 0, branches = 0;
-      while (!pending.empty()) {
-        const int v = pending.back();
-        pending.pop_back();
-        ++vertices;
-        if (adjacency[v].size() == 1) ++ends;
-        if (adjacency[v].size() > 2) ++branches;
-        for (int next : adjacency[v]) {
-          if (visited[next]) continue;
-          visited[next] = 1;
-          pending.push_back(next);
-        }
+    try {
+      if (k == 0 || k == numLayers - 1) {
+        extractCapMesh(k == 0 ? VertexTag::Bottom : VertexTag::Top,
+                       o_IsoMeshes[k], o_IsoMeshUV[k], lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
+      } else {
+        const float iso = static_cast<float>(k) / static_cast<float>(numLayers - 1);
+        extractIsoMesh(iso, o_IsoMeshes[k], o_IsoMeshUV[k], lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
       }
-      openEnds += ends;
-      branchVertices += branches;
-      const bool closed = branches == 0 && ends == 0 && vertices >= 3;
-      if (closed) ++closedLoops;
-      if (closed || (branches == 0 && ends == 2)) ++usablePaths;
-    }
-    const std::string tag = "[computeContours] ";
-    if (openEnds > 0 || branchVertices > 0)
-      layerDebug[k].push_back(tag + "OpenOrBranchedBoundary: side edges contain open ends or branches; a simple closed boundary is required for slot placement.");
-    if (closedLoops > 1)
-      layerDebug[k].push_back(tag + "MultipleBoundaryLoops: disjoint closed boundaries exist; slot placement selects only one loop.");
-    if (usablePaths == 0)
-      layerDebug[k].push_back(tag + " NoUsableBoundaryPath: no simple closed loop or open chain" +
-                   (generated[k] ? std::string(".") : std::string("; no usable unfolded mesh.")));
+      zPointArray positions3D, positions2D;
+      if (unrollIsoMesh(o_IsoMeshes[k], o_IsoMeshUV[k], o_IsoMeshes2D[k],
+                         positions3D, positions2D)) {
+        generated[k] = 1;
+        zIntArray connects, counts;
+        zFnMesh(o_IsoMeshes[k]).getPolygonData(connects, counts);
+        createIsoBoundaries(positions3D, positions2D, connects, counts, _HarmonicIsoEdgeWidthIds[k],
+                             o_IsoMeshBoundary[k], o_IsoMeshBoundary2D[k], o_IsoMeshBoundaryWidthId[k], layerDebug[k]);
+      }
+
+      // Both boundary graphs share connectivity. Count connected components
+      // independently so a branched component cannot hide other closed loops.
+      zFnGraph boundary(o_IsoMeshBoundary[k]);
+      zIntArray edges;
+      boundary.getEdgeData(edges);
+      std::vector<std::vector<int>> adjacency(boundary.numVertices());
+      for (size_t e = 0; e + 1 < edges.size(); e += 2) {
+        adjacency[edges[e]].push_back(edges[e + 1]);
+        adjacency[edges[e + 1]].push_back(edges[e]);
+      }
+      int openEnds = 0, branchVertices = 0, closedLoops = 0, usablePaths = 0;
+      std::vector<char> visited(adjacency.size(), 0);
+      for (size_t start = 0; start < adjacency.size(); ++start) {
+        if (visited[start] || adjacency[start].empty()) continue;
+        std::vector<int> pending(1, static_cast<int>(start));
+        visited[start] = 1;
+        int vertices = 0, ends = 0, branches = 0;
+        while (!pending.empty()) {
+          const int v = pending.back();
+          pending.pop_back();
+          ++vertices;
+          if (adjacency[v].size() == 1) ++ends;
+          if (adjacency[v].size() > 2) ++branches;
+          for (int next : adjacency[v]) {
+            if (visited[next]) continue;
+            visited[next] = 1;
+            pending.push_back(next);
+          }
+        }
+        openEnds += ends;
+        branchVertices += branches;
+        const bool closed = branches == 0 && ends == 0 && vertices >= 3;
+        if (closed) ++closedLoops;
+        if (closed || (branches == 0 && ends == 2)) ++usablePaths;
+      }
+      const std::string tag = "[computeContours] ";
+      if (openEnds > 0 || branchVertices > 0)
+        layerDebug[k].push_back(tag + "OpenOrBranchedBoundary: side edges contain open ends or branches; a simple closed boundary is required for slot placement.");
+      if (closedLoops > 1)
+        layerDebug[k].push_back(tag + "MultipleBoundaryLoops: disjoint closed boundaries exist; slot placement selects only one loop.");
+      if (usablePaths == 0)
+        layerDebug[k].push_back(tag + " NoUsableBoundaryPath: no simple closed loop or open chain" +
+                     (generated[k] ? std::string(".") : std::string("; no usable unfolded mesh.")));
+    } catch (...) { parallelErrors1.capture(k); }
   }
+  parallelErrors1.rethrow();
 
   // Workers only append to their own layer. Print serially in zero-based layer order.
   for (int k = 0; k < numLayers; ++k) {

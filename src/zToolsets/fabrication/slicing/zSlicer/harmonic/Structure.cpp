@@ -2,6 +2,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/HarmonicSlicer.h>
 
 #ifndef ZSPACE_INLINE
@@ -360,31 +361,35 @@ ZSPACE_INLINE void HarmonicSlicer::buildTetElements(int &degenerateTets, bool us
   _Tet.FieldValid = false;
   updateFieldGradients();
   int degenerateCount = 0;
+  zTsDetail::ParallelErrors parallelErrors1(_Tet.Volumes.size());
 #pragma omp parallel for schedule(static) if(useParallel) reduction(+:degenerateCount)
   for (int t = 0; t < static_cast<int>(_Tet.Volumes.size()); ++t) {
-    const std::array<int, 4> &tet = _Tet.Volumes[t].VertexIds;
-    zTetrahedron::TetVolume &element = _Tet.Volumes[t];
-    Eigen::Matrix4d interpolation;
-    Eigen::Matrix3d edgeMatrix;
-    for (int local = 0; local < 4; ++local) {
-      const zPoint &point = _Tet.Vertices[tet[local]].Position;
-      interpolation.row(local) << 1.0, point.x, point.y, point.z;
-      if (local > 0) {
-        const zPoint &origin = _Tet.Vertices[tet[0]].Position;
-        edgeMatrix.col(local - 1) << point.x - origin.x, point.y - origin.y, point.z - origin.z;
+    try {
+      const std::array<int, 4> &tet = _Tet.Volumes[t].VertexIds;
+      zTetrahedron::TetVolume &element = _Tet.Volumes[t];
+      Eigen::Matrix4d interpolation;
+      Eigen::Matrix3d edgeMatrix;
+      for (int local = 0; local < 4; ++local) {
+        const zPoint &point = _Tet.Vertices[tet[local]].Position;
+        interpolation.row(local) << 1.0, point.x, point.y, point.z;
+        if (local > 0) {
+          const zPoint &origin = _Tet.Vertices[tet[0]].Position;
+          edgeMatrix.col(local - 1) << point.x - origin.x, point.y - origin.y, point.z - origin.z;
+        }
       }
-    }
-    const double determinant = edgeMatrix.determinant();
-    element.Valid = std::fabs(determinant) >= 1e-5;
-    if (!element.Valid) {
-      ++degenerateCount;
-      continue;
-    }
-    element.Volume = std::fabs(determinant) / 6.0;
-    const Eigen::Matrix4d coefficients = interpolation.inverse();
-    for (int local = 0; local < 4; ++local) _Tet.VolumeBasisGradients[t].col(local) = coefficients.block<3, 1>(1, local);
-    _Tet.VolumeStiffness[t] = element.Volume * _Tet.VolumeBasisGradients[t].transpose() * _Tet.VolumeBasisGradients[t];
+      const double determinant = edgeMatrix.determinant();
+      element.Valid = std::fabs(determinant) >= 1e-5;
+      if (!element.Valid) {
+        ++degenerateCount;
+        continue;
+      }
+      element.Volume = std::fabs(determinant) / 6.0;
+      const Eigen::Matrix4d coefficients = interpolation.inverse();
+      for (int local = 0; local < 4; ++local) _Tet.VolumeBasisGradients[t].col(local) = coefficients.block<3, 1>(1, local);
+      _Tet.VolumeStiffness[t] = element.Volume * _Tet.VolumeBasisGradients[t].transpose() * _Tet.VolumeBasisGradients[t];
+    } catch (...) { parallelErrors1.capture(t); }
   }
+  parallelErrors1.rethrow();
   degenerateTets = degenerateCount;
 }
 

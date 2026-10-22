@@ -34,9 +34,11 @@ if(harmonic)
   target_include_directories(zspace_slicing PRIVATE "${ZSPACE_TETGEN_SOURCE_DIR}")
   target_compile_definitions(zspace_slicing PRIVATE ZSPACE_TOOLSETS_WITH_TETGEN TETLIBRARY)
 endif()
-target_compile_options(zspace_slicing PRIVATE -O2 -fexceptions -Uunix -include "${ZSPACE_CORE_DIR}/wasm/bridge/zspace_wasm_compat.h")
+target_compile_options(zspace_slicing PRIVATE -O2 -fexceptions -pthread -fopenmp -Uunix -include "${ZSPACE_CORE_DIR}/wasm/bridge/zspace_wasm_compat.h")
 target_precompile_headers(zspace_slicing PRIVATE <depends/Eigen/Dense> <nlohmann/json.hpp>)
-target_link_options(zspace_slicing PRIVATE -O2 -fexceptions "-sMODULARIZE=1" "-sEXPORT_ES6=1"
+target_link_options(zspace_slicing PRIVATE -O2 -fexceptions -pthread -fopenmp "-sMODULARIZE=1" "-sEXPORT_ES6=1"
   "-sENVIRONMENT=web,worker,node" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=2097152"
-  "-sEXPORTED_RUNTIME_METHODS=['HEAPU32','UTF8ToString','ccall']")
+  "-sPTHREAD_POOL_SIZE=(Module['slicingThreadCount']=Math.max(1,Math.floor(globalThis.navigator?.hardwareConcurrency||1)))-1" "-sPTHREAD_POOL_SIZE_STRICT=2"
+  "-sDEFAULT_PTHREAD_STACK_SIZE=2097152"
+  "-sEXPORTED_RUNTIME_METHODS=['HEAPU32','UTF8ToString','ccall','PThread']")
 message(STATUS "Slicing WASM harmonic support: ${harmonic}")

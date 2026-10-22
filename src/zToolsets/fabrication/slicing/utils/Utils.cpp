@@ -14,6 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
 
 #ifndef ZSPACE_INLINE
@@ -595,8 +596,10 @@ ZSPACE_INLINE bool samplePolyline(const zObjGraph &polylineGraph,
                                   const zScalarArray &scalars, double t,
                                   zPoint &outPoint, zVector *outTangent) {
   zFnGraph fnGraph(const_cast<zObjGraph &>(polylineGraph));
-  return samplePolyline(fnGraph.getRawVertexPositions(), scalars.data(),
-                        scalars.size(), t, outPoint, outTangent);
+  zPointArray positions;
+  fnGraph.getVertexPositions(positions);
+  return samplePolyline(positions.data(), scalars.data(),
+                        (std::min)(positions.size(), scalars.size()), t, outPoint, outTangent);
 }
 
 //---- Universal Mesh Barycentric Parameterizer (2D unrolled and 3D space meshes)
@@ -969,21 +972,30 @@ ZSPACE_INLINE bool mapPointToMeshes(const zPoint &point, zObjMesh &fromMesh,
                        : std::sqrt(vecDistSq(point, locatedPts[0]));
   }
 
+  // Repeated target pointers are allowed. Resolve core's lazy storage once
+  // on the calling thread, then workers only read plain coordinate arrays.
+  std::vector<zPointArray> targetPositions(toMeshes.size());
+  for (size_t i = 0; i < toMeshes.size(); ++i)
+    if (toMeshes[i]) zFnMesh(const_cast<zObjMesh &>(*toMeshes[i])).getVertexPositions(targetPositions[i]);
+  zTsDetail::ParallelErrors parallelErrors1(int(toMeshes.size()));
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int i = 0; i < int(toMeshes.size()); i++) {
-    if (!toMeshes[i])
-      continue;
-    zObjGraph realized;
-    if (!realizeParameterGraph(params, const_cast<zObjMesh &>(*toMeshes[i]),
-                               realized))
-      continue;
-    zPointArray realizedPts;
-    zFnGraph(realized).getVertexPositions(realizedPts);
-    if (realizedPts.empty())
-      continue;
-    outPoints[i] = realizedPts[0];
-    outValid[i] = 1;
+    try {
+      if (!toMeshes[i])
+        continue;
+      zPointArray realizedPts;
+      if (!interpolateParameterGraph(params, targetPositions[i], realizedPts))
+        continue;
+      if (realizedPts.empty())
+        continue;
+      if (!std::all_of(realizedPts.begin(), realizedPts.end(), [](const zPoint &p) {
+            return std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
+          })) continue;
+      outPoints[i] = realizedPts[0];
+      outValid[i] = 1;
+    } catch (...) { parallelErrors1.capture(i); }
   }
+  parallelErrors1.rethrow();
   return true;
 }
 

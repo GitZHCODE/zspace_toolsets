@@ -2,6 +2,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/HarmonicSlicer.h>
 
 #ifndef ZSPACE_INLINE
@@ -728,24 +729,28 @@ ZSPACE_INLINE bool HarmonicSlicer::computeVolumetricParameterizationImpl(bool us
   };
   std::vector<TraceResult> results(_Tet.Vertices.size());
   // Keep the shared UVW field read-only until every trace has finished.
+  zTsDetail::ParallelErrors parallelErrors1(static_cast<int>(_Tet.Vertices.size()));
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int i = 0; i < static_cast<int>(_Tet.Vertices.size()); ++i) {
-    TraceResult &result = results[i];
-    result.UV = zPoint(invalidUV, invalidUV, 0.0);
-    zPointArray path;
-    if (_Tet.vertextag[i] == static_cast<int>(VertexTag::Bottom)) {
-      result.UV = _BottomUV[i];
-      result.Valid = true;
-    } else {
-      result.Wall = static_cast<size_t>(i) < surfaceVertexCount &&
-          (_Tet.vertextag[i] == static_cast<int>(VertexTag::Side) ||
-           (_Tet.vertextag[i] == static_cast<int>(VertexTag::Top) && onWall[i]));
-      result.Valid = result.Wall
-          ? traceWallToBottom(i, wall, result.UV, &path, &result.FailureReason)
-          : traceToBottom(i, volume, result.UV, &path, &result.FailureReason);
-      if (!result.Valid) result.FailedPath.swap(path);
-    }
+    try {
+      TraceResult &result = results[i];
+      result.UV = zPoint(invalidUV, invalidUV, 0.0);
+      zPointArray path;
+      if (_Tet.vertextag[i] == static_cast<int>(VertexTag::Bottom)) {
+        result.UV = _BottomUV[i];
+        result.Valid = true;
+      } else {
+        result.Wall = static_cast<size_t>(i) < surfaceVertexCount &&
+            (_Tet.vertextag[i] == static_cast<int>(VertexTag::Side) ||
+             (_Tet.vertextag[i] == static_cast<int>(VertexTag::Top) && onWall[i]));
+        result.Valid = result.Wall
+            ? traceWallToBottom(i, wall, result.UV, &path, &result.FailureReason)
+            : traceToBottom(i, volume, result.UV, &path, &result.FailureReason);
+        if (!result.Valid) result.FailedPath.swap(path);
+      }
+    } catch (...) { parallelErrors1.capture(i); }
   }
+  parallelErrors1.rethrow();
 
   // Commit in vertex order: vector<bool>, statistics and graph creation
   // stay serial, with the same diagnostic ordering as before.

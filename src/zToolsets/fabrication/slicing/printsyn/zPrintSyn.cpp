@@ -14,6 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/printsyn/zPrintSyn.h>
 
 #ifndef ZSPACE_INLINE
@@ -1111,65 +1112,73 @@ ZSPACE_INLINE bool zPrintSyn::alignStartPointsWith(PrintPathArray &ioPaths,
       first = l;
     unaligned.push_back(l);
   };
+  zTsDetail::ParallelErrors parallelErrors1(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
-    if (ioPaths[l].empty()) {
+    try {
+      if (ioPaths[l].empty()) {
 #pragma omp atomic
-      skippedEmpty++;
-      continue;
-    }
-    for (PrintPath &path : ioPaths[l]) {
-      zFnGraph fnGraph(path.graph);
-      if (fnGraph.numVertices() < 3) {
-  #pragma omp atomic
-        skippedDegenerate++;
+        skippedEmpty++;
         continue;
       }
-      if (!isClosedGraph(path.graph)) continue;
+      for (PrintPath &path : ioPaths[l]) {
+        zFnGraph fnGraph(path.graph);
+        if (fnGraph.numVertices() < 3) {
+  #pragma omp atomic
+          skippedDegenerate++;
+          continue;
+        }
+        if (!isClosedGraph(path.graph)) continue;
 
-      if (!mappedValid[l]) {
+        if (!mappedValid[l]) {
   #pragma omp atomic
-        skippedRealize++;
+          skippedRealize++;
   #pragma omp critical(zPrintSynAlignFirst)
-        noteFirst(firstRealizeLayer, l);
-        continue;
-      }
+          noteFirst(firstRealizeLayer, l);
+          continue;
+        }
 
-      double arcPos = 0.0;
-      if (!nearestInnerArcPos(path, mappedSeeds[l], arcPos)) {
+        double arcPos = 0.0;
+        if (!nearestInnerArcPos(path, mappedSeeds[l], arcPos)) {
   #pragma omp atomic
-        skippedNearest++;
+          skippedNearest++;
   #pragma omp critical(zPrintSynAlignFirst)
-        noteFirst(firstNearestLayer, l);
-        continue;
-      }
+          noteFirst(firstNearestLayer, l);
+          continue;
+        }
 
-      std::string reason;
-      if (insertAndRotateToStart(path, arcPos, &reason)) {
+        std::string reason;
+        if (insertAndRotateToStart(path, arcPos, &reason)) {
   #pragma omp atomic
-        alignedCount++;
-      } else {
+          alignedCount++;
+        } else {
   #pragma omp atomic
-        skippedRotate++;
+          skippedRotate++;
   #pragma omp critical(zPrintSynAlignFirst)
-        {
-          if (firstRotateLayer < 0 || l < firstRotateLayer) {
-            firstRotateLayer = l;
-            firstRotateReason = reason;
+          {
+            if (firstRotateLayer < 0 || l < firstRotateLayer) {
+              firstRotateLayer = l;
+              firstRotateReason = reason;
+            }
+            unaligned.push_back(l);
           }
-          unaligned.push_back(l);
         }
       }
-    }
+    } catch (...) { parallelErrors1.capture(l); }
   }
+  parallelErrors1.rethrow();
 
+  zTsDetail::ParallelErrors parallelErrors2(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
-    if (ioPaths[l].empty())
-      continue;
-    for (PrintPath &path : ioPaths[l])
-      if (isClosedGraph(path.graph)) cutGapBeforeStart(path, seamSize);
+    try {
+      if (ioPaths[l].empty())
+        continue;
+      for (PrintPath &path : ioPaths[l])
+        if (isClosedGraph(path.graph)) cutGapBeforeStart(path, seamSize);
+    } catch (...) { parallelErrors2.capture(l); }
   }
+  parallelErrors2.rethrow();
 
   const std::string counts =
       " layers (empty=" + std::to_string(skippedEmpty) +
@@ -1231,19 +1240,23 @@ ZSPACE_INLINE bool zPrintSyn::resamplePrintPaths(PrintPathArray &ioPaths2D,
   int totalPaths = 0;
   std::vector<char> resampleFailed(totalLayers, 0);
 
+  zTsDetail::ParallelErrors parallelErrors3(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
-    for (auto &path : ioPaths2D[l]) {
-      if (reconstructCorners(path, settings.FeatureAngleTol) &&
-          resampleSinglePath(path, settings.ResampleLength,
-                             settings.FeatureAngleTol)) {
-        filterGlitches(path);
-      } else resampleFailed[l] = 1;
-    }
-    orientLayer(ioPaths2D[l], true);
+    try {
+      for (auto &path : ioPaths2D[l]) {
+        if (reconstructCorners(path, settings.FeatureAngleTol) &&
+            resampleSinglePath(path, settings.ResampleLength,
+                               settings.FeatureAngleTol)) {
+          filterGlitches(path);
+        } else resampleFailed[l] = 1;
+      }
+      orientLayer(ioPaths2D[l], true);
 #pragma omp atomic
-    totalPaths += int(ioPaths2D[l].size());
+      totalPaths += int(ioPaths2D[l].size());
+    } catch (...) { parallelErrors3.capture(l); }
   }
+  parallelErrors3.rethrow();
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
   const double wallTotalMs =
@@ -1337,18 +1350,22 @@ ZSPACE_INLINE bool zPrintSyn::alignStartPoints(PrintPathArray &ioPaths2D,
           return false;
         outMapped.assign(totalLayers, zPoint());
         outValid.assign(totalLayers, 0);
+        zTsDetail::ParallelErrors parallelErrors4(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(parallelMapping)
         for (int l = 0; l < totalLayers; l++) {
-          zObjMesh &section = const_cast<zObjMesh &>(sections3D[l]);
-          if (zFnMesh(section).numVertices() == 0)
-            continue;
-          zPoint mapped;
-          if (mapPoint(seedWorld, section,
-                       const_cast<zObjMesh &>(charts2D[l]), mapped)) {
-            outMapped[l] = mapped;
-            outValid[l] = 1;
-          }
+          try {
+            zObjMesh &section = const_cast<zObjMesh &>(sections3D[l]);
+            if (zFnMesh(section).numVertices() == 0)
+              continue;
+            zPoint mapped;
+            if (mapPoint(seedWorld, section,
+                         const_cast<zObjMesh &>(charts2D[l]), mapped)) {
+              outMapped[l] = mapped;
+              outValid[l] = 1;
+            }
+          } catch (...) { parallelErrors4.capture(l); }
         }
+        parallelErrors4.rethrow();
         return true;
       },
       seamOffset, seamSize, outStatus, outBadLayers, useParallel);
@@ -1384,32 +1401,36 @@ ZSPACE_INLINE bool zPrintSyn::projectPrintPaths(const PrintPathArray &paths2D,
   std::vector<char> remapFailed(totalLayers, 0);
   const auto wallStart = std::chrono::high_resolution_clock::now();
 
+  zTsDetail::ParallelErrors parallelErrors5(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
-    for (size_t r = 0; r < paths2D[l].size(); r++) {
-      outPaths3D[l][r].graph = paths2D[l][r].graph;
-      outPaths3D[l][r].widths = paths2D[l][r].widths;
-      outPaths3D[l][r].trackIds = paths2D[l][r].trackIds;
+    try {
+      for (size_t r = 0; r < paths2D[l].size(); r++) {
+        outPaths3D[l][r].graph = paths2D[l][r].graph;
+        outPaths3D[l][r].widths = paths2D[l][r].widths;
+        outPaths3D[l][r].trackIds = paths2D[l][r].trackIds;
 
-      zFnGraph fnContour(outPaths3D[l][r].graph);
-      if (fnContour.numVertices() > 0 && l < int(charts2D.size()) &&
-          l < int(sections3D.size())) {
-        if (!remapGraph(outPaths3D[l][r].graph,
-                        const_cast<zObjMesh &>(charts2D[l]),
-                        const_cast<zObjMesh &>(sections3D[l]),
-                        &outPaths3D[l][r].normals, &meshVertexHeights,
-                        &outPaths3D[l][r].heights)) {
+        zFnGraph fnContour(outPaths3D[l][r].graph);
+        if (fnContour.numVertices() > 0 && l < int(charts2D.size()) &&
+            l < int(sections3D.size())) {
+          if (!remapGraph(outPaths3D[l][r].graph,
+                          const_cast<zObjMesh &>(charts2D[l]),
+                          const_cast<zObjMesh &>(sections3D[l]),
+                          &outPaths3D[l][r].normals, &meshVertexHeights,
+                          &outPaths3D[l][r].heights)) {
+            remapFailed[l] = 1;
+            outPaths3D[l][r] = PrintPath();
+          }
+        } else if (fnContour.numVertices() > 0) {
           remapFailed[l] = 1;
           outPaths3D[l][r] = PrintPath();
         }
-      } else if (fnContour.numVertices() > 0) {
-        remapFailed[l] = 1;
-        outPaths3D[l][r] = PrintPath();
       }
-    }
 #pragma omp atomic
-    totalPaths += int(paths2D[l].size());
+      totalPaths += int(paths2D[l].size());
+    } catch (...) { parallelErrors5.capture(l); }
   }
+  parallelErrors5.rethrow();
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
   const double wallTotalMs =

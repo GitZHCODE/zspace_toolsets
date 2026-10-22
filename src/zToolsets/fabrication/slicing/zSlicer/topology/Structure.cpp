@@ -2,6 +2,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/TopologySlicer.h>
 
 #ifndef ZSPACE_INLINE
@@ -596,37 +597,48 @@ ZSPACE_INLINE bool TopologySlicer::computeSliceImpl(bool useParallel) {
   outSectionMeshes.assign(totalLayers, _UMesh);
   o_IsoMeshBoundary.assign(totalLayers, zObjGraph());
 
+  // Core raw graph views invalidate lazy storage. Snapshot shared columns
+  // once, before any layer workers start sampling them.
+  std::vector<zPointArray> columnPositions(_VLoops.size());
+  for (size_t i = 0; i < _VLoops.size(); ++i)
+    zFnGraph(_VLoops[i]).getVertexPositions(columnPositions[i]);
+
+  zTsDetail::ParallelErrors parallelErrors1(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
-    const double ratio = double(l) / (totalLayers - 1);
-    zFnMesh fnMesh(outSectionMeshes[l]);
-    zPoint *points = fnMesh.getRawVertexPositions();
-    if (points) {
-      for (size_t i = 0; i < _VLoops.size() && i < _VScalar.size() &&
-                         i < fnMesh.numVertices();
-           i++) {
-        samplePolyline(_VLoops[i], _VScalar[i], ratio, points[i]);
+    try {
+      const double ratio = double(l) / (totalLayers - 1);
+      zFnMesh fnMesh(outSectionMeshes[l]);
+      zPoint *points = fnMesh.getRawVertexPositions();
+      if (points) {
+        for (size_t i = 0; i < _VLoops.size() && i < _VScalar.size() &&
+                           i < fnMesh.numVertices();
+             i++) {
+          samplePolyline(columnPositions[i].data(), _VScalar[i].data(),
+                         (std::min)(columnPositions[i].size(), _VScalar[i].size()),
+                         ratio, points[i]);
+        }
+
       }
 
-    }
-
-    std::vector<int> secOldVertexIds;
-    _alignBoundaryVertices(outSectionMeshes[l], secOldVertexIds, 0);
-    const int boundaryCount = int(secOldVertexIds.size());
-    if (boundaryCount >= 3) {
-      zPointArray boundaryPositions;
-      fnMesh.getVertexPositions(boundaryPositions);
-      boundaryPositions.resize(boundaryCount);
-      zIntArray edgeConnects;
-      edgeConnects.reserve(boundaryCount * 2);
-      for (int i = 0; i < boundaryCount; ++i) {
-        edgeConnects.push_back(i);
-        edgeConnects.push_back((i + 1) % boundaryCount);
+      std::vector<int> secOldVertexIds;
+      _alignBoundaryVertices(outSectionMeshes[l], secOldVertexIds, 0);
+      const int boundaryCount = int(secOldVertexIds.size());
+      if (boundaryCount >= 3) {
+        zPointArray boundaryPositions;
+        fnMesh.getVertexPositions(boundaryPositions);
+        boundaryPositions.resize(boundaryCount);
+        zIntArray edgeConnects;
+        edgeConnects.reserve(boundaryCount * 2);
+        for (int i = 0; i < boundaryCount; ++i) {
+          edgeConnects.push_back(i);
+          edgeConnects.push_back((i + 1) % boundaryCount);
+        }
+        zFnGraph(o_IsoMeshBoundary[l]).create(boundaryPositions, edgeConnects);
       }
-      zFnGraph(o_IsoMeshBoundary[l]).create(boundaryPositions, edgeConnects);
-    }
-
+    } catch (...) { parallelErrors1.capture(l); }
   }
+  parallelErrors1.rethrow();
 
   // Per-vertex layer spacing.
   _VLength.assign(_VScalar.size(), 0.0f);

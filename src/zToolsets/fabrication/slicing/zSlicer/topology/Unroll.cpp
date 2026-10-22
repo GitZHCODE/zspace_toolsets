@@ -14,6 +14,7 @@
 #define EIGEN_DONT_PARALLELIZE
 #endif
 
+#include <zspace/zToolsets/fabrication/slicing/utils/Parallel.h>
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/TopologySlicer.h>
 
 #ifndef ZSPACE_INLINE
@@ -82,32 +83,36 @@ ZSPACE_INLINE bool TopologySlicer::computeUnrollImpl(bool useParallel) {
     o_BracingGraphs2D.assign(totalLayers, zObjGraph());
   }
 
+  zTsDetail::ParallelErrors parallelErrors1(totalLayers);
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
-    if (zTsUnroll::unfoldMesh(const_cast<zObjMesh &>(sectionMeshes[l]), bsfHalfEdgePairs,
-                    outSectionMeshes2D[l])) {
-      zFnMesh fnUnrollMesh(outSectionMeshes2D[l]);
-      zPointArray unrollMeshPos;
-      fnUnrollMesh.getVertexPositions(unrollMeshPos);
+    try {
+      if (zTsUnroll::unfoldMesh(const_cast<zObjMesh &>(sectionMeshes[l]), bsfHalfEdgePairs,
+                      outSectionMeshes2D[l])) {
+        zFnMesh fnUnrollMesh(outSectionMeshes2D[l]);
+        zPointArray unrollMeshPos;
+        fnUnrollMesh.getVertexPositions(unrollMeshPos);
 
-      zFnGraph fn3DGraph(o_IsoMeshBoundary[l]);
-      const int N = fn3DGraph.numVertices();
-      zIntArray edgeConnects;
-      fn3DGraph.getEdgeData(edgeConnects);
+        zFnGraph fn3DGraph(o_IsoMeshBoundary[l]);
+        const int N = fn3DGraph.numVertices();
+        zIntArray edgeConnects;
+        fn3DGraph.getEdgeData(edgeConnects);
 
-      if (N > 0 && N <= (int)unrollMeshPos.size()) {
-        zPointArray unrollBoundPositions(unrollMeshPos.begin(),
-                                       unrollMeshPos.begin() + N);
-        zFnGraph fnUnrollGraph(o_IsoMeshBoundary2D[l]);
-        fnUnrollGraph.create(unrollBoundPositions, edgeConnects);
+        if (N > 0 && N <= (int)unrollMeshPos.size()) {
+          zPointArray unrollBoundPositions(unrollMeshPos.begin(),
+                                         unrollMeshPos.begin() + N);
+          zFnGraph fnUnrollGraph(o_IsoMeshBoundary2D[l]);
+          fnUnrollGraph.create(unrollBoundPositions, edgeConnects);
 
-        if (!_BracingParams.empty()) {
-          realizeParameterGraph(
-              _BracingParams, outSectionMeshes2D[l], o_BracingGraphs2D[l]);
+          if (!_BracingParams.empty()) {
+            realizeParameterGraph(
+                _BracingParams, outSectionMeshes2D[l], o_BracingGraphs2D[l]);
+          }
         }
       }
-    }
+    } catch (...) { parallelErrors1.capture(l); }
   }
+  parallelErrors1.rethrow();
 
   const auto wallEnd = std::chrono::high_resolution_clock::now();
   const double wallTotalMs =
