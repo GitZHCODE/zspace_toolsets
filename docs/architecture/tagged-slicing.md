@@ -77,6 +77,20 @@ height-domain and print-volume statistics work in harmonic mode. Settings/input
 invalidation clears the tables and statistics. Target-domain optimization remains
 a separate operation.
 
+`zTsUtils::buildPrintMesh()` lofts one centered rectangle per print-path vertex,
+using its width, height and normalized print normal. Each graph component and
+layer stays separate; open paths receive end caps. Zero widths/heights retain
+collapsed sections, and invalid attributes or connectivity clear the mesh and
+return a diagnostic with the layer/path location.
+
+USD export preserves `/TDP_gcode` and also writes `/TDP_printmesh` (Mesh, display
+name `print mesh`) and `/TDP_printpath` (linear BasisCurves, display name `print
+path`). Pass the processed per-layer paths through the optional `layerPaths`
+argument of `zTsIO::exportPrintPathUSD()` to avoid lofting travel connectors
+between layers. Without it, the supplied path alone is rendered. Geometry and
+widths are converted from internal millimetres to the source stage units;
+re-export replaces these output prims while preserving the input stage.
+
 ## Build configurations
 
 The default native build includes topology slicing and PrintSyn without TetGen,

@@ -132,6 +132,9 @@ install(EXPORT zspaceToolsetsTargets FILE zspaceToolsetsTargets.cmake NAMESPACE 
 
 if(ZSPACE_TOOLSETS_BUILD_TESTS)
   include(CTest)
+  add_executable(zspace_toolsets_print_mesh tests/smoke/zspace_toolsets_print_mesh.cpp)
+  target_link_libraries(zspace_toolsets_print_mesh PRIVATE zspace::toolsets)
+  add_test(NAME zspace_toolsets.slicing.print_mesh COMMAND zspace_toolsets_print_mesh)
   add_executable(zspace_toolsets_slicing tests/smoke/zspace_toolsets_slicing.cpp)
   target_link_libraries(zspace_toolsets_slicing PRIVATE zspace::toolsets)
   add_test(NAME zspace_toolsets.slicing.topology COMMAND zspace_toolsets_slicing topology)

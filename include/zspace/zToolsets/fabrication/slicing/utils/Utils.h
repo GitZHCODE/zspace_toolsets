@@ -185,6 +185,14 @@ typedef std::vector<std::vector<PrintPath>> PrintPathArray;
 
 namespace zTsUtils {
 
+// Loft one centered width x height rectangle per print vertex. Height follows
+// the unit print normal; width is perpendicular to it and the local tangent.
+// Each graph component/layer is independent; open paths receive end caps.
+// Zero dimensions are retained (collapsed sections); no artificial thickness.
+// Failure clears outMesh and reports the layer/path through outError.
+ZSPACE_TOOLSETS bool buildPrintMesh(const PrintPathArray &layers, zObjMesh &outMesh,
+                                   std::string *outError = nullptr);
+
 //---- Thread-Safe Console Logging
 
 ZSPACE_TOOLSETS void printSuccess(const std::string &msg);
@@ -701,12 +709,16 @@ ZSPACE_TOOLSETS void extractRawIsoContour(const zObjMeshScalarField &field,
 
 namespace zTsIO {
 
-// Copy an input USD and replace /TDP_gcode with a Scope containing ordered path data.
+// Copy an input USD and replace /TDP_gcode (ordered arrays), /TDP_printmesh
+// (rectangle loft Mesh) and /TDP_printpath (linear BasisCurves).
 // Custom arrays printNormals/printWidths/printHeight correspond 1:1 to points.
 // Path coordinates/lengths are millimetres; export converts to the source stage units.
+// Supply processed layerPaths to keep visualization separate across layers and
+// components (no travel connectors). Omission renders the supplied path alone.
 ZSPACE_TOOLSETS bool exportPrintPathUSD(const PrintPath &path, const std::string &inputFilePath,
                         const std::string &filePath, int layerCount,
-                        std::string *outError = nullptr, int blockid = 0);
+                        std::string *outError = nullptr, int blockid = 0,
+                        const PrintPathArray *layerPaths = nullptr);
 
 // SettingsJSON preserves the existing {"slicer": {...}, "printSyn": {...}} schema.
 // Returned coordinates and dimensional settings are millimetres after object transforms.

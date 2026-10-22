@@ -134,7 +134,8 @@ std::string formatPrintPathUSDA(const std::string &text) {
 #endif
 
 ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
-    const std::string &inputFilePath, const std::string &filePath, int layerCount, std::string *outError, int blockid) {
+    const std::string &inputFilePath, const std::string &filePath, int layerCount, std::string *outError, int blockid,
+    const PrintPathArray *layerPaths) {
   if (outError) outError->clear();
   const auto fail = [&](const std::string &message) {
     if (outError) *outError = message;
@@ -145,6 +146,15 @@ ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
 #else
   try {
     if (layerCount <= 0) return fail("Export requires a positive actual layer count.");
+    if (layerPaths && layerPaths->size() != size_t(layerCount))
+      return fail("Print mesh layers must match the actual layer count.");
+    zObjMesh printMesh;
+    std::string meshError;
+    PrintPathArray fallback;
+    if (!layerPaths) fallback = {{path}};
+    const auto &renderPaths = layerPaths ? *layerPaths : fallback;
+    if (!zTsUtils::buildPrintMesh(renderPaths, printMesh, &meshError))
+      return fail("Print mesh: " + meshError);
     const auto dot = filePath.find_last_of('.');
     std::string extension = dot == std::string::npos ? "" : filePath.substr(dot);
     std::transform(extension.begin(), extension.end(), extension.begin(),
@@ -218,7 +228,7 @@ ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
         !stage->GetPrimAtPath(pxr::SdfPath("/Slicer_slot")))
       return fail("Input USD must contain /AG_block, /Slicer_bracing and /Slicer_slot.");
     // Replace current output and remove the legacy curve output on re-export.
-    for (const auto *name : {"/TDP_gcode", "/Gcode", "/printpath"}) {
+    for (const auto *name : {"/TDP_gcode", "/Gcode", "/printpath", "/printMesh", "/TDP_printmesh", "/TDP_printpath"}) {
       const pxr::SdfPath outputPath(name);
       if (stage->GetPrimAtPath(outputPath) &&
           (!stage->RemovePrim(outputPath) || stage->GetPrimAtPath(outputPath)))
@@ -247,6 +257,60 @@ ZSPACE_INLINE bool exportPrintPathUSD(const PrintPath &path,
         prim.CreateAttribute(pxr::TfToken("printWidths"), pxr::SdfValueTypeNames->FloatArray, true).Set(widths) &&
         prim.CreateAttribute(pxr::TfToken("printHeight"), pxr::SdfValueTypeNames->FloatArray, true).Set(heights);
     if (!ok) return fail("Could not author USD Gcode attributes.");
+    zPointArray meshPositions;
+    zIntArray meshCounts, meshConnects;
+    zFnMesh meshFn(printMesh);
+    meshFn.getVertexPositions(meshPositions);
+    meshFn.getPolygonData(meshConnects, meshCounts);
+    pxr::VtArray<pxr::GfVec3f> meshPoints;
+    for (const auto &p : meshPositions) {
+      const pxr::GfVec3f point(p.x * fromMillimetres, p.y * fromMillimetres, p.z * fromMillimetres);
+      if (!std::isfinite(point[0]) || !std::isfinite(point[1]) || !std::isfinite(point[2]))
+        return fail("Print mesh coordinate conversion overflow.");
+      meshPoints.push_back(point);
+    }
+    auto mesh = pxr::UsdGeomMesh::Define(stage, pxr::SdfPath("/TDP_printmesh"));
+    mesh.GetPrim().SetDisplayName("print mesh");
+    if (!mesh.CreatePointsAttr().Set(meshPoints) ||
+        !mesh.CreateFaceVertexCountsAttr().Set(pxr::VtArray<int>(meshCounts.begin(), meshCounts.end())) ||
+        !mesh.CreateFaceVertexIndicesAttr().Set(pxr::VtArray<int>(meshConnects.begin(), meshConnects.end())) ||
+        !mesh.CreateSubdivisionSchemeAttr().Set(pxr::UsdGeomTokens->none))
+      return fail("Could not author USD print mesh geometry.");
+    // Use the same per-layer curves as the loft. Nonperiodic curves with an
+    // explicit repeated endpoint allow closed and open paths in one prim.
+    pxr::VtArray<pxr::GfVec3f> curvePoints;
+    pxr::VtArray<int> curveCounts;
+    pxr::VtArray<float> curveWidths;
+    for (const auto &paths : renderPaths) for (const auto &renderPath : paths) {
+      zPointArray positions;
+      zFnGraph(const_cast<zObjGraph &>(renderPath.graph)).getVertexPositions(positions);
+      std::vector<zTsUtils::GraphPolyline> components;
+      if (!zTsUtils::graphPolylines(renderPath.graph, components))
+        return fail("Invalid renderable print path.");
+      for (const auto &component : components) {
+        auto ids = component.Vertices;
+        if (component.Closed) ids.push_back(ids.front());
+        curveCounts.push_back(static_cast<int>(ids.size()));
+        for (int id : ids) {
+          const auto &p = positions[id];
+          const pxr::GfVec3f point(p.x*fromMillimetres, p.y*fromMillimetres, p.z*fromMillimetres);
+          const float width = static_cast<float>(renderPath.widths[id]*fromMillimetres);
+          if (!std::isfinite(point[0]) || !std::isfinite(point[1]) || !std::isfinite(point[2]) || !std::isfinite(width))
+            return fail("Print curve coordinate/width conversion overflow.");
+          curvePoints.push_back(point);
+          curveWidths.push_back(width);
+        }
+      }
+    }
+    auto curvesPrim = pxr::UsdGeomBasisCurves::Define(stage, pxr::SdfPath("/TDP_printpath"));
+    curvesPrim.GetPrim().SetDisplayName("print path");
+    if (!curvesPrim.CreateTypeAttr().Set(pxr::UsdGeomTokens->linear) ||
+        !curvesPrim.CreateWrapAttr().Set(pxr::UsdGeomTokens->nonperiodic) ||
+        !curvesPrim.CreateCurveVertexCountsAttr().Set(curveCounts) ||
+        !curvesPrim.CreatePointsAttr().Set(curvePoints) ||
+        !curvesPrim.CreateWidthsAttr().Set(curveWidths) ||
+        !curvesPrim.SetWidthsInterpolation(pxr::UsdGeomTokens->vertex))
+      return fail("Could not author USD print path curves.");
     if (extension == ".usda") {
       std::string text;
       if (!stage->GetRootLayer()->ExportToString(&text))
