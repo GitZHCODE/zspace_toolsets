@@ -62,6 +62,21 @@ Topology intermediate outputs are available through `getTopologySlicer()`;
 harmonic outputs through `getHarmonicSlicer()`. Changing mode replaces the
 operator and invalidates references to its results.
 
+Harmonic heights use the local normal-spacing estimate `deltaW / |grad(w)|`,
+where `deltaW = 1 / (numberOfLayers - 1)` and `w` is the final harmonic field
+(including any field equalisation). Tetrahedron volumes weight the nodal average;
+heights are then interpolated on tetrahedral edges and barycentrically onto each
+layer's paths. This is a local linear estimate, not an exact distance to the
+previous curved section or a bound enforced by `LayerSpacing`. Both cap layers
+use a full adjacent iso interval, matching topology's nonzero cap-height contract.
+Zero/nonfinite gradients or unsupported vertices fail contour generation instead
+of silently producing zero heights. `HarmonicSlicer::getVertexLayerHeights()`
+returns one table per iso mesh, in that mesh's vertex order. Raw paths and PrintSyn
+projection use these tables; linked paths retain the heights, so the existing
+height-domain and print-volume statistics work in harmonic mode. Settings/input
+invalidation clears the tables and statistics. Target-domain optimization remains
+a separate operation.
+
 ## Build configurations
 
 The default native build includes topology slicing and PrintSyn without TetGen,

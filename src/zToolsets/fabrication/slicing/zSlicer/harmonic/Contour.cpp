@@ -24,12 +24,51 @@ using namespace zTsUtils;
 
 struct HarmonicSlicer::ContourData {
   zPointArray Positions, UV;
+  zFloatArray Heights;
   zIntArray Counts, Connects;
   std::vector<std::pair<int, int>> TetEdges;
   std::unordered_map<unsigned long long, int> EdgeVertices;
 };
 
-ZSPACE_INLINE int HarmonicSlicer::crossingVertex(int a, int b, float iso, ContourData &slice) {
+ZSPACE_INLINE bool HarmonicSlicer::computeVertexLayerHeights(int numLayers, zFloatArray &heights) const {
+  heights.clear();
+  if (numLayers < 2 || !_Tet.FieldValid ||
+      _Tet.VolumeFieldGradients.size() != _Tet.Volumes.size()) return false;
+  // Recover a continuous nodal height from piecewise-constant tetrahedral
+  // gradients. This is local normal spacing, not a global Z increment or a
+  // bound imposed by LayerSpacing. Both caps use the same full iso interval.
+  std::vector<double> weighted(_Tet.Vertices.size(), 0.0), weights(weighted.size(), 0.0);
+  const double delta = 1.0 / (numLayers - 1);
+  for (size_t t = 0; t < _Tet.Volumes.size(); ++t) {
+    const auto &volume = _Tet.Volumes[t];
+    if (!volume.Valid) continue;
+    const double gradient = _Tet.VolumeFieldGradients[t].norm();
+    if (!std::isfinite(gradient) || gradient <= 0.0) return false;
+    const double height = delta / gradient;
+    if (!std::isfinite(height) || height <= 0.0 ||
+        !std::isfinite(volume.Volume) || volume.Volume <= 0.0) return false;
+    for (int id : volume.VertexIds) {
+      weighted[id] += volume.Volume * height;
+      weights[id] += volume.Volume;
+    }
+  }
+  heights.resize(weighted.size());
+  for (size_t i = 0; i < heights.size(); ++i) {
+    if (!std::isfinite(weights[i]) || weights[i] <= 0.0) {
+      heights.clear();
+      return false;
+    }
+    heights[i] = static_cast<float>(weighted[i] / weights[i]);
+    if (!std::isfinite(heights[i]) || heights[i] <= 0.0f) {
+      heights.clear();
+      return false;
+    }
+  }
+  return !heights.empty();
+}
+
+ZSPACE_INLINE int HarmonicSlicer::crossingVertex(int a, int b, float iso,
+    const zFloatArray &vertexHeights, ContourData &slice) {
   const float aPhi = static_cast<float>(_Tet.UVW[a].z);
   const float bPhi = static_cast<float>(_Tet.UVW[b].z);
   const float denominator = bPhi - aPhi;
@@ -43,6 +82,7 @@ ZSPACE_INLINE int HarmonicSlicer::crossingVertex(int a, int b, float iso, Contou
   const int id = static_cast<int>(slice.Positions.size());
   slice.Positions.push_back(_Tet.Vertices[a].Position + (_Tet.Vertices[b].Position - _Tet.Vertices[a].Position) * tc);
   slice.UV.push_back(_Tet.UVW[a] + (_Tet.UVW[b] - _Tet.UVW[a]) * tc);
+  slice.Heights.push_back((1.0f - tc) * vertexHeights[a] + tc * vertexHeights[b]);
   // An endpoint intersection belongs to the vertex, rather than the whole edge.
   slice.TetEdges.emplace_back(sourceA, sourceB);
   slice.EdgeVertices.emplace(key, id);
@@ -78,6 +118,7 @@ ZSPACE_INLINE bool HarmonicSlicer::appendTriangle(zIntArray &connects, int a, in
 }
 
 ZSPACE_INLINE void HarmonicSlicer::extractIsoMesh(float iso, zObjMesh &mesh, zPointArray &uv,
+    const zFloatArray &vertexHeights, zFloatArray &heights,
     const WallWidthLookup &lookup, EdgeWidthIds &edgeIds, std::vector<std::string> &debug) {
   ContourData slice;
   std::unordered_set<std::array<int, 3>, TriangleKeyHash> uniqueTriangles;
@@ -100,16 +141,16 @@ ZSPACE_INLINE void HarmonicSlicer::extractIsoMesh(float iso, zObjMesh &mesh, zPo
       const bool oneInside = insideCount == 1;
       const int lone = oneInside ? inside[0] : outside[0];
       const auto &other = oneInside ? outside : inside;
-      const int a = crossingVertex(lone, other[0], iso, slice);
-      const int b = crossingVertex(lone, other[1], iso, slice);
-      const int c = crossingVertex(lone, other[2], iso, slice);
+      const int a = crossingVertex(lone, other[0], iso, vertexHeights, slice);
+      const int b = crossingVertex(lone, other[1], iso, vertexHeights, slice);
+      const int c = crossingVertex(lone, other[2], iso, vertexHeights, slice);
       if (appendTriangle(slice.Connects, a, oneInside ? b : c, oneInside ? c : b,
           slice.Positions, lowToHigh, uniqueTriangles)) slice.Counts.push_back(3);
     } else {
-      const int a = crossingVertex(inside[0], outside[0], iso, slice);
-      const int b = crossingVertex(inside[0], outside[1], iso, slice);
-      const int c = crossingVertex(inside[1], outside[1], iso, slice);
-      const int d = crossingVertex(inside[1], outside[0], iso, slice);
+      const int a = crossingVertex(inside[0], outside[0], iso, vertexHeights, slice);
+      const int b = crossingVertex(inside[0], outside[1], iso, vertexHeights, slice);
+      const int c = crossingVertex(inside[1], outside[1], iso, vertexHeights, slice);
+      const int d = crossingVertex(inside[1], outside[0], iso, vertexHeights, slice);
       if (appendTriangle(slice.Connects, a, b, c, slice.Positions, lowToHigh, uniqueTriangles)) slice.Counts.push_back(3);
       if (appendTriangle(slice.Connects, a, c, d, slice.Positions, lowToHigh, uniqueTriangles)) slice.Counts.push_back(3);
     }
@@ -118,19 +159,23 @@ ZSPACE_INLINE void HarmonicSlicer::extractIsoMesh(float iso, zObjMesh &mesh, zPo
   zFnMesh fn(mesh);
   fn.clear();
   uv.clear();
+  heights.clear();
   edgeIds.clear();
   if (!slice.Counts.empty()) {
     extractWidthId(slice.Connects, slice.Counts, slice.TetEdges, lookup, edgeIds, debug);
     fn.create(slice.Positions, slice.Counts, slice.Connects);
     uv.swap(slice.UV);
+    heights.swap(slice.Heights);
   }
 }
 
 ZSPACE_INLINE void HarmonicSlicer::extractCapMesh(VertexTag tag, zObjMesh &mesh, zPointArray &uv,
+                                                  const zFloatArray &vertexHeights, zFloatArray &heights,
                                                   const WallWidthLookup &lookup, EdgeWidthIds &edgeIds, std::vector<std::string> &debug) const {
   std::unordered_map<int, int> globalToLocal;
   zPointArray positions;
   zPointArray localUV;
+  zFloatArray localHeights;
   std::vector<std::pair<int, int>> localTetEdges;
   zIntArray counts;
   zIntArray connects;
@@ -157,6 +202,7 @@ ZSPACE_INLINE void HarmonicSlicer::extractCapMesh(VertexTag tag, zObjMesh &mesh,
       globalToLocal[global] = localId;
       positions.push_back(_Tet.Surface.Positions[global]);
       localUV.push_back(zPoint(_Tet.UVW[global].x, _Tet.UVW[global].y, w));
+      localHeights.push_back(vertexHeights[global]);
       localTetEdges.emplace_back(global, global);
       localTri[local] = localId;
     }
@@ -170,11 +216,13 @@ ZSPACE_INLINE void HarmonicSlicer::extractCapMesh(VertexTag tag, zObjMesh &mesh,
   zFnMesh fn(mesh);
   fn.clear();
   uv.clear();
+  heights.clear();
   edgeIds.clear();
   if (positions.empty()) return;
   extractWidthId(connects, counts, localTetEdges, lookup, edgeIds, debug);
   fn.create(positions, counts, connects);
   uv.swap(localUV);
+  heights.swap(localHeights);
 }
 
 ZSPACE_INLINE void HarmonicSlicer::extractWidthId(const zIntArray &connects, const zIntArray &counts,
@@ -467,8 +515,16 @@ ZSPACE_INLINE bool HarmonicSlicer::computeContours(bool useParallel) {
   const int interiorCount = columnLengths(shortest, longest)
       ? std::max(0, layersFromSpacing(shortest, i_Settings.LayerSpacing) - 2) : 0;
   const int numLayers = interiorCount + 2;
+  zFloatArray vertexHeights;
+  if (!computeVertexLayerHeights(numLayers, vertexHeights)) {
+    _Status = "computeContours failed: harmonic gradients cannot provide finite positive layer heights.";
+    printDebug("[computeContours] " + _Status);
+    printError("[HarmonicSlicer::computeContours] Failed");
+    return false;
+  }
   o_IsoMeshes.assign(numLayers, zObjMesh());
   o_IsoMeshUV.assign(numLayers, zPointArray());
+  o_VertexLayerHeights.assign(numLayers, zFloatArray());
   _HarmonicIsoEdgeWidthIds.assign(numLayers, EdgeWidthIds());
   o_IsoMeshes2D.assign(numLayers, zObjMesh());
   o_IsoMeshBoundary.assign(numLayers, zObjGraph());
@@ -498,10 +554,12 @@ ZSPACE_INLINE bool HarmonicSlicer::computeContours(bool useParallel) {
     try {
       if (k == 0 || k == numLayers - 1) {
         extractCapMesh(k == 0 ? VertexTag::Bottom : VertexTag::Top,
-                       o_IsoMeshes[k], o_IsoMeshUV[k], lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
+                       o_IsoMeshes[k], o_IsoMeshUV[k], vertexHeights, o_VertexLayerHeights[k],
+                       lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
       } else {
         const float iso = static_cast<float>(k) / static_cast<float>(numLayers - 1);
-        extractIsoMesh(iso, o_IsoMeshes[k], o_IsoMeshUV[k], lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
+        extractIsoMesh(iso, o_IsoMeshes[k], o_IsoMeshUV[k], vertexHeights, o_VertexLayerHeights[k],
+                       lookup, _HarmonicIsoEdgeWidthIds[k], layerDebug[k]);
       }
       zPointArray positions3D, positions2D;
       if (unrollIsoMesh(o_IsoMeshes[k], o_IsoMeshUV[k], o_IsoMeshes2D[k],

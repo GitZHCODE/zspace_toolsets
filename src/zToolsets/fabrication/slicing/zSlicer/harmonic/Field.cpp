@@ -356,10 +356,17 @@ ZSPACE_INLINE bool HarmonicSlicer::computePrintPathImpl(bool useParallel) {
   resetPrintStatistics();
   const int n = int(o_PathFields.size());
   if (n == 0 || o_WidthFields.size() != size_t(n) || o_TrackFields.size() != size_t(n) ||
-      o_IsoMeshes2D.size() != size_t(n) || o_IsoMeshes.size() != size_t(n)) {
+      o_IsoMeshes2D.size() != size_t(n) || o_IsoMeshes.size() != size_t(n) ||
+      o_VertexLayerHeights.size() != size_t(n)) {
     _Status = "failed: fields and charts must have one entry per layer. Call computeField() first.";
     zTsUtils::printDebug("[computePrintPathImpl] " + _Status);
     return false;
+  }
+  for (int k = 0; k < n; ++k) {
+    if (o_VertexLayerHeights[k].size() != size_t(zFnMesh(o_IsoMeshes[k]).numVertices())) {
+      _Status = "failed: harmonic layer heights must match their section vertices. Recompute contours.";
+      return false;
+    }
   }
   o_PrintPaths2D.resize(n);
   o_PrintPaths3D.resize(n);
@@ -377,7 +384,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computePrintPathImpl(bool useParallel) {
         continue;
       }
       if (!zTsField::mapPrintPaths(o_PrintPaths2D[k], o_IsoMeshes2D[k], o_IsoMeshes[k],
-                                  nullptr, o_PrintPaths3D[k], k)) failed[k] = 1;
+                                  &o_VertexLayerHeights[k], o_PrintPaths3D[k], k)) failed[k] = 1;
     } catch (...) { parallelErrors3.capture(k); }
   }
   parallelErrors3.rethrow();
