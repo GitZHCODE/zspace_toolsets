@@ -222,3 +222,9 @@ planarity. `maxCorrespondingAreaDifference` and `worstAreaDifferenceEdge` identi
 the limiting pair. `maxContactAreaMismatch` retains its relative diagnostic.
 Merged faces use source-weighted contributions; display scale never affects
 these areas. Equilibrium requires both criteria.
+
+The WASM `zspace_forcepolyhedra_set_controls` operation applies corresponding-area,
+angle, movement-weight and normal/planarity tolerances through `setSettings`
+without reconstructing meshes, graphs or dynamics. The viewer retains geometry,
+frame and history on these edits, reclassifies cached frames under active
+tolerances, and records the controls used for each numerical step for replay.

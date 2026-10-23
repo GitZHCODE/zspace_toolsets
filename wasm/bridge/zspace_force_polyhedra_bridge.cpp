@@ -13,6 +13,7 @@ struct Session {
     std::string json;
     std::vector<uint8_t> buffer;
     bool cells=false;
+    zForcePolyhedraSettings settings;
 };
 std::map<int,Session> sessions;
 int nextHandle=1000000;
@@ -29,7 +30,7 @@ zVectorArray vectors(const Json& data,size_t count){
     auto a=data.get<std::vector<double>>();if(a.size()!=3*count)throw std::invalid_argument("Expected XYZ triples.");
     zVectorArray out;for(size_t i=0;i<a.size();i+=3){for(int k=0;k<3;++k)if(!std::isfinite(a[i+k])||std::abs(a[i+k])>1e20)throw std::invalid_argument("Invalid vector coordinate.");out.emplace_back(float(a[i]),float(a[i+1]),float(a[i+2]));}return out;
 }
-std::unique_ptr<zTsForcePolyhedra> compute(const Json& input,bool& cells){
+std::unique_ptr<zTsForcePolyhedra> compute(const Json& input,bool& cells,zForcePolyhedraSettings& applied){
     const auto& graph=input.at("graph");auto a=graph.at("vertexPositions").get<std::vector<double>>();
     if(a.empty()||a.size()%3||a.size()>3072)throw std::invalid_argument("Expected 1..1024 graph vertices.");
     zPointArray p=vectors(graph.at("vertexPositions"),a.size()/3);auto edges=indices(graph.at("edgeConnects"));
@@ -61,7 +62,7 @@ std::unique_ptr<zTsForcePolyhedra> compute(const Json& input,bool& cells){
         settings.maxVertexStepRatio=s.value("maxVertexStepRatio",settings.maxVertexStepRatio);
         settings.normalStepDegrees=s.value("normalStepDegrees",settings.normalStepDegrees);
     }
-    tool->setSettings(settings);
+    tool->setSettings(settings);applied=settings;
     if(input.contains("forceDensities"))throw std::invalid_argument("Force-density form finding is not part of this 3DGS toolset.");
     tool->createForcePolyhedra();cells=true;
     if(input.value("solveEquilibrium",false))tool->solveEquilibrium(input.value("equilibriumIterations",2000));return tool;
@@ -104,16 +105,22 @@ EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_destroy(int h){return guard([&]{s
 EMSCRIPTEN_KEEPALIVE const char* zspace_forcepolyhedra_last_error(){return lastError.c_str();}
 EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_compute(int h,const char* path){return guard([&]{
     auto& s=session(h);std::ifstream stream(path?path:"");if(!stream)throw std::invalid_argument("Cannot read force polyhedra input.");
-    Json input;stream>>input;bool cells=false;auto tool=compute(input,cells);s.tool=std::move(tool);s.cells=cells;s.buffer.clear();s.json.clear();
+    Json input;stream>>input;bool cells=false;zForcePolyhedraSettings settings;auto tool=compute(input,cells,settings);s.tool=std::move(tool);s.cells=cells;s.settings=settings;s.buffer.clear();s.json.clear();
 });}
 EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_compute_from_buffers(int h,const void* bytes,size_t length){return guard([&]{
     auto& s=session(h);size_t address=reinterpret_cast<uintptr_t>(bytes),heap=emscripten_get_heap_size();
     if(!address||address>heap||length>heap-address)throw std::invalid_argument("Force polyhedra input outside WASM memory.");
-    auto input=zspaceTransfer::decode(bytes,length);bool cells=false;auto tool=compute(input,cells);s.tool=std::move(tool);s.cells=cells;s.buffer.clear();s.json.clear();
+    auto input=zspaceTransfer::decode(bytes,length);bool cells=false;zForcePolyhedraSettings settings;auto tool=compute(input,cells,settings);s.tool=std::move(tool);s.cells=cells;s.settings=settings;s.buffer.clear();s.json.clear();
 });}
 EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_step(int h,int iterations){return guard([&]{auto& s=session(h);if(!s.tool)throw std::invalid_argument("Compute force polyhedra first.");s.tool->stepAreaPursuit(iterations);s.buffer.clear();s.json.clear();});}
 EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_equilibrium(int h,int iterations){return guard([&]{auto& s=session(h);if(!s.tool)throw std::invalid_argument("Compute force polyhedra first.");s.tool->stepEquilibrium(iterations);s.buffer.clear();s.json.clear();});}
-EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_set_form_weight(int h,double weight){return guard([&]{auto& s=session(h);if(!s.tool)throw std::invalid_argument("Compute force polyhedra first.");s.tool->setFormWeight(weight);s.buffer.clear();s.json.clear();});}
+EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_set_form_weight(int h,double weight){return guard([&]{auto& s=session(h);if(!s.tool)throw std::invalid_argument("Compute force polyhedra first.");s.tool->setFormWeight(weight);s.settings.formWeight=weight;s.buffer.clear();s.json.clear();});}
+// Reclassify existing geometry and continue particle state; no reconstruction or integration.
+EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_set_controls(int h,double areaTolerance,double angleTolerance,double weight,double normalTolerance){return guard([&]{
+    auto& s=session(h);if(!s.tool)throw std::invalid_argument("Compute force polyhedra first.");
+    auto next=s.settings;next.correspondingAreaTolerance=areaTolerance;next.angleTolerance=angleTolerance;next.formWeight=weight;next.normalTolerance=normalTolerance;
+    s.tool->setSettings(next);s.settings=next;s.buffer.clear();s.json.clear();
+});}
 EMSCRIPTEN_KEEPALIVE int zspace_forcepolyhedra_set_form_from_buffers(int h,const void* bytes,size_t length){return guard([&]{
     auto& s=session(h);if(!s.tool)throw std::invalid_argument("Compute force polyhedra first.");size_t address=reinterpret_cast<uintptr_t>(bytes),heap=emscripten_get_heap_size();
     if(!address||address>heap||length>heap-address)throw std::invalid_argument("Form input outside WASM memory.");

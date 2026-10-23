@@ -309,10 +309,19 @@ void zTsCTubes::computeTube(zCTubeMode mode)
 void zTsCTubes::computeTubeWithFrames(const std::vector<zCTubeFrame>& supplied,
     const zPointArray& flangeTargets, int flangeVertex)
 {
+    computeTubeWithFrames(supplied, flangeTargets, flangeVertex, {});
+}
+void zTsCTubes::computeTubeWithFrames(const std::vector<zCTubeFrame>& supplied,
+    const zPointArray& flangeTargets, int flangeVertex, const zDoubleArray& apexScales)
+{
     clearResults();
     if(m_closed || m_worldProfile.empty() || m_targets.size()>1 || supplied.size()!=m_curve.size() || supplied.size()<2)
         throw std::invalid_argument("Fixed frames require one seed profile and one frame per open directrix vertex.");
     const int M=int(supplied.size()),N=int(m_worldProfile.size());
+    if(!apexScales.empty() && apexScales.size()!=size_t(M-1))
+        throw std::invalid_argument("Supply one positive apex scale per directrix segment.");
+    for(double value:apexScales)if(!std::isfinite(value)||value<=0)
+        throw std::invalid_argument("Apex scales must be finite and positive.");
     if(size_t(M)*N>2000000)throw std::invalid_argument("Tube exceeds two million vertices.");
     std::vector<V> X,n,v(size_t(M)*N);
     for(int j=0;j<M;++j) {
@@ -333,7 +342,8 @@ void zTsCTubes::computeTubeWithFrames(const std::vector<zCTubeFrame>& supplied,
         V direction=unit(X[j]-X[j-1]);
         V op=X[j]+project(X[j-1]-X[j],n[j],direction);
         for(int k=0;k<N;++k) {
-            V prev=v[(j-1)*N+k],prime=m_settings.apexScale*(prev-X[j-1])+op;
+            const double scale=apexScales.empty()?m_settings.apexScale:apexScales[j-1];
+            V prev=v[(j-1)*N+k],prime=scale*(prev-X[j-1])+op;
             v[j*N+k]=op+project(prime-op,n[j],prime-prev);
         }
     }

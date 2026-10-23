@@ -53,6 +53,9 @@ namespace zSpace
         // The seed profile remains in world coordinates (no refitting or target optimisation).
         void computeTubeWithFrames(const std::vector<zCTubeFrame>& frames,
             const zPointArray& flangeTargets = {}, int flangeVertex = -1);
+        void computeTubeWithFrames(const std::vector<zCTubeFrame>& frames,
+            const zPointArray& flangeTargets, int flangeVertex,
+            const zDoubleArray& apexScales);
         void computeTubeWithSections(const std::vector<zCTubeFrame>& frames, const zPointArray& sections);
         void computeStrips();
         void unrollStrips(double gap = 0.1);

@@ -96,6 +96,9 @@ install(EXPORT zspaceToolsetsTargets FILE zspaceToolsetsTargets.cmake NAMESPACE 
 
 if(ZSPACE_TOOLSETS_BUILD_TESTS)
   include(CTest)
+  add_executable(zspace_toolsets_force_ctubes tests/smoke/zspace_toolsets_force_ctubes.cpp)
+  target_link_libraries(zspace_toolsets_force_ctubes PRIVATE zspace::toolsets)
+  add_test(NAME zspace_toolsets.force_ctubes COMMAND zspace_toolsets_force_ctubes)
   add_executable(zspace_toolsets_force_polyhedra tests/smoke/zspace_toolsets_force_polyhedra.cpp)
   target_link_libraries(zspace_toolsets_force_polyhedra PRIVATE zspace::toolsets)
   add_test(NAME zspace_toolsets.force_polyhedra COMMAND zspace_toolsets_force_polyhedra)

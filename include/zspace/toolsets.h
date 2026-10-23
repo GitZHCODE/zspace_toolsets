@@ -10,5 +10,6 @@
 #include <zspace/zToolsets/fabrication/zTsParametricStairs.h>
 #include <zspace/zToolsets/statics/zTsVault.h>
 #include <zspace/zToolsets/statics/zTsForcePolyhedra.h>
+#include <zspace/zToolsets/statics/zTsForceCTubes.h>
 
 #endif
