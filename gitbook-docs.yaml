@@ -1,0 +1,18 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+version: 1
+site:
+  title: zSpace Slicer
+  structure:
+    - type: section
+      key: section-toolsets
+      title: Slicer Engine
+      path: toolsets
+      default: true
+      children:
+        - type: space
+          key: space-slicer-engine
+          title: C++ Slicer and PrintSyn
+          path: engine
+          default: true
+          content:
+            directory: ./docs/gitbook/slicer
