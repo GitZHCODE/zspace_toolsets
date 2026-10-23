@@ -146,31 +146,28 @@ this schema; Core owns only general USD operations.
 ## Browser boundary
 
 The dedicated `wasm/slicing` target compiles the same engine and PrintSyn sources
-into `wasm/out/zspace_slicing.js` and `.wasm`. It leaves the established core and
+into `wasm/out/zspace_toolset.js` and `.wasm`. It leaves the established core and
 toolsets runtimes unchanged. Run `wasm/scripts/build-slicing-wasm.ps1` with the
 Emscripten SDK installed. The default TetGen source directory is
 `wasm/cache/tetgen`; provide `-TetgenDir` for another source checkout. The reviewed
 build uses Emscripten 6.0.13 and libigl/tetgen commit
 `e05aca7df74e3f531bc35733ed87d36d437266c5`. Without TetGen, capability bit 2 is
-absent and harmonic mode is rejected. OpenMP is disabled in this worker build.
+absent and harmonic mode is rejected. The runtime supports serial and OpenMP
+execution with a hardware-sized Worker pool.
 
-The exported ABI has version 1 and capability bits 1 (topology) / 2 (harmonic).
-Create/destroy manage handles; `zspace_slicing_compute_from_buffers` uploads
-owned mesh arrays, face tags, optional width groups and bracing, anchor, mode and
-settings using the existing ZST1 binary codec. Read results with
-`zspace_slicing_result_buffers` and `zspace_toolsets_result_buffer_size`. Input
-allocation uses `zspace_alloc`/`zspace_free`. Errors use
-`zspace_toolsets_last_error`. Failed computation preserves the previous result.
+The Slicer ABI is version 2, with capability bits 1 (Topology) / 2 (Harmonic).
+Create/destroy manage handles. Numeric array pointers/counts carry geometry,
+settings, scalar fields and path attributes without JSON or a tagged packet.
+See [Slicing array ABI](slicing-wasm-arrays.md) for slots and lifetime rules.
+Core supplies allocation and its own unchanged bindings in the combined runtime.
+Failed computation preserves the previous result.
 
 Results contain owned slice/chart meshes, path/width fields, per-layer print
-paths and the combined PrintSyn path with widths/heights/normals/track IDs. The
-viewer computes in a module worker and copies the result before releasing its
-native session. No live heap views reach viewer scene objects.
+paths and the combined PrintSyn path with widths/heights/normals/track IDs.
+The adapter copies native arrays into owned Float64Arrays and transfers their
+buffers to the UI. Native point order is preserved without sorting.
 
-Browser USD IO is owned by the core OpenUSD runtime. Toolsets WASM compiles no
-IO sources and accepts only owned geometry, tags, width groups and settings.
-The viewer translates `/AG_block`, `/Slicer_bracing`, `/Slicer_slot`,
-`/Slicer_data` and `/Slicer_setting` through generic core USD queries and converts
-lengths to millimetres. See the viewer's `docs/development/slicing.md` for builds
-and tests. Native desktop IO remains available independently.
-
+Toolsets IO parses the Slicer USD schema through Core's generic USD API.
+Both import and export run in an IO Worker using the same combined runtime.
+JavaScript transfers file bytes and numeric arrays; it does not duplicate
+the schema interpretation. Geometry and dimensional settings normalize to mm.

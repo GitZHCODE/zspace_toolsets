@@ -1,6 +1,9 @@
 # Toolsets WASM transfers
 
-The current bridge provides transfer version 1, advertised by
+This document covers the general Toolsets runtime, not the Slicer runtime.
+Slicer uses [array ABI 2](slicing-wasm-arrays.md), without JSON or packet intermediaries.
+
+The general bridge provides transfer version 1, advertised by
 `zspace_toolsets_transfer_version()`. Its legacy ABI version remains 1.
 
 ## Typed path

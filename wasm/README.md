@@ -8,16 +8,18 @@ The toolsets bridge compiles against the current sibling core sources. Its API
 and heap are independent of the core viewer runtime. Follow
 [typed transfer contract](../docs/architecture/typed-wasm-transfers.md).
 
-Preserve existing C exports; add transfer APIs without changing the legacy ABI.
+The general Toolsets runtime retains its legacy ABI. Slicing uses array ABI 2.
 Refresh the viewer's packaged JS/WASM pair together only when runtime integration
 is in scope. Read applicable viewer instructions before editing adapters.
 
 ## Slicing OpenMP runtime
 
 Build `wasm/scripts/build-slicing-wasm.ps1 -EmsdkDir <emsdk>` to produce
-`wasm/out/zspace_slicing.js` and `zspace_slicing.wasm`. Both files must be deployed
-together. This compute-only target compiles sibling core and slicer sources;
-it does not link OpenUSD.
+`wasm/out/zspace_toolset.js` and `zspace_toolset.wasm`. Both files must be deployed
+together. This target includes the sibling Core WASM CMake target, preserving Core
+bindings and compilation settings. Toolsets owns only Slicer bindings and sources.
+Core supplies OpenUSD; Toolsets IO interprets the Slicer schema.
+See [Slicing array ABI](../docs/architecture/slicing-wasm-arrays.md).
 
 The target enables `-pthread -fopenmp` at compile and link time. It pre-creates
 `navigator.hardwareConcurrency` minus one pthread workers (the calling Worker is also a
