@@ -24,7 +24,7 @@
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/zSlicer.h>
 
 #include <zspace/interface.h>
-#include <zspace/io.h>
+#include <zspace/interface.h>
 #include <zspace/zInterface/functionsets/zFnGraph.h>
 #include <zspace/zInterface/functionsets/zFnMesh.h>
 #include <zspace/zInterface/functionsets/zFnMeshField.h>
@@ -147,6 +147,7 @@ protected:
   zObjMeshArray o_IsoMeshes;
   zObjGraphArray o_IsoMeshBoundary;
   std::vector<zPointArray> o_IsoMeshUV;
+  std::vector<zFloatArray> o_VertexLayerHeights;
   std::vector<EdgeWidthIds> _HarmonicIsoEdgeWidthIds;
 
   zObjMeshArray o_IsoMeshes2D;
@@ -210,6 +211,9 @@ public:
   zObjMeshArray &getIsoMeshes() { return o_IsoMeshes; }
   const zObjMeshArray &getIsoMeshes() const { return o_IsoMeshes; }
   const std::vector<zPointArray> &getIsoMeshUV() const { return o_IsoMeshUV; }
+  // One height per iso-mesh vertex, in model units: volume-weighted local
+  // delta-w / |grad(w)|, interpolated at intersections (also on both caps).
+  const std::vector<zFloatArray> &getVertexLayerHeights() const { return o_VertexLayerHeights; }
   const zObjGraphArray &getIsoMeshBoundary() const { return o_IsoMeshBoundary; }
 
   const zObjMeshArray &getIsoMeshes2D() const { return o_IsoMeshes2D; }
@@ -312,7 +316,8 @@ private:
                          std::string *failureReason = nullptr) const;
 
   struct ContourData;
-  int crossingVertex(int a, int b, float iso, ContourData &slice);
+  bool computeVertexLayerHeights(int numLayers, zFloatArray &heights) const;
+  int crossingVertex(int a, int b, float iso, const zFloatArray &vertexHeights, ContourData &slice);
   static bool
   appendTriangle(zIntArray &connects, int a, int b, int c,
                  const zPointArray &positions, const zVector &lowToHigh,
@@ -320,8 +325,10 @@ private:
                      &uniqueTriangles);
   struct WallWidthLookup;
   void extractIsoMesh(float iso, zObjMesh &mesh, zPointArray &uv,
+                      const zFloatArray &vertexHeights, zFloatArray &heights,
                       const WallWidthLookup &lookup, EdgeWidthIds &edgeIds, std::vector<std::string> &debug);
   void extractCapMesh(VertexTag tag, zObjMesh &mesh, zPointArray &uv,
+                      const zFloatArray &vertexHeights, zFloatArray &heights,
                       const WallWidthLookup &lookup, EdgeWidthIds &edgeIds, std::vector<std::string> &debug) const;
   struct WallWidthLookup {
     std::unordered_map<std::array<int, 3>, int, zTsUtils::TriangleKeyHash> Triangles;

@@ -62,6 +62,35 @@ Topology intermediate outputs are available through `getTopologySlicer()`;
 harmonic outputs through `getHarmonicSlicer()`. Changing mode replaces the
 operator and invalidates references to its results.
 
+Harmonic heights use the local normal-spacing estimate `deltaW / |grad(w)|`,
+where `deltaW = 1 / (numberOfLayers - 1)` and `w` is the final harmonic field
+(including any field equalisation). Tetrahedron volumes weight the nodal average;
+heights are then interpolated on tetrahedral edges and barycentrically onto each
+layer's paths. This is a local linear estimate, not an exact distance to the
+previous curved section or a bound enforced by `LayerSpacing`. Both cap layers
+use a full adjacent iso interval, matching topology's nonzero cap-height contract.
+Zero/nonfinite gradients or unsupported vertices fail contour generation instead
+of silently producing zero heights. `HarmonicSlicer::getVertexLayerHeights()`
+returns one table per iso mesh, in that mesh's vertex order. Raw paths and PrintSyn
+projection use these tables; linked paths retain the heights, so the existing
+height-domain and print-volume statistics work in harmonic mode. Settings/input
+invalidation clears the tables and statistics. Target-domain optimization remains
+a separate operation.
+
+`zTsUtils::buildPrintMesh()` lofts one centered rectangle per print-path vertex,
+using its width, height and normalized print normal. Each graph component and
+layer stays separate; open paths receive end caps. Zero widths/heights retain
+collapsed sections, and invalid attributes or connectivity clear the mesh and
+return a diagnostic with the layer/path location.
+
+USD export preserves `/TDP_gcode` and also writes `/TDP_printmesh` (Mesh, display
+name `print mesh`) and `/TDP_printpath` (linear BasisCurves, display name `print
+path`). Pass the processed per-layer paths through the optional `layerPaths`
+argument of `zTsIO::exportUSD()` to avoid lofting travel connectors
+between layers. Without it, the supplied path alone is rendered. Geometry and
+widths are converted from internal millimetres to the source stage units;
+re-export replaces these output prims while preserving the input stage.
+
 ## Build configurations
 
 The default native build includes topology slicing and PrintSyn without TetGen,
@@ -98,15 +127,21 @@ current session.
 calls (`useParallel=false`) remain available in either build. Eigen stays sequential
 to avoid nested parallel scheduling.
 
-For the optional desktop USD adapter, set
-`ZSPACE_TOOLSETS_SLICING_WITH_OPENUSD=ON` and `ZSPACE_OPENUSD_ROOT` to an external
-OpenUSD SDK. The adapter reuses core's OpenUSD CMake helper. Deploy the SDK's
-runtime libraries and schema/plugin resources with the application. Its public
-API is `zTsIO::readSlicerInputUSD()` / `exportPrintPathUSD()`; without the option,
-these functions return a diagnostic explaining the missing capability.
+USD IO belongs to Core's `zUSDsdk`, enabled with `ZSPACE_IO_WITH_OPENUSD`
+and `ZSPACE_OPENUSD_ROOT` in the host build. Toolsets has no USD option, IO
+source, or `zspace::io` link dependency. The former `zTsIO` API is removed.
+Alice's `userSrc/zspace/sketch_harmonic_slicer_test.cpp` contains the
+application schema reader and writer and calls Core IO directly. Python exposes generic IO through
+`zspace.core.USDDocument` and schema helpers through `zspace.io.slicing_usd`.
+Deploy Core IO and the matching OpenUSD runtime/plugins only in hosts needing IO.
 
-The USD adapter preserves `/block`, `/bracing`, `/slotpoint`, face/width tags,
-settings and print-path attributes. It is separate from the compute engine.
+All hosts use `/AG_block`, `/Slicer_bracing`, `/Slicer_slot`, `/Slicer_setting`
+and `/Slicer_data`. Geometry and authored dimensional settings become Z-up mm;
+ratios remain unchanged. Optional settings use internal mm defaults. Exports
+preserve input and replace `/TDP_gcode` (Scope), with custom `points`,
+`printNormals`, `printWidths`, `printHeight` arrays and root `customLayerData`
+statistics. Source units and up axis are restored on export. Applications own
+this schema; Core owns only general USD operations.
 
 ## Browser boundary
 
@@ -132,9 +167,10 @@ paths and the combined PrintSyn path with widths/heights/normals/track IDs. The
 viewer computes in a module worker and copies the result before releasing its
 native session. No live heap views reach viewer scene objects.
 
-Browser USD IO is owned by the core OpenUSD runtime. Toolsets WASM excludes
-`utils/IO.cpp` and accepts only owned geometry, tags, width groups and settings.
+Browser USD IO is owned by the core OpenUSD runtime. Toolsets WASM compiles no
+IO sources and accepts only owned geometry, tags, width groups and settings.
 The viewer translates `/AG_block`, `/Slicer_bracing`, `/Slicer_slot`,
 `/Slicer_data` and `/Slicer_setting` through generic core USD queries and converts
 lengths to millimetres. See the viewer's `docs/development/slicing.md` for builds
 and tests. Native desktop IO remains available independently.
+

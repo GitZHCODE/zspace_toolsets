@@ -24,7 +24,7 @@
 #include <zspace/zToolsets/fabrication/slicing/zSlicer/zSlicer.h>
 
 #include <zspace/interface.h>
-#include <zspace/io.h>
+#include <zspace/interface.h>
 #include <zspace/zInterface/functionsets/zFnMeshField.h>
 #include <zspace/zInterface/objects/zObjGraph.h>
 #include <zspace/zInterface/objects/zObjMesh.h>

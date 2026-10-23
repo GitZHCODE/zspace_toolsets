@@ -2,6 +2,7 @@
 #include <zspace/toolsets.h>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -52,6 +53,9 @@ void checkPaths(const PrintPathArray& layers) {
       zFnGraph fn(graph);
       require(fn.numVertices() > 2 && fn.numEdges() > 1, "Degenerate path");
       require(path.widths.size() == static_cast<size_t>(fn.numVertices()), "Missing per-vertex print widths");
+      require(path.heights.size() == static_cast<size_t>(fn.numVertices()), "Missing per-vertex print heights");
+      for (float height : path.heights)
+        require(std::isfinite(height) && height > 0, "Non-positive or non-finite print height");
       for (float width : path.widths)
         require(std::isfinite(width) && width > 0, "Non-positive or non-finite print width");
       const auto* points = fn.getRawVertexPositions();
@@ -100,11 +104,6 @@ void invalidInput() {
   session.setInputMesh(mesh, zIntArray(1, Bottom));
   require(!session.computeSlicer(false), "Invalid face tags were accepted");
   require(session.get3DPrintPaths().empty(), "Failure retained stale print paths");
-  zTsIO::SlicerUSDInput usdInput;
-  usdInput.Block = mesh;
-  std::string ioError;
-  require(!zTsIO::readSlicerInputUSD("zspace-missing-slicer-input.usda", usdInput, &ioError), "Missing USD input was accepted");
-  require(!ioError.empty() && zFnMesh(usdInput.Block).numVertices() == 0, "USD failure did not clear data and report a diagnostic");
   require(!zTsSlicing::supportsSlicerMode(static_cast<zTsSlicerMode>(999)), "Unknown mode reported supported");
   bool rejected = false;
   try { session.setSlicerMode(static_cast<zTsSlicerMode>(999)); }
@@ -170,6 +169,7 @@ void parallelParity() {
       zFnGraph(const_cast<zObjGraph&>(b[layer][i].graph)).getVertexPositions(pb);
       require(pa.size() == pb.size(), "Serial and parallel vertex counts differ");
       require(a[layer][i].widths == b[layer][i].widths, "Serial and parallel widths differ");
+      require(a[layer][i].heights == b[layer][i].heights, "Serial and parallel heights differ");
       for (size_t j = 0; j < pa.size(); ++j)
         require(zTsUtils::vecDistSq(pa[j], pb[j]) < 1e-12, "Serial and parallel positions differ");
     }
@@ -186,8 +186,134 @@ void harmonic() {
   require(session.computeSlicer(false), session.getStatus());
   require(session.computePrintPath(false), session.getStatus());
   checkPaths(session.get3DPrintPaths());
+  const auto checkUniform = [](const PrintPathArray &paths, double expected) {
+    for (const auto &layer : paths) for (const auto &path : layer) {
+      require(path.heights.size() == size_t(zFnGraph(const_cast<zObjGraph &>(path.graph)).numVertices()),
+              "Height/point alignment lost");
+      for (float h : path.heights)
+        require(std::abs(h - expected) < 2e-4, "Incorrect analytic harmonic spacing");
+    }
+  };
+  checkUniform(session.get3DPrintPaths(), 0.5);
+  require(std::abs(session.getPrintHeightDomain().min - 0.5) < 2e-4 &&
+          std::abs(session.getPrintHeightDomain().max - 0.5) < 2e-4,
+          "Harmonic height domain is not the measured spacing");
+  require(session.getPrintVolume() > 0, "Harmonic volume is zero despite positive heights");
+  auto *slicer = session.getHarmonicSlicer();
+  const auto &heights = slicer->getVertexLayerHeights();
+  require(heights.size() == 5, "Missing per-layer harmonic height tables");
+  for (size_t l = 0; l < heights.size(); ++l)
+    require(heights[l].size() == size_t(zFnMesh(const_cast<zObjMesh &>(slicer->getIsoMeshes()[l])).numVertices()),
+            "Height table does not match its independent iso mesh");
   require(session.computePostProcess(false), session.getStatus());
   checkPaths(session.get3DPrintPaths());
+  checkUniform(session.get3DPrintPaths(), 0.5);
+  checkUniform(PrintPathArray{{session.getResultantPrintPath()}}, 0.5);
+  require(session.getPrintVolume() > 0, "PrintSyn discarded harmonic height/volume");
+  const auto serialCombinedHeights = session.getResultantPrintPath().heights;
+
+  // A distinct constant on each independent section makes an accidental shared
+  // height table observable, including after resampling and seam alignment.
+  std::vector<zFloatArray> perLayer = heights;
+  for (size_t l = 0; l < perLayer.size(); ++l)
+    perLayer[l].assign(perLayer[l].size(), 0.2f + 0.1f * float(l));
+  require(session.computePrintPath(false), session.getStatus());
+  auto paths2D = session.get2DPrintPaths();
+  PrintPathArray projected;
+  PrintPath combined;
+  std::string status;
+  require(zPrintSyn::computePipeline(slicer->getIsoMeshes2D(), slicer->getIsoMeshes(), nullptr,
+      zPrintSyn::SeamMapping::WorldNearest, session.getPrintSynSetting(), paths2D, projected,
+      combined, status, false, &perLayer), status);
+  for (size_t l = 0; l < projected.size(); ++l)
+    checkUniform(PrintPathArray{projected[l]}, 0.2 + 0.1 * l);
+  require(!combined.heights.empty(), "Linked path lost per-layer heights");
+  for (float h : combined.heights)
+    require(h >= 0.2f - 1e-5f && h <= 0.6f + 1e-5f, "Linked height escaped the section ranges");
+  const auto rejectTables = [&]() {
+    require(!zPrintSyn::projectPrintPaths(paths2D, slicer->getIsoMeshes2D(), slicer->getIsoMeshes(),
+        nullptr, projected, status, nullptr, false, &perLayer), "Invalid height tables accepted");
+    require(projected.empty(), "Invalid projection retained stale paths");
+  };
+  perLayer[0].pop_back();
+  rejectTables();
+  perLayer = heights;
+  perLayer[1][0] = std::numeric_limits<float>::quiet_NaN();
+  rejectTables();
+  perLayer[1][0] = -1.0f;
+  rejectTables();
+  perLayer.pop_back();
+  rejectTables();
+
+  zTsSlicing parallel;
+  configure(parallel, mesh);
+  parallel.setSlicerMode(zTsSlicerMode::Harmonic);
+  require(parallel.computeSlicer(true), parallel.getStatus());
+  require(parallel.computePrintPath(true), parallel.getStatus());
+  checkUniform(parallel.get3DPrintPaths(), 0.5);
+  require(heights == parallel.getHarmonicSlicer()->getVertexLayerHeights(), "Parallel harmonic height tables differ");
+  require(parallel.computePostProcess(true), parallel.getStatus());
+  checkUniform(parallel.get3DPrintPaths(), 0.5);
+  require(serialCombinedHeights == parallel.getResultantPrintPath().heights,
+          "Serial/parallel linked harmonic heights differ");
+
+  // Rigid rotation and uniform scaling have independent analytic expectations:
+  // local normal height doubles, despite a changed world-Z separation.
+  auto transformed = block();
+  zFnMesh transformedFn(transformed);
+  auto *points = transformedFn.getRawVertexPositions();
+  const double c = std::cos(0.5), s = std::sin(0.5);
+  for (int i = 0; i < transformedFn.numVertices(); ++i) {
+    const zPoint p = points[i];
+    points[i] = zPoint(2 * (c*p.x + s*p.z), 2*p.y, 2 * (-s*p.x + c*p.z));
+  }
+  zTsSlicing rotated;
+  configure(rotated, transformed);
+  rotated.getSettings().LayerSpacing = 1.1f; // ceil(4 / 1.1) intervals give actual height 1.0.
+  rotated.getSettings().BoundaryWidth = {0.8f};
+  rotated.getSettings().FieldCellSize = 0.2f;
+  rotated.setSlicerMode(zTsSlicerMode::Harmonic);
+  require(rotated.computeSlicer(false), rotated.getStatus());
+  for (const auto &layer : rotated.getHarmonicSlicer()->getVertexLayerHeights()) {
+    require(!layer.empty(), "Missing rotated section heights");
+    for (float h : layer) require(std::abs(h - 1.0) < 2e-4, "Harmonic height depends on world Z or requested spacing");
+  }
+
+  auto tapered = block();
+  zFnMesh taperedFn(tapered);
+  points = taperedFn.getRawVertexPositions();
+  for (int i = 0; i < taperedFn.numVertices(); ++i) points[i].x *= 1.0 + 0.15 * points[i].z;
+  zTsSlicing varying;
+  configure(varying, tapered);
+  varying.setSlicerMode(zTsSlicerMode::Harmonic);
+  require(varying.computeSlicer(false), varying.getStatus());
+  require(varying.computePrintPath(false), varying.getStatus());
+  auto range = varying.getPrintHeightDomain();
+  require(std::isfinite(range.min) && range.min > 0 && range.max - range.min > 1e-4,
+          "Nonuniform harmonic spacing was replaced by a constant height");
+  require(varying.computePostProcess(false), varying.getStatus());
+  require(varying.getPrintHeightDomain().min > 0 && varying.getPrintVolume() > 0,
+          "Varying harmonic heights were lost during post-processing");
+
+  // An unusable gradient must fail and clear the previous successful output.
+  auto &tet = const_cast<HarmonicField &>(slicer->getTetVolume());
+  for (size_t t = 0; t < tet.Volumes.size(); ++t) if (tet.Volumes[t].Valid) {
+    tet.VolumeFieldGradients[t].setZero();
+    break;
+  }
+  require(!slicer->computeContours(false), "Zero harmonic gradient accepted for height calculation");
+  require(slicer->getVertexLayerHeights().empty() && slicer->getPrintPaths3D().empty() &&
+          slicer->getPrintHeightDomain().max == 0 && slicer->getPrintVolume() == 0,
+          "Failed height computation retained stale output/statistics");
+  require(session.computeSlicer(false), session.getStatus());
+  require(session.computePrintPath(false), session.getStatus());
+  checkUniform(session.get3DPrintPaths(), 0.5);
+  const auto settings = slicer->getSettings();
+  slicer->setSettings(settings);
+  require(slicer->getVertexLayerHeights().empty() && slicer->getPrintPaths3D().empty() &&
+          slicer->getPrintHeightDomain().max == 0 && slicer->getPrintVolume() == 0,
+          "Settings invalidation retained stale harmonic heights/statistics");
+  require(!slicer->computePrintPath(false), "Paths computed without height tables/contours");
 #endif
 }
 }

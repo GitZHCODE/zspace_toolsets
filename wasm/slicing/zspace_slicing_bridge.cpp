@@ -1,4 +1,5 @@
 #include <omp.h>
+#include <pxr/base/work/threadLimits.h>
 #include <emscripten/emscripten.h>
 #include <emscripten/heap.h>
 #include <zspace/slicing.h>
@@ -166,10 +167,12 @@ void compute(Session& current, const Json& input) {
   int threadCount=1;
 #pragma omp parallel if(useParallel) reduction(max:threadCount)
   { threadCount=omp_get_num_threads(); }
+  const double computeStarted=emscripten_get_now();
   if(!candidate->computeSlicer(useParallel)) throw std::runtime_error(candidate->getStatus());
   const bool processed=input.value("postProcess",true);
   const bool success=processed?candidate->computePostProcess(useParallel):candidate->computePrintPath(useParallel);
   if(!success) throw std::runtime_error(candidate->getStatus());
+  const double computationSeconds=(emscripten_get_now()-computeStarted)/1000.0;
   zObjMeshArray* slices; zObjMeshArray* charts; zObjMeshScalarField* field;
   const std::vector<zScalarArray>* pathFields; const std::vector<zScalarArray>* widthFields;
   if(mode==0) {
@@ -190,7 +193,7 @@ void compute(Session& current, const Json& input) {
     layers.push_back({{"slice",mesh((*slices)[i])},{"chart",mesh((*charts)[i])},
       {"paths",layerPaths},{"pathField",(*pathFields)[i]},{"widthField",(*widthFields)[i]}});
   }
-  Json result={{"useParallel",useParallel},{"threadCount",threadCount},{"mode",mode},{"status",candidate->getStatus()},{"layers",layers},
+  Json result={{"computationSeconds",computationSeconds},{"useParallel",useParallel},{"threadCount",threadCount},{"mode",mode},{"status",candidate->getStatus()},{"layers",layers},
     {"field",mesh(*field)},{"combined",path(candidate->getResultantPrintPath())},{"postProcessed",processed}};
   auto bytes=zspaceTransfer::encode(result);
   current.engine=std::move(candidate); current.result=std::move(bytes);
@@ -205,6 +208,57 @@ EMSCRIPTEN_KEEPALIVE void zspace_free(void* pointer){std::free(pointer);}
 EMSCRIPTEN_KEEPALIVE const char* zspace_toolsets_last_error(){return lastError.c_str();}
 EMSCRIPTEN_KEEPALIVE int zspace_slicing_create(){int h=0;guard([&]{h=nextHandle++;sessions.emplace(h,Session{});});return h;}
 EMSCRIPTEN_KEEPALIVE int zspace_slicing_destroy(int handle){return guard([&]{session(handle);sessions.erase(handle);});}
+EMSCRIPTEN_KEEPALIVE int zspace_slicing_import_usd(int handle, const char* file) {
+  return guard([&] {
+    pxr::WorkSetConcurrencyLimit(1); // IO runtime has no spare pthread workers.
+    zTsIO::SlicerUSDInput input; std::string error;
+    if (!file || !zTsIO::importUSD(file,input,&error)) throw std::runtime_error(error);
+    const auto& s=input.Settings; const auto& p=input.PrintSettings;
+    Json options={{"boundaryWidths",s.BoundaryWidth},{"bracingWidth",s.BracingWidth},
+      {"bracingCurveWidths",input.BracingPrintWidths},{"layerSpacing",s.LayerSpacing},
+      {"fieldCellSize",s.FieldCellSize},{"overlapWidth",s.OverlapWidth},{"fieldScaleUp",s.FieldScaleUp},
+      {"slotOffset",s.SlotOffset},{"bracingSlot",s.BracingSlot},{"doubleBoundary",s.DoubleBoundary},
+      {"traceStepFraction",s._HTraceStepFraction},{"traceMaxSteps",s._HTraceMaxSteps},
+      {"equaliseIterations",s._HEqualiseIterations},{"arapIterations",s._HArapIterations},
+      {"unrollStart",s._HUnrollStart},{"resampleLength",p.ResampleLength},{"featureAngle",p.FeatureAngleTol},
+      {"seamOffset",p.SeamOffset},{"seamSize",p.SeamSize}};
+    PrintPath ribs; ribs.graph=std::move(input.Bracing);
+    session(handle).result=zspaceTransfer::encode(Json{{"mesh",mesh(input.Block)},
+      {"bracing",path(ribs)},{"faceTags",input.FaceTags},{"faceWidthIds",input.FaceWidthIds},
+      {"anchor",{input.StartPoint.x,input.StartPoint.y,input.StartPoint.z}},
+      {"settings",options},{"unknownSettings",input.UnknownSettings}});
+  });
+}
+EMSCRIPTEN_KEEPALIVE int zspace_slicing_export_usd(const char* source, const char* output, const void* bytes, size_t size) {
+  return guard([&] {
+    pxr::WorkSetConcurrencyLimit(1);
+    auto address=reinterpret_cast<uintptr_t>(bytes); auto heap=emscripten_get_heap_size();
+    if(!address || address>heap || size>heap-address) throw std::invalid_argument("Invalid USD output buffer.");
+    const auto data=zspaceTransfer::decode(bytes,size);
+    auto decodePath = [&](const Json &graph) {
+      auto vertices=points(graph.at("vertexPositions"));
+      auto edges=integers(graph.at("edgeConnects"),vertices.size()*4);
+      if(edges.size()%2) throw std::invalid_argument("Expected edge pairs.");
+      for(int id:edges) if(size_t(id)>=vertices.size()) throw std::invalid_argument("Invalid path edge.");
+      PrintPath print; zFnGraph(print.graph).create(vertices,edges);
+      print.normals=points(graph.at("normals"));
+      print.widths=graph.at("widths").get<zFloatArray>();
+      print.heights=graph.at("heights").get<zFloatArray>();
+      return print;
+    };
+    auto print=decodePath(data.at("combined"));
+    PrintPathArray layers;
+    if(data.contains("layerPaths")) {
+      for(const auto &layer:data.at("layerPaths")) {
+        layers.emplace_back();
+        for(const auto &graph:layer) layers.back().push_back(decodePath(graph));
+      }
+    }
+    std::string error;
+    if(!source || !output || !zTsIO::exportUSD(print,source,output,data.at("layercount").get<int>(),&error,data.value("blockid",0),data.contains("layerPaths") ? &layers : nullptr))
+      throw std::runtime_error(error);
+  });
+}
 EMSCRIPTEN_KEEPALIVE int zspace_slicing_compute_from_buffers(int handle,const void* bytes,size_t size){
   return guard([&]{
     auto address=reinterpret_cast<uintptr_t>(bytes); auto heap=emscripten_get_heap_size();

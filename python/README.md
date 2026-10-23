@@ -1,6 +1,6 @@
 # zSpace Python bindings
 
-Bindings live in `zspace_toolsets/python`. C++ algorithms remain in the v3
+Core bindings live in `zspace_core/python/core`; slicer bindings live in `zspace_toolsets/python/toolsets/zTs3DP`. C++ algorithms remain in the v3
 `include/zspace` and `src` trees. Python imports remain `zspace.core` and
 `zspace.toolset.slicer`.
 
@@ -8,7 +8,7 @@ Bindings live in `zspace_toolsets/python`. C++ algorithms remain in the v3
 
 - `build_headless.ps1`: Windows build entry point for Python 3.10 and 3.13.
 - `CMakeLists.txt`: headless core, v3 toolsets and Python package configuration.
-- `core/src`: geometry bindings.
+- `../../zspace_core/python/core/src`: geometry bindings maintained by Core.
 - `toolsets/zTs3DP/src`: slicer bindings (historical directory name).
 - `scripts/smoke_headless.py`: optional smoke example, not run automatically.
 - `build_headless310/package` and `build_headless313/package`: generated packages.
@@ -39,20 +39,20 @@ build location and pybind11 installation.
 Topology is enabled by default. Add `-WithHarmonic -TetGenRoot C:/SDK/tetgen`
 for Harmonic; that installation must provide `include/tetgen.h` and a compatible
 library under `lib`. The script enables OpenMP. USD is disabled by default;
-`-WithUSD -OpenUSDRoot C:/SDK/OpenUSD` enables its bindings through the v3 helper.
-For USD builds, deploy the matching SDK runtime DLLs and plugin resources using
-the SDK's runtime layout/search paths; these are not automatically packaged.
+`-WithUSD` enables Core IO and the shared Toolsets slicing IO bindings.
+The build copies SDK runtime DLLs and plugin resources beside `_core.pyd`.
+Toolsets IO calls Core USDapi; SDK selection and deployment remain Core-owned.
 
 CMake overrides include `ZSPACE_CORE_SOURCE`, `ZSPACE_TOOLSETS_SOURCE`,
 `ZSPACE_PYTHON_BUILD_SLICER`, `ZSPACE_PYTHON_WITH_USD`,
 `ZSPACE_TOOLSETS_WITH_TETGEN`, and `ZSPACE_TETGEN_ROOT`.
-Core display, interop, tests and OpenGL are disabled. Core IO is built because
-v3 toolsets links it; core OpenUSD support remains disabled.
+Core display, interop, tests and OpenGL are disabled. Core IO supplies the generic `USDdoc` binding. Without `-WithUSD`,
+`USDdoc.supported()` returns false and USD operations report an error.
 
 ## Package and API compatibility
 
 Set `PYTHONPATH` to the generated `package` directory. `_core.pyd` links native
-core/interface DLLs; `_slicer.pyd` links `zSpace_Toolsets.dll`, with `zSpace_IO.dll`.
+core/interface/IO DLLs; `_slicer.pyd` links `zSpace_Toolsets.dll`.
 These native libraries are copied into the package. Keep the package directories
 together and use a Python interpreter matching the extension ABI.
 
@@ -191,24 +191,34 @@ Source: [bind_types.cpp](toolsets/zTs3DP/src/bind_types.cpp).
 
 Properties: `graph`, `widths`, `heights`, `normals`, `trackIds`.
 
-#### `SlicerUSDInput` (USD builds only)
+#### `USDdoc` (in `zspace.core`)
 
-Source: [module.cpp](toolsets/zTs3DP/src/module.cpp).
+Source: [module.cpp](core/src/module.cpp), implemented by Core IO `USDdoc`.
 
-Properties: `block`, `face_tags`, `face_width_ids`, `bracing_curves`, `bracing_width_ids`, `bracing_print_widths`, `slotpoint`, `settings_json`, `meters_per_unit`, `up_axis`.
+Methods: `supported`, `open`, `close`, `readMetadata`, `readPrim`,
+`readAttribute`, `readCustomLayerData`, `readPoints`, `applyEdits`, `save`, `text`.
+Queries return native Python dictionaries/lists, not JSON strings. Vector arrays
+are flat XYZ. `readPoints` applies world transforms but does not convert units;
+`readAttribute` expands indexed primvars. `applyEdits` accepts dictionaries of
+typed values and commits only after every change succeeds. The binding converts
+these directly to C++ structures; it never calls JSON loads/dumps. Numeric
+sequences are copied to typed vectors, so this is not a zero-copy API.
+The old query/edit names are removed. Rebuild the Core DLL and Python extension
+together. Saving is explicit; concurrent mutation is unsupported.
 
-Methods: `read_input_usd`, `export_printpath_usd`.
+With USD enabled, `zspace.toolset.slicer` exposes `SlicerUSDInput`,
+`importUSD(path)` and `exportUSD(print_path, input_path, output_path, layercount, blockid=0)`.
+These call the same Toolsets C++ IO used by Alice and WASM, including units,
+settings defaults and output statistics. Keep the solver owning the PrintPath alive during export.
 
-## Module constants and optional functions
+`zspace.io.slicing_usd.read_input(path)` is a thin buffer adapter for Blender.
+`write_output(input_path, output_path, result)` exports the native PrintPath retained
+in the Blender compute result. There is no separate Python USD schema parser.
 
-`zspace.core` provides color constants `zRED`, `zGREEN`, `zBLUE`, `zWHITE`, `zGREY`, `zBLACK`, `zMAGENTA`, `zYELLOW`, and `zCYAN`. Vector multiplication supports a vector dot product, scalar multiplication and matrix multiplication; `^` is the cross product.
+## Module constants
 
-`zspace.toolset.slicer.HAS_USD` reports the compile-time USD capability. When enabled, the module additionally exposes:
-
-- `read_input_usd(file) -> SlicerUSDInput`.
-- `export_printpath_usd(path, input_file, output_file, layercount, blockid=0)`.
-
-Both helpers raise an exception on reported failure. They are not registered when USD is disabled.
+`zspace.core` provides color constants `zRED`, `zGREEN`, `zBLUE`, `zWHITE`,
+`zGREY`, `zBLACK`, `zMAGENTA`, `zYELLOW`, and `zCYAN`.
 
 ## Slicer usage notes
 
@@ -227,4 +237,40 @@ Python enables `ZSPACE_TOOLSETS_SLICING_ONLY`. Its native library and
 `src/zToolsets/fabrication/slicing` sources. Harmonic files are included when
 TetGen is enabled. Other toolsets are excluded from the Python build.
 Core configuration, platform bridges and linking remain platform-specific.
-The separate WASM USD reader intentionally compiles only its IO utility subset.
+USD is implemented by Core IO on native and WASM targets. Toolsets IO
+interprets the slicer schema consistently across native, Python and WASM builds.
+
+USD SDK selection and runtime deployment are owned by Core. Configure Core
+`cmake/OpenUSD.local.cmake` or its platform environment override once.
+
+`readPoints` returns `std::vector<std::array<double, 3>>` in C++ and a list
+of XYZ triples in Python. The WASM bridge flattens these triples for its numeric
+buffer contract, so the browser API still returns a flat coordinate array.
+
+
+### Blender geometry-only build
+
+With `ZSPACE_PYTHON_WITH_USD=OFF`, Core IO is not built or linked, `USDdoc` is not
+bound, and no `zspace.io` adapter is generated in a fresh package. Core/Interface
+and Toolsets remain native DLLs with their separate `_core`/`_slicer` PYD bindings.
+The Blender extension requires USD enabled; see sibling
+`zspace_blender/build_extension.ps1`. Use a fresh build directory when switching
+from an older USD-enabled deployment to avoid packaging stale IO files.
+
+## Core standalone and combined builds
+
+Core can be built independently using `zspace_core/python/build_headless.ps1`. This Toolsets entry point builds native Core and Toolsets together, and includes the Core-owned binding target to produce `_core` and `_slicer` in one package. No preinstalled Core SDK is required. `ZSPACE_CORE_SOURCE` selects the matching Core checkout. Headless Python configuration is shared through Core `python/HeadlessPython.cmake`. Use a fresh build directory after this binding relocation.
+
+## NumPy result extraction
+
+`PrintPath.to_numpy()` returns a dict of `points`, `edges`, `normals`, `widths`, `heights`, and `trackIds`. XYZ arrays have shape `(N,3)`; other arrays are one-dimensional. Arrays own independent copies and remain valid after the path/solver is destroyed. Graph order is preserved; traversal ordering is an application responsibility. Core also provides NumPy Mesh/Graph creation and extraction. Requires NumPy at runtime.
+
+## Shared Python runtime directory
+
+The package stores native DLLs only in `zspace/runtime/`. `core/` and
+`toolset/slicer/` contain their Python initializers and ABI-tagged PYD modules.
+The root initializer registers the runtime DLL directory before importing Core.
+USD resources are stored once in `runtime/usd/` and `runtime/plugin/`.
+The `zspace/io/` Python adapter remains part of the package.
+Windows combined builds deploy the OpenMP runtime automatically; override
+`ZSPACE_PYTHON_OPENMP_RUNTIME` when the MSVC redistributable is elsewhere.

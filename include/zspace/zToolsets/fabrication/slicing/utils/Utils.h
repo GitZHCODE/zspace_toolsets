@@ -17,7 +17,7 @@
 
 // The one shared header of the ts3dp toolset: common types, geometry/topology
 // and coloring utilities (zTsUtils), 2D SDF field kernels (zTsField) and USD
-// file IO (zTsIO). Implementations stay split over utils/*.cpp.
+// Implementations stay split over utils/*.cpp.
 
 #ifndef EIGEN_DONT_PARALLELIZE
 #define EIGEN_DONT_PARALLELIZE
@@ -26,7 +26,7 @@
 #include <zspace/zToolsets/zToolsetsExport.h>
 
 #include <zspace/interface.h>
-#include <zspace/io.h>
+#include <zspace/interface.h>
 #include <zspace/zInterface/functionsets/zFnGraph.h>
 #include <zspace/zInterface/functionsets/zFnMesh.h>
 #include <zspace/zInterface/functionsets/zFnMeshField.h>
@@ -73,7 +73,7 @@ typedef std::vector<zObjGraph *> zObjGraphPointerArray;
 enum VertexTag : int { Interior = 0, Bottom = 1, Top = 2, Side = 3 };
 // Input convention: one tag per input-mesh FACE (Bottom = print floor, Top =
 // print ceiling, Side = wall), from USD FaceTag attributes
-// (zTsIO::readSlicerInputUSD()). The slicers derive the per-vertex tags they
+// supplied by the host application. The slicers derive the per-vertex tags they
 // work with from them - zTsUtils::vertexTagsFromFaceTags().
 
 /*! \struct SlicerSettings
@@ -184,6 +184,11 @@ typedef std::vector<std::vector<PrintPath>> PrintPathArray;
 //--------------------------
 
 namespace zTsUtils {
+
+// Loft centered width/height rectangles independently per graph component.
+// Open paths receive caps; zero dimensions remain collapsed.
+ZSPACE_TOOLSETS bool buildPrintMesh(const PrintPathArray &layers, zObjMesh &outMesh,
+                                   std::string *outError = nullptr);
 
 //---- Thread-Safe Console Logging
 
@@ -686,53 +691,6 @@ ZSPACE_TOOLSETS void extractRawIsoContour(const zObjMeshScalarField &field,
                           zFloatArray &outVertexTrackIds);
 
 } // namespace zTsField
-
-//--------------------------
-//---- USD IO                           (utils/IO.cpp)
-//--------------------------
-// The only file IO in ts3dp. The slicer operators, zPrintSyn and zTsSlicing never
-// call these - callers (sketches, tools) load/save with them and exchange
-// in-memory objects only.
-//
-// Face tags travel as "usemtl" names: every "f" line takes the material of
-// the last "usemtl" before it - "bottom", "top", "side" or "side_<n>" (wall,
-// width group n -> SlicerSettings::BoundaryWidth[n]); stored in the USD input.
-// Vertex colors on "v" lines are ignored.
-
-namespace zTsIO {
-
-// Copy an input USD and replace /TDP_gcode with a Scope containing ordered path data.
-// Custom arrays printNormals/printWidths/printHeight correspond 1:1 to points.
-// Path coordinates/lengths are millimetres; export converts to the source stage units.
-ZSPACE_TOOLSETS bool exportPrintPathUSD(const PrintPath &path, const std::string &inputFilePath,
-                        const std::string &filePath, int layerCount,
-                        std::string *outError = nullptr, int blockid = 0);
-
-// SettingsJSON preserves the existing {"slicer": {...}, "printSyn": {...}} schema.
-// Returned coordinates and dimensional settings are millimetres after object transforms.
-// MetersPerUnit records the source file unit; ratios, angles, tags and IDs are unchanged.
-struct SlicerUSDInput {
-  zObjMesh Block;
-  zIntArray FaceTags;
-  zIntArray FaceWidthIds; // Per-face widthid into settings BoundaryWidth.
-  zIntArray BracingWidthIds; // Per-curve widthid into settings BracingWidth.
-  zObjGraphArray BracingCurves; // One graph per USD curve, in authored order; coordinates in mm.
-  zFloatArray BracingPrintWidths;
-  zPoint StartPoint;
-  std::string SettingsJSON;
-  double MetersPerUnit = 0.01;
-  std::string UpAxis;
-};
-// Requires ZSPACE_TS3DP_OPENUSD and matching OpenUSD headers/libraries.
-// Paths must identify the geometry prim itself; missing/wrong schemas are errors.
-// Failure clears the output and returns a diagnostic through outError.
-ZSPACE_TOOLSETS bool readSlicerInputUSD(const std::string &filePath, SlicerUSDInput &out,
-                       std::string *outError = nullptr,
-                       const std::string &blockPath = "/AG_block",
-                       const std::string &bracingPath = "/Slicer_bracing",
-                       const std::string &startPath = "/Slicer_slot");
-
-} // namespace zTsIO
 
 /** @}*/
 

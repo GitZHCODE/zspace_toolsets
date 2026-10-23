@@ -16,8 +16,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+option(ZSPACE_TOOLSETS_WITH_USD_IO "Build slicer USD schema IO using Core IO" OFF)
 option(ZSPACE_TOOLSETS_WITH_TETGEN "Enable harmonic slicing with an external TetGen library" OFF)
-option(ZSPACE_TOOLSETS_SLICING_WITH_OPENUSD "Enable tagged slicer USD IO with an external OpenUSD SDK" OFF)
 option(ZSPACE_TOOLSETS_SLICING_OPENMP "Enable OpenMP in the slicing engine" OFF)
 set(ZSPACE_TETGEN_ROOT "" CACHE PATH "TetGen installation root (include/tetgen.h and lib/tetgen)")
 
@@ -32,7 +32,7 @@ else()
   set(ZSPACE_TOOLSETS_LIBRARY_TYPE STATIC)
 endif()
 
-if(TARGET zspace::core AND TARGET zspace::interface AND TARGET zspace::io)
+if(TARGET zspace::core AND TARGET zspace::interface)
   message(STATUS "zspace_toolsets: using existing zSpace targets from parent project")
 elseif(ZSPACE_TOOLSETS_USE_ZSPACE_SOURCE)
   if(NOT EXISTS "${ZSPACE_CORE_DIR}/CMakeLists.txt")
@@ -40,7 +40,11 @@ elseif(ZSPACE_TOOLSETS_USE_ZSPACE_SOURCE)
   endif()
 
   set(ZSPACE_BUILD_INTERFACE ON CACHE BOOL "Build zSpace interface DLL" FORCE)
-  set(ZSPACE_BUILD_IO ON CACHE BOOL "Build zSpace IO DLL" FORCE)
+  set(ZSPACE_BUILD_IO ${ZSPACE_TOOLSETS_WITH_USD_IO} CACHE BOOL "Build zSpace IO DLL" FORCE)
+  if(ZSPACE_TOOLSETS_WITH_USD_IO)
+    # Core resolves and deploys its SDK; Toolsets only requests the IO feature.
+    set(ZSPACE_IO_WITH_OPENUSD ON CACHE BOOL "Enable Core USD IO" FORCE)
+  endif()
   set(ZSPACE_BUILD_DISPLAY OFF CACHE BOOL "Build zSpace display DLL" FORCE)
   set(ZSPACE_BUILD_INTEROP OFF CACHE BOOL "Build zSpace interop DLL" FORCE)
   set(ZSPACE_BUILD_TESTS OFF CACHE BOOL "Build zSpace tests" FORCE)
@@ -79,7 +83,15 @@ target_include_directories(zSpace_Toolsets
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(zSpace_Toolsets PUBLIC zspace::core zspace::interface zspace::io)
+target_link_libraries(zSpace_Toolsets PUBLIC zspace::core zspace::interface)
+if(ZSPACE_TOOLSETS_WITH_USD_IO)
+  if(NOT TARGET zspace::io)
+    message(FATAL_ERROR "Slicer USD IO requires the Core zspace::io target")
+  endif()
+  target_sources(zSpace_Toolsets PRIVATE "${ZSPACE_TOOLSETS_ROOT}/src/zToolsets/fabrication/slicing/utils/IO.cpp")
+  target_link_libraries(zSpace_Toolsets PRIVATE zspace::io)
+  target_compile_definitions(zSpace_Toolsets PUBLIC ZSPACE_TOOLSETS_WITH_USD_IO)
+endif()
 
 target_compile_definitions(zSpace_Toolsets
   PUBLIC
@@ -104,16 +116,6 @@ if(ZSPACE_TOOLSETS_SLICING_OPENMP)
   target_link_libraries(zSpace_Toolsets PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-if(ZSPACE_TOOLSETS_SLICING_WITH_OPENUSD)
-  if(NOT COMMAND zspace_link_openusd)
-    if(NOT EXISTS "${ZSPACE_CORE_DIR}/cmake/ZSpaceOpenUSD.cmake")
-      message(FATAL_ERROR "Slicer USD IO requires the zspace_core OpenUSD CMake helper and ZSPACE_OPENUSD_ROOT")
-    endif()
-    include("${ZSPACE_CORE_DIR}/cmake/ZSpaceOpenUSD.cmake")
-  endif()
-  zspace_link_openusd(zSpace_Toolsets)
-  target_compile_definitions(zSpace_Toolsets PRIVATE ZSPACE_TS3DP_OPENUSD)
-endif()
 
 if(MSVC)
   target_compile_options(zSpace_Toolsets PRIVATE /MP /W3 /permissive- /wd4251)
@@ -132,6 +134,9 @@ install(EXPORT zspaceToolsetsTargets FILE zspaceToolsetsTargets.cmake NAMESPACE 
 
 if(ZSPACE_TOOLSETS_BUILD_TESTS)
   include(CTest)
+  add_executable(zspace_toolsets_print_mesh tests/smoke/zspace_toolsets_print_mesh.cpp)
+  target_link_libraries(zspace_toolsets_print_mesh PRIVATE zspace::toolsets)
+  add_test(NAME zspace_toolsets.slicing.print_mesh COMMAND zspace_toolsets_print_mesh)
   add_executable(zspace_toolsets_slicing tests/smoke/zspace_toolsets_slicing.cpp)
   target_link_libraries(zspace_toolsets_slicing PRIVATE zspace::toolsets)
   add_test(NAME zspace_toolsets.slicing.topology COMMAND zspace_toolsets_slicing topology)

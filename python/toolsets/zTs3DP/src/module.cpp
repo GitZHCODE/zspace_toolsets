@@ -1,6 +1,10 @@
 #include <pybind11/pybind11.h>
 
 #include "bindings.h"
+#include <zspace/zToolsets/fabrication/slicing/zTsSlicing.h>
+#if defined(ZSPACE_TOOLSETS_WITH_USD_IO)
+#include <zspace/zToolsets/fabrication/slicing/utils/IO.h>
+#endif
 #include <pybind11/stl.h>
 #include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
 
@@ -8,40 +12,41 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(_slicer, m) {
   py::module_::import("zspace.core");
-  m.doc() = "zspace.toolset.slicer: pipeline and settings with optional USD IO. TopologySlicer, "
+  m.doc() = "zspace.toolset.slicer: pure geometry pipeline and settings. TopologySlicer, "
             "zPrintSyn and zTsUtils are intentionally not exposed to Python.";
 
   zspace_python::bind_types(m);
   zspace_python::bind_ts3dp(m);
-  m.attr("zTs3DP") = m.attr("zTsSlicing");
-#if defined(ZSPACE_TS3DP_OPENUSD)
-  m.attr("HAS_USD") = true;
-  using zSpace::zTsIO::SlicerUSDInput;
-  py::class_<SlicerUSDInput>(m, "SlicerUSDInput")
-      .def_readonly("block", &SlicerUSDInput::Block)
-      .def_readonly("face_tags", &SlicerUSDInput::FaceTags)
-      .def_readonly("face_width_ids", &SlicerUSDInput::FaceWidthIds)
-      .def_readonly("bracing_curves", &SlicerUSDInput::BracingCurves)
-      .def_readonly("bracing_width_ids", &SlicerUSDInput::BracingWidthIds)
-      .def_readonly("bracing_print_widths", &SlicerUSDInput::BracingPrintWidths)
-      .def_readonly("slotpoint", &SlicerUSDInput::StartPoint)
-      .def_readonly("settings_json", &SlicerUSDInput::SettingsJSON)
-      .def_readonly("meters_per_unit", &SlicerUSDInput::MetersPerUnit)
-      .def_readonly("up_axis", &SlicerUSDInput::UpAxis);
-  m.def("read_input_usd", [](const std::string &file) {
-    SlicerUSDInput input;
+  m.def("buildPrintMesh", [](const zSpace::zTsSlicing &solver) {
+    auto mesh = std::make_unique<zSpace::zObjMesh>();
     std::string error;
-    if (!zSpace::zTsIO::readSlicerInputUSD(file, input, &error))
+    if (!zSpace::zTsUtils::buildPrintMesh(solver.get3DPrintPaths(), *mesh, &error))
       throw std::runtime_error(error);
+    return mesh;
+  });
+#if defined(ZSPACE_TOOLSETS_WITH_USD_IO)
+  using namespace zSpace;
+  py::class_<zTsIO::SlicerUSDInput>(m, "SlicerUSDInput")
+      .def_readonly("Block", &zTsIO::SlicerUSDInput::Block)
+      .def_readonly("Bracing", &zTsIO::SlicerUSDInput::Bracing)
+      .def_readonly("FaceTags", &zTsIO::SlicerUSDInput::FaceTags)
+      .def_readonly("FaceWidthIds", &zTsIO::SlicerUSDInput::FaceWidthIds)
+      .def_readonly("StartPoint", &zTsIO::SlicerUSDInput::StartPoint)
+      .def_readonly("Settings", &zTsIO::SlicerUSDInput::Settings)
+      .def_readonly("PrintSettings", &zTsIO::SlicerUSDInput::PrintSettings)
+      .def_readonly("BracingPrintWidths", &zTsIO::SlicerUSDInput::BracingPrintWidths)
+      .def_readonly("UnknownSettings", &zTsIO::SlicerUSDInput::UnknownSettings)
+      .def_readonly("MetersPerUnit", &zTsIO::SlicerUSDInput::MetersPerUnit)
+      .def_readonly("UpAxis", &zTsIO::SlicerUSDInput::UpAxis);
+  m.def("importUSD", [](const std::string &path) {
+    auto input = std::make_unique<zTsIO::SlicerUSDInput>(); std::string error;
+    if (!zTsIO::importUSD(path, *input, &error)) throw std::runtime_error(error);
     return input;
-  }, py::arg("file"));
-  m.def("export_printpath_usd", [](const zSpace::PrintPath &path,
-      const std::string &input, const std::string &output, int layerCount, int blockid) {
+  });
+  m.def("exportUSD", [](const PrintPath &path, const std::string &input, const std::string &output, int layers, int blockid, const zTsSlicing *solver) {
     std::string error;
-    if (!zSpace::zTsIO::exportPrintPathUSD(path, input, output, layerCount, &error, blockid))
-      throw std::runtime_error(error);
-  }, py::arg("path"), py::arg("input_file"), py::arg("output_file"), py::arg("layercount"), py::arg("blockid") = 0);
-#else
-  m.attr("HAS_USD") = false;
+    if (!zTsIO::exportUSD(path,input,output,layers,&error,blockid,solver ? &solver->get3DPrintPaths() : nullptr)) throw std::runtime_error(error);
+  }, py::arg("path"),py::arg("input"),py::arg("output"),py::arg("layers"),py::arg("blockid")=0,py::arg("solver")=nullptr);
 #endif
+  m.attr("zTs3DP") = m.attr("zTsSlicing");
 }

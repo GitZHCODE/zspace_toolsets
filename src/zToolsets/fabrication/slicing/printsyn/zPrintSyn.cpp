@@ -1377,7 +1377,8 @@ ZSPACE_INLINE bool zPrintSyn::projectPrintPaths(const PrintPathArray &paths2D,
                                      const zFloatArray *vertexLayerHeights,
                                      PrintPathArray &outPaths3D,
                                      std::string &outStatus,
-                                     std::vector<int> *outBadLayers, bool useParallel) {
+                                     std::vector<int> *outBadLayers, bool useParallel,
+                                     const std::vector<zFloatArray> *perLayerVertexHeights) {
   outPaths3D.clear();
   if (outBadLayers)
     outBadLayers->clear();
@@ -1389,8 +1390,21 @@ ZSPACE_INLINE bool zPrintSyn::projectPrintPaths(const PrintPathArray &paths2D,
     return false;
   }
   static const zFloatArray emptyVertexLayerHeights;
-  const zFloatArray &meshVertexHeights =
-      vertexLayerHeights ? *vertexLayerHeights : emptyVertexLayerHeights;
+  if (perLayerVertexHeights) {
+    if (perLayerVertexHeights->size() != size_t(totalLayers) || sections3D.size() != size_t(totalLayers)) {
+      outStatus = "failed: height tables and sections must have one entry per layer.";
+      return false;
+    }
+    for (int l = 0; l < totalLayers; ++l) {
+      const auto &heights = (*perLayerVertexHeights)[l];
+      if (heights.size() != size_t(zFnMesh(const_cast<zObjMesh &>(sections3D[l])).numVertices()) ||
+          std::any_of(heights.begin(), heights.end(), [](float h) { return !std::isfinite(h) || h < 0.0f; })) {
+        outStatus = "failed: invalid per-vertex height table on layer " + std::to_string(l) + ".";
+        if (outBadLayers) outBadLayers->push_back(l);
+        return false;
+      }
+    }
+  }
 
   outPaths3D.assign(totalLayers, std::vector<PrintPath>());
   for (int l = 0; l < totalLayers; l++) {
@@ -1405,6 +1419,9 @@ ZSPACE_INLINE bool zPrintSyn::projectPrintPaths(const PrintPathArray &paths2D,
 #pragma omp parallel for schedule(dynamic) if(useParallel)
   for (int l = 0; l < totalLayers; l++) {
     try {
+      const zFloatArray &meshVertexHeights = perLayerVertexHeights
+          ? (*perLayerVertexHeights)[l]
+          : (vertexLayerHeights ? *vertexLayerHeights : emptyVertexLayerHeights);
       for (size_t r = 0; r < paths2D[l].size(); r++) {
         outPaths3D[l][r].graph = paths2D[l][r].graph;
         outPaths3D[l][r].widths = paths2D[l][r].widths;
@@ -1567,7 +1584,8 @@ ZSPACE_INLINE bool zPrintSyn::computePipeline(const zObjMeshArray &charts2D,
     const zObjMeshArray &sections3D, const zFloatArray *vertexLayerHeights,
     SeamMapping seamMapping, const PrintSynSetting &settings,
     PrintPathArray &outPaths2D, PrintPathArray &outPaths3D,
-    PrintPath &outCombined, std::string &outStatus, bool useParallel) {
+    PrintPath &outCombined, std::string &outStatus, bool useParallel,
+    const std::vector<zFloatArray> *perLayerVertexHeights) {
   outPaths3D.clear();
   outCombined = PrintPath();
   const size_t n = outPaths2D.size();
@@ -1586,7 +1604,7 @@ ZSPACE_INLINE bool zPrintSyn::computePipeline(const zObjMeshArray &charts2D,
     if (step != "projectPrintPaths" && step != "linkPrintPaths") {
       std::string projectStatus;
       if (!projectPrintPaths(outPaths2D, charts2D, sections3D, vertexLayerHeights,
-                             outPaths3D, projectStatus, nullptr, useParallel)) outPaths3D.clear();
+                             outPaths3D, projectStatus, nullptr, useParallel, perLayerVertexHeights)) outPaths3D.clear();
     }
     outCombined = PrintPath();
     outStatus = "stopped at " + step + ": " + reason + " - the paths are kept as this step left them.";
@@ -1599,7 +1617,7 @@ ZSPACE_INLINE bool zPrintSyn::computePipeline(const zObjMeshArray &charts2D,
       : alignStartPoints(outPaths2D, charts2D, sections3D, settings.SeamOffset, settings.SeamSize, outStatus, &badLayers, useParallel);
   if (stopAt(aligned, "alignStartPoints")) return false;
   if (stopAt(projectPrintPaths(outPaths2D, charts2D, sections3D, vertexLayerHeights,
-                              outPaths3D, outStatus, &badLayers, useParallel), "projectPrintPaths")) return false;
+                              outPaths3D, outStatus, &badLayers, useParallel, perLayerVertexHeights), "projectPrintPaths")) return false;
   badLayers.clear();
   if (stopAt(linkPrintPaths(outPaths3D, outCombined, outStatus), "linkPrintPaths")) return false;
   outStatus = "computePostProcess: " + std::to_string(n) + " layers processed. " + outStatus;

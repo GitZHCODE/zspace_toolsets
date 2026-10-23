@@ -6,7 +6,7 @@
 #include <zspace/zToolsets/zToolsetsExport.h>
 #include <zspace/zToolsets/fabrication/slicing/utils/Utils.h>
 #include <zspace/interface.h>
-#include <zspace/io.h>
+#include <zspace/interface.h>
 #include <zspace/zInterface/functionsets/zFnGraph.h>
 #include <zspace/zInterface/functionsets/zFnMesh.h>
 #include <zspace/zInterface/functionsets/zFnMeshField.h>
@@ -67,12 +67,14 @@ public:
 
   // Runs the four post-processing stages, stopping on failure or bad layers. Partial paths
   // are retained for inspection; no combined path is exposed on failure.
+  // perLayerVertexHeights overrides vertexLayerHeights for independent layer meshes.
   static bool computePipeline(const zObjMeshArray &charts2D,
                                const zObjMeshArray &sections3D,
                                const zFloatArray *vertexLayerHeights,
                                SeamMapping seamMapping, const PrintSynSetting &settings,
                                PrintPathArray &outPaths2D, PrintPathArray &outPaths3D,
-                               PrintPath &outCombined, std::string &outStatus, bool useParallel = true);
+                               PrintPath &outCombined, std::string &outStatus, bool useParallel = true,
+                               const std::vector<zFloatArray> *perLayerVertexHeights = nullptr);
 
   /*! \brief Step 1: resamples (corner-preserving), glitch-filters and
    * orients every 2D print path in place. Bad layers: a first path that was
@@ -115,14 +117,17 @@ public:
   /*! \brief Step 3: projects each layer's 2D paths through its charts2D[l] /
    * sections3D[l] pair (same vertex order and faces) onto the 3D section.
    * vertexLayerHeights (optional, may be null) is passed straight to
-   * zTsUtils::remapGraph(). Bad layers: a path that could not be remapped. */
+   * zTsUtils::remapGraph(). perLayerVertexHeights, when supplied, overrides it
+   * with one table per section, with one finite nonnegative height per vertex.
+   * Bad layers: a path that could not be remapped. */
   static bool projectPrintPaths(const PrintPathArray &paths2D,
                                 const zObjMeshArray &charts2D,
                                 const zObjMeshArray &sections3D,
                                 const zFloatArray *vertexLayerHeights,
                                 PrintPathArray &outPaths3D,
                                 std::string &outStatus,
-                                std::vector<int> *outBadLayers = nullptr, bool useParallel = true);
+                                std::vector<int> *outBadLayers = nullptr, bool useParallel = true,
+                                const std::vector<zFloatArray> *perLayerVertexHeights = nullptr);
 
   /*! \brief Step 4: combines all 3D paths. Single-path layers are linked
    * bottom-to-top; disjoint curves remain separate without explicit travel. */

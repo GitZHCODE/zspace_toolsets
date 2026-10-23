@@ -114,7 +114,7 @@ public:
   /*! \brief The input: a mesh (not owned - must outlive every compute call)
    * plus one VertexTag per mesh FACE, in polygon order (Bottom = print
    * floor, Top = print ceiling, Side = wall - e.g. the OBJ's "usemtl" names
-   * read by zTsIO::readSlicerInputUSD()), copied. computeBasicStructure()
+   * read by the host application), copied. computeBasicStructure()
    * derives the per-vertex tags from them (zTsUtils::vertexTagsFromFaceTags())
    * and stops if they are inconsistent. inFaceWidthIds: the width group per
    * face (side_<n> -> SlicerSettings::BoundaryWidth[n]; empty = group 0) -

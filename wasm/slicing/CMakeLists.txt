@@ -8,8 +8,7 @@ set(ZSPACE_CORE_DIR "${TOOLSETS_ROOT}/../zspace_core" CACHE PATH "Core source ch
 set(ZSPACE_TETGEN_SOURCE_DIR "${TOOLSETS_ROOT}/wasm/cache/tetgen" CACHE PATH "TetGen source checkout")
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS
   "${ZSPACE_CORE_DIR}/src/zCore/*.cpp"
-  "${ZSPACE_CORE_DIR}/src/zInterface/*.cpp"
-  "${ZSPACE_CORE_DIR}/src/zIO/*.cpp")
+  "${ZSPACE_CORE_DIR}/src/zInterface/*.cpp")
 list(FILTER sources EXCLUDE REGEX "/(zFnComputeMesh|zObjectComputeMesh|zObjectComputeField2D)\\.cpp$")
 list(FILTER sources EXCLUDE REGEX "/(zFnMeshField|zFnPointField)\\.cpp$")
 list(APPEND sources "${CMAKE_CURRENT_SOURCE_DIR}/mesh_field_compat.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/point_field_compat.cpp")
@@ -20,12 +19,15 @@ if(EXISTS "${ZSPACE_TETGEN_SOURCE_DIR}/tetgen.cxx" AND EXISTS "${ZSPACE_TETGEN_S
 endif()
 include("${TOOLSETS_ROOT}/cmake/SlicingSources.cmake")
 zspace_slicing_sources(slicing_sources "${TOOLSETS_ROOT}" "${harmonic}")
-# Browser slicing is compute-only; USD/file IO belongs to core.
-list(FILTER slicing_sources EXCLUDE REGEX "/utils/IO\\.cpp$")
 list(APPEND sources ${slicing_sources})
+list(APPEND sources "${ZSPACE_CORE_DIR}/src/zIO/zUSDapi.cpp"
+  "${TOOLSETS_ROOT}/src/zToolsets/fabrication/slicing/utils/IO.cpp")
+include("${ZSPACE_CORE_DIR}/cmake/ZSpaceOpenUSD.cmake")
 add_executable(zspace_slicing ${sources} "${CMAKE_CURRENT_SOURCE_DIR}/zspace_slicing_bridge.cpp")
 set_target_properties(zspace_slicing PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
   SUFFIX ".js" RUNTIME_OUTPUT_DIRECTORY "${TOOLSETS_ROOT}/wasm/out")
+zspace_link_openusd(zspace_slicing)
+target_compile_definitions(zspace_slicing PRIVATE ZSPACE_IO_OPENUSD ZSPACE_TOOLSETS_WITH_USD_IO)
 target_include_directories(zspace_slicing PRIVATE "${ZSPACE_CORE_DIR}/wasm/bridge" "${TOOLSETS_ROOT}/include"
   "${TOOLSETS_ROOT}/wasm/bridge" "${ZSPACE_CORE_DIR}" "${ZSPACE_CORE_DIR}/include"
   "${ZSPACE_CORE_DIR}/third_party" "${ZSPACE_CORE_DIR}/third_party/depends")
@@ -37,8 +39,8 @@ endif()
 target_compile_options(zspace_slicing PRIVATE -O2 -fexceptions -pthread -fopenmp -Uunix -include "${ZSPACE_CORE_DIR}/wasm/bridge/zspace_wasm_compat.h")
 target_precompile_headers(zspace_slicing PRIVATE <depends/Eigen/Dense> <nlohmann/json.hpp>)
 target_link_options(zspace_slicing PRIVATE -O2 -fexceptions -pthread -fopenmp "-sMODULARIZE=1" "-sEXPORT_ES6=1"
-  "-sENVIRONMENT=web,worker,node" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=2097152"
-  "-sPTHREAD_POOL_SIZE=(Module['slicingThreadCount']=Math.max(1,Math.floor(globalThis.navigator?.hardwareConcurrency||1)))-1" "-sPTHREAD_POOL_SIZE_STRICT=2"
+  "-sENVIRONMENT=web,worker,node" "-sFORCE_FILESYSTEM=1" "--use-port=zlib" "-sALLOW_MEMORY_GROWTH=1" "-sSTACK_SIZE=2097152"
+  "-sPTHREAD_POOL_SIZE=(Module['slicingThreadCount']=Math.max(1,Math.floor(Module['slicingThreadCount']||globalThis.navigator?.hardwareConcurrency||1)))-1" "-sPTHREAD_POOL_SIZE_STRICT=2"
   "-sDEFAULT_PTHREAD_STACK_SIZE=2097152"
-  "-sEXPORTED_RUNTIME_METHODS=['HEAPU32','UTF8ToString','ccall','PThread']")
+  "-sEXPORTED_RUNTIME_METHODS=['HEAPU32','UTF8ToString','ccall','PThread','FS']")
 message(STATUS "Slicing WASM harmonic support: ${harmonic}")

@@ -61,6 +61,10 @@ void bind_ts3dp(py::module_ &m) {
       // results (copied to Python lists / bound to this zTsSlicing).
       .def("get2DPrintPaths", &zTsSlicing::get2DPrintPaths)
       .def("get3DPrintPaths", &zTsSlicing::get3DPrintPaths)
+      // Count in C++ without converting every layer path into Python objects.
+      .def("getLayerCount", [](const zTsSlicing &s) {
+        return s.get3DPrintPaths().size();
+      })
       .def("getPrintHeightDomain", [](const zTsSlicing &s) {
         const auto &d = s.getPrintHeightDomain(); return py::make_tuple(d.min, d.max);
       })

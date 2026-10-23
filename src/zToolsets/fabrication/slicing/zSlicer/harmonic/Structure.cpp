@@ -466,6 +466,7 @@ ZSPACE_INLINE void HarmonicSlicer::clearContours() {
   o_IsoMeshes.clear();
   o_IsoMeshBoundary.clear();
   o_IsoMeshUV.clear();
+  o_VertexLayerHeights.clear();
   _HarmonicIsoEdgeWidthIds.clear();
 }
 

@@ -6,6 +6,8 @@
 // outside the requested binding scope - it is a zSpace Core type, not one
 // of zObjMesh/zFnMesh/zObjGraph/zFnGraph).
 
+#include "numpy_arrays.h"
+#include <zspace/zInterface/functionsets/zFnGraph.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -74,6 +76,16 @@ void bind_types(py::module_ &m) {
 
   py::class_<PrintPath>(m, "PrintPath")
       .def(py::init<>())
+      .def("to_numpy", [](PrintPath &path) {
+        zFnGraph f(path.graph); zPointArray p; zIntArray e;
+        f.getVertexPositions(p); f.getEdgeData(e);
+        py::dict out;
+        out["points"]=arrays::xyz(p); out["edges"]=arrays::scalar(e);
+        out["normals"]=arrays::xyz(path.normals);
+        out["widths"]=arrays::scalar(path.widths); out["heights"]=arrays::scalar(path.heights);
+        out["trackIds"]=arrays::scalar(path.trackIds);
+        return out;
+      })
       .def_readwrite("graph", &PrintPath::graph)
       .def_readwrite("widths", &PrintPath::widths)
       .def_readwrite("heights", &PrintPath::heights)

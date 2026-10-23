@@ -39,8 +39,8 @@ ZSPACE_INLINE bool HarmonicSlicer::computeSlicerImpl(bool useParallel) {
 // grid, in its own o_IsoMeshes2D chart. The layers share no topology, so the seam is
 // carried between them in world coordinates (zPrintSyn's charts/sections
 // overload of alignStartPoints()), and every layer's 2D paths go to world
-// through its own o_IsoMeshes2D / o_IsoMeshes pair. No layer-height
-// table (zero heights downstream).
+// through its own o_IsoMeshes2D / o_IsoMeshes pair, interpolating that layer's
+// vertex heights after resampling and seam alignment.
 //
 // Stops at the first zPrintSyn step that fails or reports a problem on any
 // layer: o_PrintPaths2D keeps the paths as that step left them, projected to
@@ -60,7 +60,7 @@ ZSPACE_INLINE bool HarmonicSlicer::computePostProcessImpl(const PrintSynSetting 
 
   const bool ok = zPrintSyn::computePipeline(o_IsoMeshes2D, o_IsoMeshes, nullptr,
       zPrintSyn::SeamMapping::WorldNearest, settings, o_PrintPaths2D, o_PrintPaths3D,
-      o_ResultantPrintPath, _Status, useParallel);
+      o_ResultantPrintPath, _Status, useParallel, &o_VertexLayerHeights);
   if (!ok) zTsUtils::printDebug("[computePostProcessImpl] Post-processing stopped because a helper failed or reported invalid paths; partial results are retained.");
   return ok;
 }
