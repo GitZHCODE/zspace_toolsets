@@ -47,6 +47,13 @@ void zTsParametricStairs::update(zObjectGraph& graph, const zParametricStairsSet
     if(s.generateSteps){
         layout=buildStairsLayout(input,edges,s);input=layout->graphPoints;
         double maxRise=0;for(double r:layout->actualRisers)maxRise=std::max(maxRise,r);
+        for(size_t f=0;f<layout->flightPaths.size();++f){
+            double h=std::abs(layout->flightFloors[f][1]-layout->flightFloors[f][0]);
+            double len=layout->startReserves[f]+layout->usableRuns[f]+layout->endReserves[f];
+            double run=std::max(0,layout->riserCounts[f]-1)*(s.flightTreadDepths.empty()?s.treadDepth:s.flightTreadDepths[f]);
+            double start=layout->startReserves[f]+(layout->usableRuns[f]-run)*.5;
+            if(len>1e-6)maxRise=std::max(maxRise,h*(start/len));
+        }
         double offset=s.clearance+.5*s.structureThickness+maxRise;
         for(auto& p:input)p.z-=float(offset);
     }
@@ -68,10 +75,9 @@ void zTsParametricStairs::update(zObjectGraph& graph, const zParametricStairsSet
         }
     }
     auto arm=[&](int a,int b)->Arm&{for(auto& x:arms[a])if(x.neighbor==b)return x;throw std::logic_error("Missing stairs arm.");};
-    auto buildRibbon=[&](int requested,bool stairStations=false){
+    auto buildRibbon=[&](int sections){
+    require(sections<=10000,"Stair construction exceeds 10000 stations per graph edge.");
     for(size_t e=0;e<edges.size();e+=2){int a=edges[e],b=edges[e+1];auto& aa=arm(a,b);auto& bb=arm(b,a);
-        int sections=requested;if(stairStations)sections=std::max(sections,int(std::ceil((V(input[b].x,input[b].y)-V(input[a].x,input[a].y)).norm()/s.treadDepth)));
-        require(sections<=10000,"Stair construction exceeds 10000 stations per graph edge.");
         int start[3]={aa.right,centers[a],aa.left},end[3]={bb.left,centers[b],bb.right};
         std::vector<std::array<int,3>> rows={{start[0],start[1],start[2]}};
         for(int i=1;i<sections;++i){double t=double(i)/sections;std::array<int,3> row;
@@ -89,10 +95,10 @@ void zTsParametricStairs::update(zObjectGraph& graph, const zParametricStairsSet
     buildRibbon(longitudinal);
     zObjectMesh mesh;zFnMesh(mesh).create(positions,counts,connects);
     zObjectMesh lowPoly=mesh;
-    if((!legacy&&s.numDivs>0)||s.generateSteps){
+    if(!legacy&&s.numDivs>0){
         // Only insert transverse stations along each graph arm. The existing
         // right/centre/left rows keep the same two faces across its width.
-        counts.clear();connects.clear();faceGraphEdges.clear();buildRibbon(legacy?s.divisions:1<<s.numDivs,s.generateSteps);
+        counts.clear();connects.clear();faceGraphEdges.clear();buildRibbon(1<<s.numDivs);
         zFnMesh(mesh).create(positions,counts,connects);
     }
     // End-cap lines stay fixed through refinement. Their new boundary vertices
@@ -161,7 +167,7 @@ zObjectMesh& zTsParametricStairs::resultMesh(){if(!m_vault)throw std::logic_erro
 std::shared_ptr<zStairsLayoutData> zTsParametricStairs::layoutFor(const zPointArray& p,bool geometry) const {
     zPointArray graph=m_designPoints;
     for(size_t v=0;v<graph.size();++v){int i=m_centers[v];graph[v].x+=p[i].x-m_centerReferences[i].x;graph[v].y+=p[i].y-m_centerReferences[i].y;}
-    auto contains=[](const zPoint& point,const zPointArray& poly){bool in=false;for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++){auto a=poly[j],b=poly[i];double dx=b.x-a.x,dy=b.y-a.y,cross=dx*(point.y-a.y)-dy*(point.x-a.x);if(std::abs(cross)<1e-7&&(point.x-a.x)*(point.x-b.x)+(point.y-a.y)*(point.y-b.y)<=1e-7)return true;if((a.y>point.y)!=(b.y>point.y)&&point.x<(b.x-a.x)*(point.y-a.y)/(b.y-a.y)+a.x)in=!in;}return in;};
+    auto contains=[](const zPoint& point,const zPointArray& poly){bool in=false;Eigen::Vector2d p(point.x,point.y);for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++){auto a=poly[j],b=poly[i];Eigen::Vector2d pa(a.x,a.y),pb(b.x,a.y);pb.y()=b.y;auto d=pb-pa;double l2=d.squaredNorm();if(l2>1e-20&&(p-pa-std::clamp((p-pa).dot(d)/l2,0.0,1.0)*d).squaredNorm()<=1e-6)return true;if((a.y>point.y)!=(b.y>point.y)&&point.x<(b.x-a.x)*(point.y-a.y)/(b.y-a.y)+a.x)in=!in;}return in;};
     for(const auto& poly:m_settings.landingPolygons)for(size_t v=0;v<graph.size();++v)if(std::abs(m_designPoints[v].z-poly.front().z)<1e-3&&contains(m_designPoints[v],poly))require(contains(graph[v],poly),"A solved graph node left its fixed Rhino landing footprint.");
     auto layout=buildStairsLayout(graph,m_designEdges,m_settings,m_flightCounts,geometry);layout->meshFaceFlights=m_layout->meshFaceFlights;return layout;
 }

@@ -87,7 +87,7 @@ int main(){try{
     zObjectGraph walk;zPointArray wp={{0,0,0},{4,0,.7f},{8,0,1.4f}};zIntArray we={0,1,1,2};zFnGraph(walk).create(wp,we);
     zParametricStairsSettings stairSettings;stairSettings.generateSteps=true;stairSettings.riserHeight=.2;stairSettings.treadDepth=.3;stairSettings.numSmoothDivs=0;
     t.update(walk,stairSettings);check(t.flightRiserCounts()==zIntArray{7},"Integer stair riser count");check(std::abs(t.flightActualRisers()[0]-.2)<1e-6,"Uniform actual riser");
-    check(t.minimumClearance()>=stairSettings.clearance-1e-5,"Initial faces clear tread undersides");auto kinds=t.stairFaceTypes();check(std::count(kinds.begin(),kinds.end(),1)>=14,"Risers follow centre mesh width panels");check(std::count(kinds.begin(),kinds.end(),0)>0,"Open tread surface panels");
+    check(t.minimumClearance()>=stairSettings.clearance-1e-5,"Initial faces clear tread undersides");check(zFnMesh(t.centerMesh()).numPolygons()==8,"Base mesh follows numDivs topology without stair divisions");auto kinds=t.stairFaceTypes();check(std::count(kinds.begin(),kinds.end(),1)==0,"No vertical riser surfaces in stair mesh");check(std::count(kinds.begin(),kinds.end(),0)>=12&&std::count(kinds.begin(),kinds.end(),2)>0,"Open tread and landing surface panels");
     check(zFnGraph(t.walkingGraph()).numVertices()==3&&zFnGraph(t.walkingGraph()).numEdges()==2,"Editable graph keeps original nodes and edges");
     t.snapFixedDensities(0);check(t.minimumClearance()>=stairSettings.clearance-1e-5,"Snap respects stair clearance");t.stepBestFit(2);check(t.minimumClearance()>=stairSettings.clearance-1e-5,"Play respects stair clearance");
     t.smoothResult(1);check(t.minimumClearance()>=stairSettings.clearance-1e-5,"Post smoothing respects stair clearance");

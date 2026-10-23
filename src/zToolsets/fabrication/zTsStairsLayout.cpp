@@ -13,10 +13,10 @@ using V=Eigen::Vector2d;
 V xy(const zPoint& p){return {p.x,p.y};}
 double cross(V a,V b){return a.x()*b.y()-a.y()*b.x();}
 void require(bool b,const char* m){if(!b)throw std::invalid_argument(m);}
-bool inside(V p,const zPointArray& poly){
+bool inside(V p,const zPointArray& poly,double tol=1e-7){
     bool in=false;for(size_t i=0,j=poly.size()-1;i<poly.size();j=i++){
         V a=xy(poly[j]),b=xy(poly[i]),d=b-a;
-        if(std::abs(cross(d,p-a))<1e-7&& (p-a).dot(p-b)<=1e-7)return true;
+        if(d.squaredNorm()>1e-20&&(p-a-std::clamp((p-a).dot(d)/d.squaredNorm(),0.0,1.0)*d).squaredNorm()<=tol*tol)return true;
         if((a.y()>p.y())!=(b.y()>p.y())&&p.x()<(b.x()-a.x())*(p.y()-a.y())/(b.y()-a.y())+a.x())in=!in;
     }return in;
 }
@@ -71,7 +71,7 @@ std::shared_ptr<zStairsLayoutData> buildStairsLayout(const zPointArray& points,c
     std::vector<zPointArray> landings(points.size());out->edgeFlights.assign(edges.size()/2,-1);
     auto width=[&](int v){return s.vertexWidths.empty()?s.width:s.vertexWidths.at(v);};
     for(auto poly:s.landingPolygons){if(poly.size()>2&&(poly.front()-poly.back()).length()<1e-6)poly.pop_back();require(poly.size()>=3,"Landing outline needs at least three points.");double z=poly.front().z;for(auto p:poly)require(std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z)&&std::abs(p.z-z)<1e-4,"Landing outlines must be horizontal.");
-        for(int v=0;v<int(points.size());++v)if(inside(xy(points[v]),poly)){if(std::abs(points[v].z-z)>=1e-3)continue;require(landings[v].empty(),"Multiple landing outlines contain the same graph node.");landings[v]=poly;}
+        for(int v=0;v<int(points.size());++v)if(inside(xy(points[v]),poly,1e-3)){if(std::abs(points[v].z-z)>=1e-3)continue;require(landings[v].empty(),"Multiple landing outlines contain the same graph node.");landings[v]=poly;}
     }
     for(int v:s.landingVertices)require(v>=0&&v<int(points.size()),"Invalid selected landing vertex.");
     auto node=[&](int v){return neighbors[v].size()!=2||(s.landingVertices.empty()?!landings[v].empty():std::find(s.landingVertices.begin(),s.landingVertices.end(),v)!=s.landingVertices.end());};
@@ -98,7 +98,7 @@ std::shared_ptr<zStairsLayoutData> buildStairsLayout(const zPointArray& points,c
         if(points[path.front()].z>points[path.back()].z)std::reverse(path.begin(),path.end());
         std::vector<double> station={0};for(size_t i=1;i<path.size();++i)station.push_back(station.back()+(xy(points[path[i]])-xy(points[path[i-1]])).norm());double length=station.back();
         auto reserve=[&](int a,int b){V origin=xy(points[a]),d=xy(points[b])-origin;d.normalize();double exit=std::numeric_limits<double>::infinity();auto& poly=landings[a];
-            for(size_t i=0;i<poly.size();++i){V p=xy(poly[i]),edge=xy(poly[(i+1)%poly.size()])-p;double denom=cross(d,edge);if(std::abs(denom)<1e-10)continue;double t=cross(p-origin,edge)/denom,u=cross(p-origin,d)/denom;if(t>=-1e-6&&u>=-1e-6&&u<=1+1e-6)exit=std::min(exit,std::max(0.0,t));}
+            for(size_t i=0;i<poly.size();++i){V p=xy(poly[i]),edge=xy(poly[(i+1)%poly.size()])-p;double denom=cross(d,edge);if(std::abs(denom)<1e-10)continue;double t=cross(p-origin,edge)/denom,u=cross(p-origin,d)/denom;if(t>=-1e-3&&u>=-1e-6&&u<=1+1e-6)exit=std::min(exit,std::max(0.0,t));}
             require(std::isfinite(exit),"Graph node lies outside its landing outline.");return exit;
         };
         double outlineA=reserve(path.front(),path[1]),outlineB=reserve(path.back(),path[path.size()-2]);
@@ -138,9 +138,6 @@ std::shared_ptr<zStairsLayoutData> buildStairsLayout(const zPointArray& points,c
         strip(outlineA,start,points[path.front()].z,2);strip(end,length-outlineB,points[path.back()].z,2);
         if(!n)strip(start,end,points[path.front()].z,2);
         for(int k=0;k<n-1;++k)strip(start+k*tread,start+(k+1)*tread,points[path.front()].z+(k+1)*rise,0);
-        for(int k=0;k<n;++k){double t=start+k*tread;auto p=sample(t);V offset=sectionOffset(t),l=xy(p)-offset,r=xy(p)+offset;double low=points[path.front()].z+k*rise,high=low+rise;V tangent(offset.y(),-offset.x());tangent.normalize();tangent*=1e-5;zPointArray riserFoot;for(V v:std::array<V,4>{V(l-tangent),V(r-tangent),V(r+tangent),V(l+tangent)})riserFoot.emplace_back(float(v.x()),float(v.y()),float(high));out->footprints.push_back({riserFoot,low,high,currentFlight});
-            face({zPoint(float(l.x()),float(l.y()),float(low)),zPoint(float(r.x()),float(r.y()),float(low)),zPoint(float(r.x()),float(r.y()),float(high)),zPoint(float(l.x()),float(l.y()),float(high))},1);
-        }
         for(size_t i=1;i+1<path.size();++i){double t=station[i];double f=run>1e-9?std::clamp((t-start)/run,0.0,1.0):t>=start?1:0;out->graphPoints[path[i]].z=float(points[path.front()].z+height*f);}
     }
     require(!out->riserCounts.empty(),"Stair layout needs flights between landings.");
@@ -165,7 +162,7 @@ zStairsGraphOptimisation zTsParametricStairs::optimiseGraph(zObjectGraph& graph,
     for(int v=0;v<int(original.size());++v){require(!adjacent[v].empty(),"Stairs graph contains an isolated vertex.");if(visited.count(v))continue;zIntArray queue={v};visited.insert(v);int bottom=v;
         for(size_t i=0;i<queue.size();++i){int u=queue[i];if(original[u].z<original[bottom].z-1e-7||(std::abs(original[u].z-original[bottom].z)<=1e-7&&adjacent[bottom].size()==2&&adjacent[u].size()!=2))bottom=u;for(int n:adjacent[u])if(visited.insert(n).second)queue.push_back(n);}
         result.bottomNodes.push_back(bottom);
-        bool landing=adjacent[bottom].size()!=2;for(const auto& poly:settings.landingPolygons)if(!poly.empty()&&std::abs(poly.front().z-original[bottom].z)<1e-3&&inside(xy(original[bottom]),poly))landing=true;
+        bool landing=adjacent[bottom].size()!=2;for(const auto& poly:settings.landingPolygons)if(!poly.empty()&&std::abs(poly.front().z-original[bottom].z)<1e-3&&inside(xy(original[bottom]),poly,1e-3))landing=true;
         if(!landing){zPointArray corners;double width=settings.vertexWidths.empty()?settings.width:settings.vertexWidths[bottom];for(int n:adjacent[bottom]){V d=xy(original[n])-xy(original[bottom]);require(d.norm()>1e-6,"Collapsed graph plan edge.");d.normalize();V normal(-d.y(),d.x());for(double along:{-.5*settings.landingDepth,.5*settings.landingDepth})for(double side:{-.5*width,.5*width}){V p=xy(original[bottom])+along*d+side*normal;corners.emplace_back(float(p.x()),float(p.y()),original[bottom].z);}}settings.landingPolygons.push_back(hull(corners));}
     }
     auto capacity=buildStairsLayout(original,edges,settings,{},false,true);
@@ -197,7 +194,7 @@ zStairsGraphOptimisation zTsParametricStairs::optimiseGraph(zObjectGraph& graph,
     // Move imported landing outlines only with their associated nodes, including stacked levels.
     result.landingPolygons=settings.landingPolygons;result.landingOffsets.assign(settings.landingPolygons.size(),0);
     for(size_t i=0;i<settings.landingPolygons.size();++i){const auto& poly=settings.landingPolygons[i];bool found=false;double delta=0;
-        for(size_t v=0;v<original.size();++v)if(!poly.empty()&&std::abs(original[v].z-poly.front().z)<1e-3&&inside(xy(original[v]),poly)){double d=points[v].z-original[v].z;if(found)require(std::abs(d-delta)<1e-4,"One Rhino landing outline spans nodes needing different levels.");found=true;delta=d;}
+        for(size_t v=0;v<original.size();++v)if(!poly.empty()&&std::abs(original[v].z-poly.front().z)<1e-3&&inside(xy(original[v]),poly,1e-3)){double d=points[v].z-original[v].z;if(found)require(std::abs(d-delta)<1e-4,"One Rhino landing outline spans nodes needing different levels.");found=true;delta=d;}
         result.landingOffsets[i]=delta;for(auto& p:result.landingPolygons[i])p.z+=float(delta);
     }
     for(size_t f=0;f<count;++f){const auto& path=capacity->flightPaths[f];double height=double(points[path.back()].z)-points[path.front()].z,usable=capacity->usableRuns[f],run=std::max(0,result.riserCounts[f]-1)*result.treadDepths[f],start=capacity->startReserves[f]+(usable-run)*.5;double station=0;

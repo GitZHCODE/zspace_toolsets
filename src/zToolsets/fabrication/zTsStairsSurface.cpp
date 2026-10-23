@@ -51,7 +51,7 @@ void buildStairsSurface(zStairsLayoutData& layout,const zPointArray& source,
         cache[v]=result;return result;
     };
     layout.footprints.clear();layout.faceTypes.clear();zPointArray vertices;zIntArray faceCounts,faceConnects;
-    std::map<Key,int> welded;std::set<std::pair<Key,Key>> risers;
+    std::map<Key,int> welded;
     auto vertex=[&](const P& p,double z){Key k=key(p,z);auto found=welded.find(k);if(found!=welded.end())return found->second;int id=int(vertices.size());vertices.emplace_back(float(p.xy.x()),float(p.xy.y()),float(z));welded[k]=id;return id;};
     auto horizontal=[&](std::vector<P> poly,double z,int type,int flight){
         if(poly.size()<3)return;std::vector<P> clean;
@@ -75,15 +75,6 @@ void buildStairsSurface(zStairsLayoutData& layout,const zPointArray& source,
         for(auto& poly:patches){double minS=1e100,maxS=-1e100;for(auto p:poly){minS=std::min(minS,p.station);maxS=std::max(maxS,p.station);}
             int from=std::clamp(int(std::floor((minS-first)/tread))+1,0,n),to=std::clamp(int(std::floor((maxS-first)/tread))+1,0,n);
             for(int band=from;band<=to;++band){auto part=poly;if(band>0)part=clip(part,first+(band-1)*tread,true);if(band<n)part=clip(part,first+band*tread,false);horizontal(part,low+band*rise,band==0||band==n?2:0,flight);}
-            for(int k=0;k<n;++k){double cut=first+k*tread;if(cut<minS-1e-8||cut>maxS+1e-8)continue;std::vector<P> hits;
-                auto hit=[&](P p){for(auto q:hits)if(key(p,0)==key(q,0))return;hits.push_back(p);};
-                for(size_t i=0;i<poly.size();++i){auto p=poly[i],q=poly[(i+1)%poly.size()];if(std::abs(p.station-cut)<1e-8)hit(p);if((p.station<cut-1e-9&&q.station>cut+1e-9)||(q.station<cut-1e-9&&p.station>cut+1e-9))hit(mix(p,q,(cut-p.station)/(q.station-p.station),cut));}
-                if(hits.size()!=2||(hits[0].xy-hits[1].xy).norm()<1e-8)continue;P p=hits[0],q=hits[1];double z0=low+k*rise,z1=z0+rise;
-                for(auto r:poly)if(std::abs(r.station-cut)>1e-8){double side=cross(q.xy-p.xy,r.xy-p.xy);if((r.station<cut&&side<0)||(r.station>cut&&side>0))std::swap(p,q);break;}
-                auto a=key(p,z0),b=key(q,z0);if(!risers.emplace(std::min(a,b),std::max(a,b)).second)continue;
-                V d=q.xy-p.xy,normal(-d.y(),d.x());normal.normalize();normal*=1e-6;zPointArray footprint;for(V v:std::array<V,4>{V(p.xy-normal),V(q.xy-normal),V(q.xy+normal),V(p.xy+normal)})footprint.emplace_back(float(v.x()),float(v.y()),float(z1));layout.footprints.push_back({footprint,z0,z1,flight});
-                if(geometry){faceCounts.push_back(4);faceConnects.insert(faceConnects.end(),{vertex(p,z0),vertex(p,z1),vertex(q,z1),vertex(q,z0)});layout.faceTypes.push_back(1);}
-            }
         }
     }
     if(geometry){if(faceCounts.empty())throw std::invalid_argument("Stair surface is empty.");zFnMesh(layout.mesh).create(vertices,faceCounts,faceConnects);}

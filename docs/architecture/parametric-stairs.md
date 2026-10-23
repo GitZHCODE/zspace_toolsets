@@ -156,10 +156,10 @@ Closed horizontal curves in Rhino's Landing/Landings layers are used as landing
 footprints, including parent layers of that name. Nodes are associated by both
 XY containment and elevation, so stacked levels remain separate. Other endpoints
 and junctions receive generated convex landings. Imported outlines remain fixed;
-solved nodes must remain inside their assigned outlines. Treads and landings inherit the centre mesh plan, face boundaries and subdivisions.
-Step contours split those faces and insert vertical riser panels. Shared source
-vertices and edge intersections are welded into one connected, zero-thickness
-**Stair Assembly** surface per connected source component. No bottom or side
+solved nodes must remain inside their assigned outlines. Treads and landings inherit the centre mesh plan, face boundaries and subdivisions without subdividing the base structural mesh by step stations.
+Step contours split the stair surface faces into horizontal treads and landings without vertical riser surfaces. Shared source
+vertices and edge intersections on each horizontal level are welded into a zero-thickness
+**Stair Assembly** mesh above the structural mesh. No riser, bottom or side
 closure is generated. Imported outlines constrain landing reserves but do not
 add separate slabs outside the centre mesh. The legacy `stepThickness` input is
 accepted for compatibility and has no effect on this surface. The structural mesh remains the same **Center Mesh** object.
